@@ -200,7 +200,9 @@ header.app .hdr-help:active{opacity:.7}
 /* --- XRPタブ(サイクル管理) --- */
 .cyc .head{display:flex;align-items:center;gap:8px}
 .cyc .head .name{font-size:13px;font-weight:700}
-.cyc .head .amt{margin-left:auto;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+.cyc .badgeline{margin-bottom:7px}
+.cyc .head .name{flex:1 1 auto;min-width:0}
+.cyc .head .amt{margin-left:auto;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
 .cyc .pair{display:flex;gap:12px;font-size:11.5px;color:var(--sub);font-variant-numeric:tabular-nums;flex-wrap:wrap;margin-top:5px}
 .cyc .pair b{color:var(--ink);font-weight:600}
 .badge{font-size:10px;font-weight:700;border-radius:20px;padding:2px 9px;flex-shrink:0}
@@ -1616,7 +1618,7 @@ function xrpPriceHtml(a) {
   const pc = S.priceCache[a.id] || {};
   const price = Number(pc.last || 0);
   const pill = S.apiState === 'ok' ? '<span class="pill ok"><span class="dot"></span>API接続中(GMOコイン)</span>'
-    : S.apiState === 'fallback' ? '<span class="pill fb"><span class="dot"></span>代替ソースで取得中</span>'
+    : S.apiState === 'fallback' ? ''
     : S.apiState === 'error' ? '<span class="pill ng"><span class="dot"></span>API接続エラー</span>'
     : '<span class="pill fb"><span class="dot"></span>取得中…</span>';
   return `<div class="card">
@@ -1682,8 +1684,8 @@ function xrpBuyOrdersHtml(a) {
     const names = (o.reserveIds || []).map(id => { const r = S.reserves.find(x => x.id === id); return r ? xrpTxLabel(r) : null; }).filter(Boolean);
     const prog = o.rate > 0 ? Math.max(0, Math.min(100, (2 - price / Number(o.rate)) * 100)) : 0;
     return `<div class="card cyc">
-      <div class="head"><span class="badge ${filled ? 'b-done' : 'b-buy'}">${filled ? '約定(価格到達)' : '買い注文中'}</span>
-        <span class="name">${names.length ? esc(names.slice(0, 2).join('・')) + (names.length > 2 ? ` ほか${names.length - 2}件` : '') : '買い注文'}</span>
+      <div class="badgeline"><span class="badge ${filled ? 'b-done' : 'b-buy'}">${filled ? '約定(価格到達)' : '買い注文中'}</span></div>
+      <div class="head"><span class="name">${names.length ? esc(names.slice(0, 2).join('・')) + (names.length > 2 ? ` ほか${names.length - 2}件` : '') : '買い注文'}</span>
         <span class="amt">${fmtYen(o.amount)}</span></div>
       <div class="pair"><span>注文 <b>${fmtYen(o.rate)}</b> → <b>${fmtQty(o.qty, a.qtyDecimals)} ${esc(a.code)}</b></span></div>
       ${filled ? '' : `<div class="progressbar"><i style="width:${prog}%"></i></div>
