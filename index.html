@@ -1,0 +1,2310 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#1f2b26">
+<title>つみき家計簿</title>
+<style>
+:root{
+  --bg:#eef1ee; --surface:#ffffff; --surface2:#f7f9f7;
+  --ink:#1f2b26; --sub:#68766f; --faint:#9aa8a0;
+  --line:#dde4df; --line2:#e9eeea;
+  --asset:#1e6e5c; --asset-soft:#e3efe9; --asset-ink:#134f42;
+  --spend:#b4543e; --spend-soft:#f6e8e3;
+  --income:#2f6d8e; --income-soft:#e4eef4;
+  --warn:#9a6b2f; --warn-soft:#f7efe2;
+  --danger:#b03a2e; --danger-soft:#f6e2df;
+  --ok:#3c7d4e;
+  --r:14px; --r-s:9px;
+  --shadow:0 1px 2px rgba(31,43,38,.06),0 4px 14px rgba(31,43,38,.05);
+  --nav-h:60px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic UI","Noto Sans JP",Meiryo,sans-serif;
+  background:var(--bg); color:var(--ink); font-size:15px; line-height:1.55;
+  padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom,0px));
+}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:var(--r-s);padding:11px 12px;width:100%;font-size:16px}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--asset);outline-offset:1px;border-color:var(--asset)}
+input.num{text-align:right;font-variant-numeric:tabular-nums}
+input[type="date"]{min-height:46px;-webkit-appearance:none;appearance:none;font-variant-numeric:tabular-nums}
+label{display:block;font-size:12px;color:var(--sub);margin:12px 0 4px;font-weight:600;letter-spacing:.02em}
+label .req{color:var(--spend)}
+header.app{
+  position:sticky;top:0;z-index:30;background:var(--ink);color:#f2f5f3;
+  padding:10px 16px calc(10px);display:flex;align-items:baseline;gap:10px;
+}
+header.app .brand{font-size:17px;font-weight:700;letter-spacing:.06em}
+header.app .brand small{font-weight:500;font-size:11px;color:#aebbb4;margin-left:8px;letter-spacing:.08em}
+header.app .mini-price{margin-left:auto;font-size:12px;color:#cfe0d8;font-variant-numeric:tabular-nums;white-space:nowrap}
+header.app .mini-price b{font-size:13px}
+header.app .mini-price .src{font-size:10px;color:#8fa39a}
+main{max-width:640px;margin:0 auto;padding:14px 14px 24px}
+.screen{display:none}
+.screen.on{display:block}
+/* tab bar */
+nav.tabbar{
+  position:fixed;bottom:0;left:0;right:0;z-index:40;height:calc(var(--nav-h) + env(safe-area-inset-bottom,0px));
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  background:var(--surface);border-top:1px solid var(--line);display:flex;
+}
+nav.tabbar button{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  font-size:10.5px;color:var(--sub);padding-top:7px;
+}
+nav.tabbar button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+nav.tabbar button.on{color:var(--asset);font-weight:700}
+/* cards & text */
+.card{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);padding:16px;margin-bottom:14px}
+.card h2{font-size:14px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.card h2 .tag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:var(--asset-soft);color:var(--asset-ink)}
+.card h3{font-size:13px;margin:14px 0 6px;color:var(--sub)}
+.hint{font-size:11.5px;color:var(--sub)}
+.warnbox{background:var(--warn-soft);border:1px solid #e6d5b8;border-radius:var(--r-s);padding:10px 12px;font-size:12px;color:var(--warn);margin-top:10px}
+.dangerbox{background:var(--danger-soft);border:1px solid #e7c4bf;border-radius:var(--r-s);padding:10px 12px;font-size:12px;color:var(--danger);margin-top:10px}
+.notebox{background:var(--surface2);border:1px solid var(--line2);border-radius:var(--r-s);padding:10px 12px;font-size:12px;color:var(--sub);margin-top:10px}
+.errbox{background:var(--danger-soft);border:1px solid #e7c4bf;border-radius:var(--r-s);padding:10px 12px;font-size:12.5px;color:var(--danger);margin:8px 0}
+.okbox{background:var(--asset-soft);border:1px solid #cfe2d9;border-radius:var(--r-s);padding:10px 12px;font-size:12.5px;color:var(--asset-ink);margin:8px 0}
+/* big number rows */
+.statgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);padding:12px 14px}
+.stat .l{font-size:11.5px;color:var(--sub)}
+.stat .v{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.stat .v small{font-size:12px;font-weight:600;color:var(--sub);margin-left:2px}
+.stat .s{font-size:10.5px;color:var(--faint);margin-top:2px}
+.v.spend{color:var(--spend)} .v.income{color:var(--income)} .v.asset{color:var(--asset)}
+.v.plus{color:var(--ok)} .v.minus{color:var(--danger)}
+/* stacked bricks gauge (signature) */
+.gauge{margin:6px 0 4px}
+.gauge .strip{display:flex;height:26px;border-radius:8px;overflow:hidden;background:var(--line2)}
+.gauge .brick{height:100%;background:var(--asset);border-right:2px solid var(--surface);opacity:.92;min-width:4px;transition:width .4s ease}
+.gauge .brick:last-child{border-right:none}
+.gauge .brick.alt{background:#3a8a75}.gauge .brick.alt2{background:#5aa68f}
+.gauge .empty{height:100%;flex:1;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--faint)}
+.gauge .cap{display:flex;justify-content:space-between;font-size:11px;color:var(--sub);margin-top:5px;font-variant-numeric:tabular-nums}
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:12px;padding:13px 18px;font-weight:700;font-size:14.5px;border:1px solid transparent;min-height:46px}
+.btn.primary{background:var(--asset);color:#fff}
+.btn.primary:active{opacity:.85}
+.btn.sub{background:var(--surface);border-color:var(--line);color:var(--ink)}
+.btn.danger{background:var(--danger);color:#fff}
+.btn.warn{background:#fff;border-color:#e6d5b8;color:var(--warn)}
+.btn.sm{min-height:34px;padding:6px 12px;font-size:12.5px;border-radius:9px}
+.btn.block{width:100%}
+.btn:disabled{opacity:.45}
+.row{display:flex;gap:10px}.row>*{flex:1}
+.inrow{display:flex;gap:8px;align-items:flex-end}
+/* segmented tabs */
+.seg{display:flex;gap:4px;background:var(--surface2);border:1px solid var(--line2);border-radius:11px;padding:4px;margin-bottom:14px;overflow-x:auto;scrollbar-width:none}
+.seg::-webkit-scrollbar{display:none}
+.seg button{flex:1;white-space:nowrap;padding:8px 10px;border-radius:8px;font-size:13px;color:var(--sub);font-weight:600}
+.seg button.on{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+/* list rows */
+.lrow{display:flex;align-items:center;gap:12px;padding:11px 2px;border-bottom:1px solid var(--line2)}
+.lrow:last-child{border-bottom:none}
+.lrow .ico{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;font-weight:700}
+.lrow .ico.exp{background:var(--spend-soft);color:var(--spend)}
+.lrow .ico.inc{background:var(--income-soft);color:var(--income)}
+.lrow .ico.buy{background:var(--asset-soft);color:var(--asset-ink)}
+.lrow .ico.sell{background:var(--warn-soft);color:var(--warn)}
+.lrow .mid{flex:1;min-width:0}
+.lrow .t{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lrow .d{font-size:11.5px;color:var(--sub)}
+.lrow .amt{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.lrow .amt small{font-weight:600;color:var(--sub)}
+.lrow .ops{display:flex;gap:6px}
+.mut{color:var(--faint)}
+/* tables */
+table.tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+table.tbl th{font-size:10.5px;color:var(--sub);font-weight:600;text-align:left;padding:6px 4px;border-bottom:1px solid var(--line)}
+table.tbl td{padding:7px 4px;border-bottom:1px solid var(--line2);font-variant-numeric:tabular-nums;vertical-align:top}
+table.tbl td.r,table.tbl th.r{text-align:right}
+/* copy cards */
+.copycard{border:1.5px solid var(--asset);background:var(--asset-soft);border-radius:var(--r);padding:12px 14px;margin-top:10px}
+.copycard .l{font-size:11.5px;color:var(--asset-ink);font-weight:700}
+.copycard .v{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.01em;color:var(--ink);word-break:break-all}
+.copycard button{margin-top:6px}
+.copycard.plain{border-color:var(--line);background:var(--surface)}
+/* price header */
+.pricebar{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.pricebar .now{flex:1 1 130px}
+.pricebar .now .v{font-size:30px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:99px}
+.pill.ok{background:var(--asset-soft);color:var(--asset-ink)}
+.pill.ng{background:var(--danger-soft);color:var(--danger)}
+.pill.fb{background:var(--warn-soft);color:var(--warn)}
+.pill .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+/* chart */
+.chart{width:100%}
+.legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:8px;font-size:11.5px;color:var(--sub)}
+.legend .sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.bar{height:8px;border-radius:5px;background:var(--asset);min-width:2px}
+.barslot{display:flex;align-items:center;gap:8px;margin:7px 0}
+.barslot .nm{width:88px;font-size:12px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.barslot .barwrap{flex:1;background:var(--line2);border-radius:5px;height:8px;overflow:hidden}
+.barslot .amt{width:84px;text-align:right;font-size:12px;font-variant-numeric:tabular-nums;flex-shrink:0}
+/* modal */
+#modal-root{position:fixed;inset:0;z-index:100;display:none}
+#modal-root.on{display:block}
+#modal-root .veil{position:absolute;inset:0;background:rgba(31,43,38,.45)}
+#modal-root .box{position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:100%;max-width:640px;max-height:88vh;overflow:auto;overscroll-behavior:contain;background:var(--surface);border-radius:18px 18px 0 0;padding:18px 16px calc(20px + env(safe-area-inset-bottom,0px))}
+#modal-root .box h2{font-size:16px;margin-bottom:10px;padding-right:38px}
+#modal-root .mclose{position:absolute;top:12px;right:12px;width:32px;height:32px;border-radius:50%;background:var(--surface2);border:1px solid var(--line2);color:var(--sub);font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center;z-index:2}
+#modal-root .mclose:active{opacity:.7}
+body.modal-open{overflow:hidden}
+#modal-root .grip{width:40px;height:4px;border-radius:3px;background:var(--line);margin:0 auto 12px}
+/* toast */
+#toast{position:fixed;left:50%;bottom:calc(var(--nav-h) + 18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:99px;font-size:13px;z-index:120;opacity:0;transition:opacity .25s;pointer-events:none;max-width:88vw}
+#toast.on{opacity:.95}
+/* misc */
+.mt{margin-top:12px}.mb0{margin-bottom:0}.small{font-size:12px}
+.checkline{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--sub);margin:6px 0}
+.checkline input{width:18px;height:18px;flex-shrink:0;margin-top:1px}
+.kv{display:flex;justify-content:space-between;gap-10px;padding:7px 2px;border-bottom:1px dashed var(--line2);font-size:13.5px}
+.kv:last-child{border-bottom:none}
+.kv .k{color:var(--sub)}
+.kv .v{font-variant-numeric:tabular-nums;font-weight:700;text-align:right;word-break:break-all}
+.bigmoney{font-size:34px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+/* home input hub */
+.actgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.bigact{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;border-radius:var(--r);padding:16px 10px;font-weight:700;font-size:14.5px;text-align:center;min-height:88px;border:1px solid transparent;box-shadow:var(--shadow)}
+.bigact svg{width:30px;height:30px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.bigact .s{font-size:10.5px;font-weight:500;opacity:.8}
+.bigact.main{background:var(--asset);color:#fff;grid-column:1 / -1;min-height:106px;font-size:16.5px;box-shadow:none}
+.bigact.sub{background:var(--surface);border-color:var(--line)}
+.bigact.sub svg{stroke:var(--asset)}
+/* two-column form row */
+.frow2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.frow2>div{min-width:0}
+/* TSV preview */
+.tsvrow{padding:9px 2px;border-bottom:1px solid var(--line2);font-size:12.5px}
+.tsvrow:last-child{border-bottom:none}
+.tsvrow .t{font-weight:600;font-size:13.5px}
+.tsvrow .d{color:var(--sub);font-size:11.5px;margin-top:1px;word-break:break-all}
+.tsvrow .amt{font-weight:700;font-variant-numeric:tabular-nums}
+.tsvrow.fx{background:var(--warn-soft);border-radius:8px;padding-left:8px;padding-right:8px}
+/* help page */
+header.app .hdr-help{width:30px;height:30px;border-radius:50%;border:1px solid rgba(255,255,255,.35);color:#cfe0d8;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;margin-left:10px}
+header.app .hdr-help:active{opacity:.7}
+.steps .st{display:flex;gap:10px;padding:9px 0;border-bottom:1px dashed var(--line2);align-items:flex-start}
+.steps .st:last-child{border-bottom:none}
+.steps{counter-reset:st}
+.steps .st::before{counter-increment:st;content:counter(st);flex-shrink:0;width:22px;height:22px;border-radius:50%;background:var(--asset-soft);color:var(--asset-ink);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px}
+/* drag handle */
+.lrow .drag{cursor:grab;color:var(--faint);font-size:15px;font-weight:700;padding:10px 8px;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;flex-shrink:0;letter-spacing:-1px;line-height:1}
+.lrow.dragging{opacity:.55;background:var(--surface2);border-radius:8px;box-shadow:0 0 0 1px var(--asset);position:relative;z-index:5}
+/* --- XRPタブ(サイクル管理) --- */
+.cyc .head{display:flex;align-items:center;gap:8px}
+.cyc .head .name{font-size:13px;font-weight:700}
+.cyc .head .amt{margin-left:auto;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+.cyc .pair{display:flex;gap:12px;font-size:11.5px;color:var(--sub);font-variant-numeric:tabular-nums;flex-wrap:wrap;margin-top:5px}
+.cyc .pair b{color:var(--ink);font-weight:600}
+.badge{font-size:10px;font-weight:700;border-radius:20px;padding:2px 9px;flex-shrink:0}
+.b-sell{background:var(--asset-soft);color:var(--asset)}
+.b-buy{background:#f6ecd9;color:var(--warn)}
+.b-done{background:var(--bg);color:var(--sub)}
+.progressbar{height:7px;background:var(--bg);border-radius:6px;overflow:hidden;margin-top:8px}
+.progressbar i{display:block;height:100%;background:var(--asset);border-radius:6px}
+.after{display:flex;align-items:baseline;justify-content:space-between;font-size:11.5px;margin-top:5px}
+.after .left{color:var(--warn);font-weight:700;font-variant-numeric:tabular-nums}
+.after .diff{color:var(--asset);font-weight:700;font-variant-numeric:tabular-nums}
+.chk{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--line2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff}
+.lrow.selrow .chk{background:var(--asset);border-color:var(--asset)}
+.lrow.selrow{outline:1.5px solid var(--asset);outline-offset:-1.5px;border-radius:10px;background:var(--surface2)}
+.lrow.drop-above{box-shadow:0 -2px 0 0 var(--asset)}
+.lrow.drop-below{box-shadow:0 2px 0 0 var(--asset)}
+/* prompt example */
+.promptbox{background:#f4f6f4;border:1px solid var(--line2);border-radius:var(--r-s);padding:12px;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;line-height:1.6;white-space:pre-wrap;word-break:break-word;color:var(--ink);margin-top:8px}
+.steps .st .b{font-weight:600;font-size:13.5px}
+.steps .st .d{font-size:12px;color:var(--sub);margin-top:1px}
+div.errskip{display:none}
+</style>
+</head>
+<body>
+<header class="app">
+  <div class="brand">つみき<small>家計 × 資産ノート</small></div>
+  <div class="mini-price" id="mini-price" style="display:none"></div>
+  <button class="hdr-help" onclick="go('help')" aria-label="アプリの使い方">?</button>
+</header>
+<main id="main">
+  <section class="screen" id="scr-home"></section>
+  <section class="screen" id="scr-ledger"></section>
+  <section class="screen" id="scr-history"></section>
+  <section class="screen" id="scr-asset"></section>
+  <section class="screen" id="scr-settings"></section>
+  <section class="screen" id="scr-help"></section>
+  <section class="screen" id="scr-xrphist"></section>
+</main>
+<nav class="tabbar" id="tabbar"></nav>
+<div id="modal-root"></div>
+<div id="toast"></div>
+<script>
+'use strict';
+/* ================= コア計算ロジック(純粋関数・DOM非依存) ================= */
+const Core = (() => {
+
+  const YEN = 1; // 金額は円(整数)で管理
+
+  function round(n, d = 0) {
+    const p = Math.pow(10, d);
+    return Math.sign(n) * Math.round(Math.abs(n) * p + Number.EPSILON) / p;
+  }
+  // ステップ(刻み幅)の小数桁数を得る
+  function stepDecimals(step) {
+    const s = String(step);
+    const i = s.indexOf('.');
+    return i < 0 ? 0 : s.length - i - 1;
+  }
+  // 数値を step の倍数に切り下げ(stepは正の10進文字列) — 浮動小数誤差は相対許容で吸収
+  function stepCount(x, step) {
+    const c = x / Number(step);
+    const r = Math.round(c);
+    return Math.abs(c - r) < 1e-9 * Math.max(1, Math.abs(c)) ? r : Math.floor(c);
+  }
+  function floorStep(x, step) {
+    return round(stepCount(x, step) * Number(step), stepDecimals(step));
+  }
+  function ceilStep(x, step) {
+    const f = floorStep(x, step);
+    if (f >= x - 1e-9 * Math.max(1, Math.abs(x))) return f;
+    return round(f + Number(step), stepDecimals(step));
+  }
+  // 購入数量 = 購入金額 ÷ 注文レート (最小注文単位に切り下げ)
+  function calcBuyQty(amount, rate, minOrderQty, qtyStep) {
+    const raw = amount / rate;
+    const qty = floorStep(raw, qtyStep);
+    return { qty, ok: qty >= Number(minOrderQty) - 1e-9 && qty > 0 };
+  }
+  // 売却目標価格 = 実際の購入価格 × (1 + 上昇率) → 価格刻みに丸め(切上げ)
+  function calcTargetPrice(rate, gainRate, priceStep) {
+    const raw = rate * (1 + gainRate);
+    return ceilStep(raw, priceStep);
+  }
+  // 元本回収に必要な売却数量 = 元本 ÷ 売却目標価格 (数量刻みに切り下げ)
+  function calcSellQty(principal, targetPrice, minOrderQty, qtyStep) {
+    const qty = floorStep(principal / targetPrice, qtyStep);
+    return { qty, ok: qty >= Number(minOrderQty) - 1e-9 && qty > 0 };
+  }
+  // 残存数量(刻み丸り後)
+  function remainingQty(totalQty, sellQty) {
+    const d = Math.max(stepDecimals('0.00000001'), 0);
+    return round(totalQty - sellQty, 8);
+  }
+  // 購入登録時の紐づけ: 未購入(reserves)を古い順に消化
+  // actualAmount: 実際の購入金額(円) → {links:[{reserveId, amount}], remainder: 差額}
+  function allocatePurchase(reserves, actualAmount) {
+    let rest = Math.round(actualAmount);
+    const links = [];
+    for (const r of reserves) {
+      if (rest <= 0) break;
+      const take = Math.min(r.amount, rest);
+      if (take > 0) links.push({ reserveId: r.id, amount: take, txId: r.txId });
+      rest -= take;
+    }
+    return { links, remainder: rest }; // remainder>0: 予定より多く買った分 / links合計<actual は無い
+  }
+  // 購入金額(予定)に対し実際が不足した場合の残り未購入額
+  // plannedTotal: 紐づけ対象だった予定合計, actualAmount: 実際
+  function shortfallOf(plannedTotal, actualAmount) {
+    return Math.max(0, Math.round(plannedTotal) - Math.round(actualAmount));
+  }
+  // FIFO: 購入lotsと累計売却数量から未売却lotsを計算
+  // purchases: [{id, datetime, qty, rate}] 昇順ソート済み, soldTotal: 数量
+  function fifoRemaining(purchases, soldTotal) {
+    let rest = soldTotal;
+    const out = [];
+    for (const p of purchases) {
+      const q = Number(p.qty);
+      let remain = q;
+      if (rest > 0) {
+        const use = Math.min(q, rest);
+        remain = round(q - use, 8);
+        rest = round(rest - use, 8);
+      }
+      if (remain > 1e-9) out.push({ purchaseId: p.id, qty: remain, rate: Number(p.rate), datetime: p.datetime });
+    }
+    return out;
+  }
+  // 売却のFIFO割当 + 実現損益(手数料を引いた額)
+  // purchases昇順, sale:{qty, amountJPY, fee}
+  function fifoAllocateSale(purchases, sale) {
+    let rest = Number(sale.qty);
+    let cost = 0;
+    const alloc = [];
+    for (const p of purchases) {
+      if (rest <= 0) break;
+      const remain = Number(p.remainQty != null ? p.remainQty : p.qty); // 呼び出し側で残数量を渡す
+      if (remain <= 0) continue;
+      const use = Math.min(remain, rest);
+      cost += use * Number(p.rate);
+      alloc.push({ purchaseId: p.id, qty: round(use, 8) });
+      rest = round(rest - use, 8);
+    }
+    const realized = round(Number(sale.amountJPY) - Number(sale.fee || 0) - cost);
+    return { alloc, cost: round(cost), realized };
+  }
+  // 月サマリ
+  function monthSummary(txs, ym) { // ym: 'YYYY-MM'
+    let exp = 0, inc = 0;
+    for (const t of txs) {
+      if (String(t.date).slice(0, 7) !== ym) continue;
+      if (t.type === 'expense') exp += t.amount; else inc += t.amount;
+    }
+    return { expense: exp, income: inc, balance: inc - exp };
+  }
+  function categoryBreakdown(txs, ym, type) {
+    const m = new Map();
+    for (const t of txs) {
+      if (t.type !== type) continue;
+      if (ym && String(t.date).slice(0, 7) !== ym) continue;
+      m.set(t.categoryId, (m.get(t.categoryId) || 0) + t.amount);
+    }
+    return [...m.entries()].map(([categoryId, amount]) => ({ categoryId, amount }))
+      .sort((a, b) => b.amount - a.amount);
+  }
+  function monthTotals(txs, n) { // 直近nヶ月の配列(古→新) [{ym, expense, income}]
+    const arr = [];
+    const now = new Date();
+    for (let i = n - 1; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const ym = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      const s = monthSummary(txs, ym);
+      arr.push({ ym, ...s });
+    }
+    return arr;
+  }
+  return {
+    round, stepDecimals, floorStep, ceilStep, stepCount,
+    calcBuyQty, calcTargetPrice, calcSellQty, remainingQty,
+    allocatePurchase, shortfallOf, fifoRemaining, fifoAllocateSale,
+    monthSummary, categoryBreakdown, monthTotals
+  };
+})();
+
+/* ================= 表示ユーティリティ ================= */
+function fmtYen(n, withUnit = true) {
+  const v = Math.round(Number(n) || 0);
+  const s = v.toLocaleString('ja-JP');
+  return withUnit ? s + '円' : s;
+}
+function fmtSignYen(n) {
+  const v = Math.round(Number(n) || 0);
+  if (v > 0) return '+' + v.toLocaleString('ja-JP') + '円';
+  return v.toLocaleString('ja-JP') + '円';
+}
+function fmtQty(q, decimals = 4) {
+  const v = Number(q) || 0;
+  return v.toLocaleString('ja-JP', { minimumFractionDigits: 0, maximumFractionDigits: decimals });
+}
+function fmtDateTime(s) { // 'YYYY-MM-DDTHH:mm' → 'YYYY/MM/DD HH:mm'
+  if (!s) return '-';
+  return s.replace('T', ' ').replace(/-/g, '/');
+}
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function nowYm() { return todayStr().slice(0, 7); }
+function nowLocalTs() {
+  const d = new Date();
+  const p = n => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + 'T' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function uid() {
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+}
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('on');
+  clearTimeout(toast._h);
+  toast._h = setTimeout(() => t.classList.remove('on'), 2200);
+}
+async function copyText(txt) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(txt);
+      return true;
+    }
+  } catch (e) { /* fall through */ }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    const ok = document.execCommand('copy');
+    ta.remove();
+    return ok;
+  } catch (e) { return false; }
+}
+'use strict';
+/* ================= IndexedDB ================= */
+const DB_NAME = 'tsumiki-db';
+const DB_VER = 2;
+const STORES = ['settings', 'categories', 'fixedCosts', 'txs', 'reserves', 'currencies', 'priceCache', 'purchaseOrders', 'purchases', 'sales', 'sellOrders'];
+
+let _db = null;
+function idbOpen() {
+  if (_db) return Promise.resolve(_db);
+  return new Promise((res, rej) => {
+    const req = indexedDB.open(DB_NAME, DB_VER);
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      for (const s of STORES) {
+        if (!db.objectStoreNames.contains(s)) {
+          const st = db.createObjectStore(s, { keyPath: 'id' });
+          if (s === 'txs') st.createIndex('date', 'date');
+          if (s === 'reserves') st.createIndex('txId', 'txId');
+        }
+      }
+    };
+    req.onsuccess = () => { _db = req.result; res(_db); };
+    req.onerror = () => rej(req.error);
+  });
+}
+function idbTx(store, mode = 'readonly') {
+  return idbOpen().then(db => db.transaction(store, mode).objectStore(store));
+}
+function idbReq(r) {
+  return new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+}
+const idbGet = async (store, id) => idbReq((await idbTx(store)).get(id));
+const idbAll = async (store) => idbReq((await idbTx(store)).getAll()) || [];
+const idbPut = async (store, obj) => idbReq((await idbTx(store, 'readwrite')).put(obj));
+const idbDel = async (store, id) => idbReq((await idbTx(store, 'readwrite')).delete(id));
+const idbClear = async (store) => idbReq((await idbTx(store, 'readwrite')).clear());
+async function idbBulkPut(store, arr) {
+  const db = await idbOpen();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(store, 'readwrite');
+    const st = tx.objectStore(store);
+    for (const o of arr) st.put(o);
+    tx.oncomplete = () => res();
+    tx.onerror = () => rej(tx.error);
+  });
+}
+
+/* ================= アプリ状態(メモリキャッシュ) ================= */
+const S = {
+  txs: [], categories: [], fixedCosts: [], reserves: [], sellOrders: [],
+  currencies: [], priceCache: {}, purchaseOrders: [], purchases: [], sales: [],
+  settings: {},
+  ledgerTab: 'entry', assetTab: 'overview', histTab: 'tx', histYm: null,
+  apiState: 'loading', // loading|ok|fallback|error
+  apiSource: null, apiErrMsg: '',
+  manualRate: null,   // 手動編集された注文レート(null=自動)
+  pendingLoaded: false
+};
+
+const DEFAULT_CATEGORIES = [
+  { type: 'expense', name: '食費' }, { type: 'expense', name: '日用品' },
+  { type: 'expense', name: '交通費' }, { type: 'expense', name: '住居費' },
+  { type: 'expense', name: '光熱水道' }, { type: 'expense', name: '通信費' },
+  { type: 'expense', name: '保険・医療' }, { type: 'expense', name: '教育・教養' },
+  { type: 'expense', name: '娯楽' }, { type: 'expense', name: 'その他の支出' },
+  { type: 'income', name: '給与' }, { type: 'income', name: '賞与' },
+  { type: 'income', name: '臨時収入' }, { type: 'income', name: 'その他の収入' }
+];
+
+async function seedIfNeeded() {
+  const cur = await idbAll('currencies');
+  if (cur.length === 0) {
+    await idbBulkPut('currencies', [
+      {
+        id: 'xrp', code: 'XRP', name: 'リップル', exchange: 'GMOコイン', pair: 'XRP_JPY',
+        priceDecimals: 3, qtyDecimals: 4, qtyStep: '1', minOrderQty: '1', priceStep: '0.001',
+        gainRate: 0.1, enabled: true, builtIn: true
+      },
+      {
+        id: 'btc', code: 'BTC', name: 'ビットコイン', exchange: 'GMOコイン', pair: 'BTC_JPY',
+        priceDecimals: 0, qtyDecimals: 8, qtyStep: '0.00001', minOrderQty: '0.00001', priceStep: '1',
+        gainRate: 0.1, enabled: false, builtIn: true
+      },
+      {
+        id: 'eth', code: 'ETH', name: 'イーサリアム', exchange: 'GMOコイン', pair: 'ETH_JPY',
+        priceDecimals: 0, qtyDecimals: 8, qtyStep: '0.0001', minOrderQty: '0.001', priceStep: '1',
+        gainRate: 0.1, enabled: false, builtIn: true
+      }
+    ]);
+  }
+  const cats = await idbAll('categories');
+  if (cats.length === 0) {
+    let i = 0;
+    await idbBulkPut('categories', DEFAULT_CATEGORIES.map(c => ({ id: uid(), order: i++, ...c })));
+  }
+  const st = await idbGet('settings', 'ocrConsent');
+  if (!st) await idbPut('settings', { id: 'ocrConsent', key: 'ocrConsent', value: null });
+}
+
+async function loadAll() {
+  const [txs, cats, fix, resv, curs, pc, pos, pur, sal, set] = await Promise.all([
+    idbAll('txs'), idbAll('categories'), idbAll('fixedCosts'), idbAll('reserves'),
+    idbAll('currencies'), idbAll('priceCache'), idbAll('purchaseOrders'),
+    idbAll('purchases'), idbAll('sales'), idbAll('settings')
+  ]);
+  S.txs = txs.sort((a, b) => (b.date + (b.createdAt || '')).localeCompare(a.date + (a.createdAt || '')));
+  S.categories = cats.sort((a, b) => (a.order || 0) - (b.order || 0));
+  S.fixedCosts = fix.sort((a, b) => (a.dayOfMonth || 0) - (b.dayOfMonth || 0));
+  S.reserves = resv;
+  S.sellOrders = await idbAll('sellOrders');
+  S.currencies = curs;
+  S.priceCache = Object.fromEntries(pc.map(p => [p.id, p]));
+  S.purchaseOrders = pos.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+  S.purchases = pur.sort((a, b) => ((a.datetime || '') + (a.createdAt || '')).localeCompare((b.datetime || '') + (b.createdAt || '')));
+  S.sales = sal.sort((a, b) => ((b.datetime || '') + (b.createdAt || '')).localeCompare((a.datetime || '') + (a.createdAt || '')));
+  S.settings = Object.fromEntries(set.map(s => [s.key, s]));
+  PAY_METHODS = (S.settings.payMethods && Array.isArray(S.settings.payMethods.value) && S.settings.payMethods.value.length > 0) ? S.settings.payMethods.value : DEFAULT_PAY_METHODS;
+}
+
+const activeAsset = () => S.currencies.find(c => c.enabled) || null;
+const catName = id => (S.categories.find(c => c.id === id) || {}).name || '未分類';
+
+/* --- 未購入金額(有効通貨) --- */
+function pendingReserves() {
+  const a = activeAsset();
+  if (!a) return [];
+  return S.reserves.filter(r => r.assetId === a.id && r.status === 'pending' && r.amount > 0)
+    .sort((x, y) => (x.createdAt || '').localeCompare(y.createdAt || ''));
+}
+function pendingTotal() { return pendingReserves().reduce((s, r) => s + r.amount, 0); }
+
+/* --- 保有・損益(有効通貨) --- */
+function assetStats() {
+  const a = activeAsset();
+  const empty = { holdingsQty: 0, avgRate: 0, unsoldPrincipal: 0, totalBuyJPY: 0, totalSellJPY: 0, realized: 0, unrealized: 0, lots: [] };
+  if (!a) return empty;
+  const buys = S.purchases.filter(p => p.assetId === a.id);
+  const sells = S.sales.filter(s2 => s2.assetId === a.id).sort((x, y) => (x.datetime || '').localeCompare(y.datetime || ''));
+  if (buys.length === 0) return { ...empty, totalBuyJPY: 0, totalSellJPY: sells.reduce((s2, x) => s2 + (x.amountJPY || 0), 0) };
+  const totalBuyJPY = buys.reduce((s2, p) => s2 + (p.amountJPY || 0), 0);
+  const totalQty = roundQty(buys.reduce((s2, p) => s2 + Number(p.actualQty || 0), 0));
+  const totalSellJPY = sells.reduce((s2, x) => s2 + (x.amountJPY || 0), 0);
+  const totalSoldQty = roundQty(sells.reduce((s2, x) => s2 + Number(x.qty || 0), 0));
+  // FIFO残
+  const lots = [];
+  let rest = totalSoldQty;
+  for (const p of buys) {
+    let remain = Number(p.actualQty || 0);
+    if (rest > 0) { const use = Math.min(remain, rest); remain = roundQty(remain - use); rest = roundQty(rest - use); }
+    if (remain > 1e-9) lots.push({ purchaseId: p.id, qty: remain, rate: Number(p.actualRate), datetime: p.datetime, amountJPY: Math.round(remain * Number(p.actualRate)) });
+  }
+  const holdingsQty = roundQty(lots.reduce((s2, l) => s2 + l.qty, 0));
+  const unsoldPrincipal = lots.reduce((s2, l) => s2 + l.amountJPY, 0);
+  const avgRate = holdingsQty > 0 ? unsoldPrincipal / holdingsQty : 0;
+  const realized = sells.reduce((s2, x) => s2 + (x.realized || 0), 0);
+  const price = Number((S.priceCache[a.id] || {}).last || 0);
+  const unrealized = price > 0 ? Math.round(price * holdingsQty) - unsoldPrincipal : 0;
+  return { holdingsQty, avgRate, unsoldPrincipal, totalBuyJPY, totalSellJPY, realized, unrealized, lots };
+}
+function roundQty(q) { return Math.round(Number(q) * 1e8) / 1e8; }
+'use strict';
+/* ================= ルーター・共通UI ================= */
+const TABS = [
+  { id: 'home', label: 'ホーム', icon: '<svg viewBox="0 0 24 24"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/></svg>' },
+  { id: 'ledger', label: '家計簿', icon: '<svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>' },
+  { id: 'history', label: '履歴', icon: '<svg viewBox="0 0 24 24"><path d="M12 8v5l3 3"/><circle cx="12" cy="12" r="9"/></svg>' },
+  { id: 'asset', label: 'XRP', icon: '<svg viewBox="0 0 24 24"><path fill="currentColor" stroke="none" d="M5.52 2.955A3.521 3.521 0 001.996 6.48v2.558A2.12 2.12 0 010 11.157l.03.562-.03.561a2.12 2.12 0 011.996 2.121v2.948a3.69 3.69 0 003.68 3.696v-1.123a2.56 2.56 0 01-2.557-2.558v-2.963a3.239 3.239 0 00-1.42-2.682 3.26 3.26 0 001.42-2.682V6.48A2.412 2.412 0 015.52 4.078h.437V2.955zm12.538 0v1.123h.437a2.39 2.39 0 012.386 2.401v2.558a3.26 3.26 0 001.42 2.682 3.239 3.239 0 00-1.42 2.682v2.963a2.56 2.56 0 01-2.557 2.558v1.123a3.69 3.69 0 003.68-3.696V14.4A2.12 2.12 0 0124 12.281l-.03-.562.03-.561a2.12 2.12 0 01-1.996-2.12V6.478a3.518 3.518 0 00-3.509-3.524zM6.253 7.478l3.478 3.259a3.393 3.393 0 004.553 0l3.478-3.26h-1.669l-2.65 2.464a2.133 2.133 0 01-2.886 0L7.922 7.478zm5.606 4.884a3.36 3.36 0 00-2.128.886l-3.493 3.274h1.668l2.667-2.495a2.133 2.133 0 012.885 0l2.65 2.495h1.67l-3.494-3.274a3.36 3.36 0 00-2.425-.886z"/></svg>' },
+  { id: 'settings', label: '設定', icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1"/></svg>' }
+];
+let currentTab = 'home';
+let prevTab = 'home';
+function go(tab) {
+  currentTab = tab;
+  if (tab !== 'help') prevTab = tab;
+  document.querySelectorAll('nav.tabbar button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+  document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === 'scr-' + tab));
+  renderTab(tab);
+  window.scrollTo(0, 0);
+}
+function renderTab(tab) {
+  if (tab === 'home') renderHome();
+  if (tab === 'ledger') renderLedger();
+  if (tab === 'history') renderHistory();
+  if (tab === 'asset') renderAsset();
+  if (tab === 'settings') renderSettings();
+  if (tab === 'help') renderHelp();
+  if (tab === 'xrphist') renderXrpHist();
+  updateMiniPrice();
+}
+function buildTabbar() {
+  const nav = document.getElementById('tabbar');
+  const tabs = assetModeOn() ? TABS : TABS.filter(t => t.id !== 'asset');
+  nav.innerHTML = tabs.map(t =>
+    `<button data-tab="${t.id}" onclick="go('${t.id}')">${t.icon}<span>${t.label}</span></button>`).join('');
+}
+
+/* --- modal --- */
+function openModal(html, dismissable = true) {
+  const root = document.getElementById('modal-root');
+  root.innerHTML = `<div class="veil"${dismissable ? ' onclick="closeModal()"' : ''}></div><div class="box">${dismissable ? '<button class="mclose" onclick="closeModal()" aria-label="閉じる">✕</button>' : ''}<div class="grip"></div>${html}</div>`;
+  root.classList.add('on');
+  document.body.classList.add('modal-open');
+  return root;
+}
+function closeModal() {
+  const root = document.getElementById('modal-root');
+  root.classList.remove('on'); root.innerHTML = '';
+  document.body.classList.remove('modal-open');
+}
+function confirmModal(title, bodyHtml, okLabel, onOk, danger = false) {
+  window._confirmCb = () => { closeModal(); onOk(); };
+  openModal(`<h2>${esc(title)}</h2><div class="small" style="margin-bottom:14px">${bodyHtml}</div>
+  <div class="row"><button class="btn sub" onclick="closeModal()">キャンセル</button>
+  <button class="btn ${danger ? 'danger' : 'primary'}" onclick="_confirmCb()">${esc(okLabel)}</button></div>`);
+}
+
+/* ================= ホーム画面 ================= */
+function renderHome() {
+  const ym = nowYm();
+  const sum = Core.monthSummary(S.txs, ym);
+  const a = activeAsset();
+  const st = assetStats();
+  const pend = pendingTotal();
+  const pc = a ? S.priceCache[a.id] : null;
+  const price = pc ? Number(pc.last || 0) : 0;
+  const evalJpy = a ? Math.round(price * st.holdingsQty) : 0;
+  const resv = pendingReserves();
+  const balance = sum.balance;
+  const am = assetModeOn();
+
+  // 積み立てゲージ(bricks): 最大12件を幅比で表示
+  let bricks = '';
+  const tot = Math.max(pend, 1);
+  resv.slice(0, 12).forEach((r, i) => {
+    const cls = i % 3 === 1 ? ' alt' : i % 3 === 2 ? ' alt2' : '';
+    bricks += `<div class="brick${cls}" style="width:${(r.amount / tot * 100).toFixed(1)}%"></div>`;
+  });
+  if (pend === 0) bricks = '<div class="empty">まだ積み立てはありません</div>';
+
+  document.getElementById('scr-home').innerHTML = `
+  <div class="card">
+    <h2>家計の入力</h2>
+    <div class="actgrid">
+      <button class="bigact main" onclick="quickOcr()">
+        <svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="14" r="3.5"/></svg>
+        レシートを撮影して登録<span class="s">タップ → カメラ → 自動で読み取り</span></button>
+      <button class="bigact sub" onclick="openTsvModal()">
+        <svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+        TSVを貼り付けて登録<span class="s">他のAIの読み取り結果から</span></button>
+      <button class="bigact sub" onclick="quickManual()">
+        <svg viewBox="0 0 24 24"><path d="M13 5l6 6L9 21H3v-6z"/><path d="M11 7l6 6"/></svg>
+        手入力で登録<span class="s">金額だけでもOK</span></button>
+    </div>
+    <div class="hint" style="margin-top:10px">${am ? '支出を登録すると、同額が自動で「未購入金額」に積み上がります。暗号資産の購入記録は<b>「資産」タブ</b>から行えます。' : '支出・収入を記録できます。あとからつみたて機能を有効にすると、支出が自動で資産のつみたてに変わります(設定から切り替え)。'}</div>
+  </div>
+
+  <div class="card">
+    <h2>${esc(ym.replace('-', '年'))}月の家計<span class="tag">今月</span></h2>
+    <div class="statgrid">
+      <div class="stat" style="background:var(--surface2);box-shadow:none"><div class="l">今月の支出</div><div class="v spend">${fmtYen(sum.expense)}</div></div>
+      <div class="stat" style="background:var(--surface2);box-shadow:none"><div class="l">今月の収入</div><div class="v income">${fmtYen(sum.income)}</div></div>
+    </div>
+    <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:baseline">
+      <span class="hint">今月の収支</span>
+      <span class="bigmoney" style="font-size:26px;color:${balance >= 0 ? 'var(--ok)' : 'var(--danger)'}">${fmtSignYen(balance)}</span>
+    </div>
+  </div>
+
+  ${am ? `<div class="card">
+    <h2>つみ立てゲージ <span class="tag">支出ごとに積み上げ</span></h2>
+    <div style="display:flex;justify-content:space-between;align-items:baseline">
+      <span class="hint">未購入金額(自動積立)</span>
+      <span class="bigmoney" style="font-size:28px;color:var(--asset)">${fmtYen(pend)}</span>
+    </div>
+    <div class="gauge mt"><div class="strip">${bricks}</div>
+      <div class="cap"><span>${resv.length ? resv.length + '件の支出分' : ''}</span><span>${a ? esc(a.code) + ' の購入資金' : ''}</span></div>
+    </div>
+    ${pend > 0 ? '<button class="btn primary block mt" onclick="prepForBuy()">この金額で購入準備へ</button>' : '<div class="hint">支出を登録すると、同額がここに積み上がります。</div>'}
+  </div>
+
+  ${a ? `<div class="card">
+    <h2>資産の状況<span class="tag">${esc(a.code)}</span></h2>
+    <div class="statgrid">
+      <div class="stat"><div class="l">現在価格</div><div class="v">${price > 0 ? fmtYen(price) : '---'}</div><div class="s" id="home-apistate"></div></div>
+      <div class="stat"><div class="l">現在の評価額</div><div class="v asset">${fmtYen(evalJpy)}</div><div class="s">保有 ${fmtQty(st.holdingsQty, a.qtyDecimals)} ${esc(a.code)}</div></div>
+    </div>
+    <div class="row mt">
+      <button class="btn sub" onclick="go('asset')">XRPを買いに行く</button>
+      <button class="btn sub" onclick="go('xrphist')">完了した取引</button>
+    </div>
+    <div class="notebox">購入・売却の記録と損益は「資産」タブ、履歴は「履歴」タブで確認できます。</div>
+  </div>` : ''}` : `<div class="card">
+    <h2>今月の記録 <span class="tag">直近</span></h2>
+    ${recentTxHtml(S.txs.filter(t => t.date.slice(0, 7) === ym).slice(0, 6))}
+  </div>`}`;
+  updateMiniPrice();
+}
+/* ホームからの入力ショートカット */
+function quickOcr() { go('ledger'); S.ledgerTab = 'entry'; renderLedger(); ocrStart(); }
+function quickManual() { go('ledger'); S.ledgerTab = 'entry'; renderLedger(); setTimeout(() => document.getElementById('tx-amount').focus(), 60); }
+
+/* --- 表示モード(家計簿のみ / 家計+つみたて) --- */
+function assetModeOn() {
+  const s = S.settings.assetMode;
+  return !s || s.value !== false;
+}
+function showWelcome() {
+  if (S.settings.welcomeDone && S.settings.welcomeDone.value) return;
+  openModal(`<div style="text-align:center;padding:6px 4px 2px">
+    <div style="font-size:22px;font-weight:800;letter-spacing:.04em">つみき家計簿</div>
+    <p class="small" style="margin-top:10px">はじめまして。どのように使いますか?<br><span class="hint">あとから設定画面でいつでも切り替えられます。</span></p></div>
+  <div class="actgrid mt">
+    <button class="bigact sub" onclick="pickMode(false)" style="grid-column:1/-1;min-height:96px;font-size:16px">
+      家計簿として使う<span class="s">支出・収入の記録と集計だけ。暗号資産の表示はありません</span></button>
+      <button class="bigact main" onclick="pickMode(true)" style="min-height:96px">
+      家計 + つみたてで使う<span class="s">支出が自動で資産のつみたてになります</span></button>
+  </div>
+  <div style="text-align:center;margin-top:14px"><button class="btn sm sub" onclick="helpFromWelcome()">使い方を先に見る</button></div>`, false);
+}
+async function pickMode(v) {
+  await idbPut('settings', { id: 'assetMode', key: 'assetMode', value: v });
+  await idbPut('settings', { id: 'welcomeDone', key: 'welcomeDone', value: true });
+  await loadAll();
+  closeModal();
+  buildTabbar();
+  if (!v && currentTab === 'asset') currentTab = 'home';
+  renderTab(currentTab);
+  if (v) startPriceLoop(); else stopPriceLoop();
+  toast(v ? '家計 + つみたてモードで使います' : '家計簿のみモードで使います');
+}
+function setAssetMode(v) {
+  if (v === assetModeOn()) { toast(v ? 'つみたてモードは有効です' : '家計簿のみモードです'); return; }
+  if (v) return pickMode(true);
+  confirmModal('家計簿のみモードに切り替え', 'つみたて・資産の画面を非表示にします。<b>データは消えません</b>。後で切り替えると、それまでの支出のつみたても再表示されます。よろしいですか?', '切り替える', () => pickMode(false));
+}
+
+/* --- 使い方ページ --- */
+const GEM_PROMPT = `あなたは、ユーザーのレシートを管理・集計する「家計簿アシスタント」です。
+ユーザーからレシートの画像がアップロードされたら、以下のルールに厳密に従って処理してください。
+
+1. 抽出項目
+画像から以下の情報を正確に抽出してください。
+日付(YYYY-MM-DD形式) / カテゴリ / 店舗名 / 金額(税込) / 支払方法 / 備考(具体的な商品名など)
+画像から読み取れない情報は、推測で補完せず「不明」としてください。
+
+2. カテゴリの分類ルール【厳守】
+「カテゴリ」は、必ず以下のいずれか1つを使用してください。
+食費 / 日用品 / 交通費 / 住居費 / 光熱水道 / 通信費 / 保険・医療 / 教育・教養 / 娯楽 / その他の支出
+
+重要な制約
+・上記以外のカテゴリ名を絶対に生成しないでください。表記は上記と完全一致させてください。
+・独自の項目・費目・カテゴリを新しく作ってはいけません。
+・「外食費」「飲料費」「雑費」「交際費」「ガソリン代」など、上記に存在しない名称をカテゴリとして出力してはいけません。
+・どこにも明確に該当しない場合や判断に迷った場合は、必ず「その他の支出」にしてください。
+・より具体的な分類名を付けたい場合でもカテゴリには使わず、「備考」に記載してください。
+
+分類例
+スーパーで購入した食品 → 食費
+コンビニで購入した弁当 → 食費
+洗剤・ティッシュ・ゴミ袋 → 日用品
+電車・バス・タクシー → 交通費
+映画・ゲーム・遊園地 → 娯楽
+ガソリン → その他の支出(備考に「ガソリン」と記載)
+本・雑誌 → その他の支出(備考に書名を記載)
+分類できないもの → その他の支出
+店舗の種類だけで判断せず、レシートに記載された商品・サービスの内容を優先して分類してください。
+
+3. 出力前の検証【必須】
+出力する前に「カテゴリ」の値を確認し、上記リストのいずれかと完全一致している場合のみ出力してください。
+一致しない場合は出力前に適切なカテゴリへ修正し、判断できない場合は「その他の支出」に修正してください。
+
+4. 出力形式
+レシート1枚ごとに、次の2つを出力してください。
+(1) 確認用の表: 列の順番は「日付 | カテゴリ | 店舗名 | 金額(税込) | 支払方法 | 備考」固定。
+(2) 貼り付け用データ: 1行1件、タブ区切りで「日付 → カテゴリ → 店舗名 → 金額 → 支払方法 → 備考」の順にし、コードブロック内に「データ行のみ」を出力。見出しや説明文は含めない。
+金額は半角数字(例: 1280 または 1,280)。日付は必ずYYYY-MM-DD形式。
+
+最重要ルール
+「カテゴリ」の自由生成は禁止です。必ず定義済みのリストから選び、存在しない項目名を新しく作ることは、いかなる場合も禁止です。`;
+
+function copyPrompt() {
+  const done = () => toast('プロンプトをコピーしました');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(GEM_PROMPT).then(done).catch(() => copyPromptFallback(done));
+  } else copyPromptFallback(done);
+}
+function copyPromptFallback(done) {
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = GEM_PROMPT; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); ta.remove(); done();
+  } catch (e) { toast('コピーできませんでした。テキストを手動で選択してコピーしてください'); }
+}
+function openPromptModal() {
+  openModal(`<h2>Gemini用プロンプトの例</h2>
+  <div class="hint">Gemの指示としてこのプロンプトを保存 → レシート画像をアップロード → 出力の「貼り付け用データ」コードブロック内をコピー → アプリの「TSVを貼り付けて登録」に貼り付け。<br>カテゴリ一覧はこのアプリに登録済みのものと一致しています。アプリ側でカテゴリを追加・変更している場合は、リスト部分を合わせて書き換えてください。</div>
+  <button class="btn primary block mt" onclick="copyPrompt()">プロンプトの例をコピー</button>
+  <pre class="promptbox">${esc(GEM_PROMPT)}</pre>
+  <button class="btn sub block mt" onclick="closeModal()">閉じる</button>`);
+}
+function helpFromWelcome() { closeModal(); go('help'); }
+function helpBack() { go(prevTab || 'home'); showWelcome(); }
+function renderHelp() {
+  const am = assetModeOn();
+  document.getElementById('scr-help').innerHTML = `
+  <div class="card">
+    <div class="row" style="align-items:center">
+      <button class="btn sm sub" onclick="helpBack()">← 戻る</button>
+      <b style="font-size:15px">アプリの使い方</b>
+      <span class="hint" style="margin-left:auto">いつでも見返せます</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>基本の流れ</h2>
+    <div class="steps">
+      <div class="st"><div><div class="b">支出・収入を登録する</div><div class="d">ホームの大きいボタンから。レシート撮影・TSV貼り付け・手入力のどれでも。</div></div></div>
+      ${am ? `<div class="st"><div><div class="b">つみたてが自動で増える</div><div class="d">支出を登録すると、同額が「未購入金額」に加算されます。修正・削除にも自動で追従します。</div></div></div>
+      <div class="st"><div><div class="b">好きなときに購入する</div><div class="d">資産タブの「購入準備」で数量を自動計算 → 取引所のアプリで手動発注 → 約定したら購入履歴に登録。</div></div></div>
+      <div class="st"><div><div class="b">売却と損益を確認する</div><div class="d">資産タブの「売却」で目標価格と元本回収数量を計算。売却履歴を登録すると実現損益が分かります。</div></div></div>` : `<div class="st"><div><div class="b">月単位で振り返る</div><div class="d">家計簿タブの「集計」でカテゴリ別の内訳や月ごとのグラフを確認できます。</div></div></div>`}
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>レシートで登録(一番よく使う操作)</h2>
+    <div class="steps">
+      <div class="st"><div><div class="b">ホームの「レシートを撮影して登録」をタップ</div><div class="d">初回のみ、OCRエンジンのダウンロード同意を聞きます。レシート画像が外部に送信されることはありません。</div></div></div>
+      <div class="st"><div><div class="b">レシートを撮影する</div><div class="d">明るく真っ直ぐ、レシート全体が写るように撮ると精度が上がります。</div></div></div>
+      <div class="st"><div><div class="b">読み取り結果を確認して「登録する」</div><div class="d">金額・日付・店舗がフォームに反映されます。間違いがあればその場で直せます。</div></div></div>
+    </div>
+    <div class="notebox">読み取り精度が物足りないときは、次の「TSV貼り付け」が確実です。</div>
+  </div>
+
+  <div class="card">
+    <h2>TSVを貼り付けて登録(AIとの連携)</h2>
+    <div class="steps">
+      <div class="st"><div><div class="b">① 他のAIでレシートを読み取る</div><div class="d">例: GeminiのGemにレシート画像を見せて「日付・カテゴリ・店舗名・金額・支払方法・備考」の順のTSVで出力してもらいます。</div></div></div>
+      <div class="st"><div><div class="b">② TSVをコピーする</div><div class="d">AIが出したTSVの文字列を<b>すべて選択してコピー</b>します(長押し→「全て選択」→「コピー」)。</div></div></div>
+      <div class="st"><div><div class="b">③ アプリの「TSVを貼り付けて登録」をタップ</div><div class="d">モーダルが開くと、<b>コピーした内容が自動で貼り付かります</b>。そのまま「登録する」を押すだけでOKです。</div></div></div>
+      <div class="st"><div><div class="b">④ 「貼り付け」の確認が出たら許可</div><div class="d">初回のみ「貼り付けを許可しますか?」と聞かれたら、<b>「貼り付け」(または「許可」)を選んでください</b>。次回からは自動で貼り付きます。</div></div></div>
+      <div class="st"><div><div class="b">⑤ 自動で貼り付かなかったときは</div><div class="d">貼り付け欄を長押し→「貼り付け」で手動でも貼り付けられます。その後「内容を確認」→「登録する」です。</div></div></div>
+    </div>
+    <div class="notebox">AIが出したカテゴリ名がアプリにない場合は、その行は自動で「その他」に分類されます。よく使うカテゴリ名をGemの出力に合わせておくと分類が安定します。</div>
+    <button class="btn sub block mt" onclick="openPromptModal()">Gemini用プロンプトの例を見る(コピー可)</button>
+  </div>
+
+  ${am ? `<div class="card">
+    <h2>つみたて・購入・売却(資産タブ)</h2>
+    <div class="steps">
+      <div class="st"><div><div class="b">価格は自動更新</div><div class="d">約1分ごとに公開APIから取得します。主な取得元はGMOコインの公開APIで、取れない環境ではbitbankの公開APIに自動で切り替わります(表示価格に手数料等は含まれません)。</div></div></div>
+      <div class="st"><div><div class="b">「購入準備」で数量をコピー</div><div class="d">未購入金額と最新価格から、最小注文単位に合わせた購入数量を自動計算します。レートを手で変えた場合は、価格が更新されても上書きされません(リセットで戻せます)。</div></div></div>
+      <div class="st"><div><div class="b">取引所のアプリで手動発注</div><div class="d">コピーした数量とレートを取引所の注文画面に入力して注文します。このアプリが注文を出すことはありません。</div></div></div>
+      <div class="st"><div><div class="b">約定したら購入履歴に登録</div><div class="d">実際の約定価格・数量を入力。未購入金額が減り、保有数量が増えます。</div></div></div>
+      <div class="st"><div><div class="b">売却は目標価格を確認</div><div class="d">上昇率を変えると元本回収に必要な数量が自動計算されます。売却後は履歴を登録すると実現損益(FIFO)が記録されます。</div></div></div>
+    </div>
+    <div class="notebox">自動売買・自動約定判定は行いません。取引所での操作と、約定後の履歴登録は手動です。</div>
+  </div>` : ''}
+
+  <div class="card">
+    <h2>困ったときは(設定タブ)</h2>
+    <div class="steps">
+      <div class="st"><div><div class="b">データを守りたい</div><div class="d">設定 → 「JSONでバックアップ」。復元は上書き前に必ず確認画面が出ます。</div></div></div>
+      <div class="st"><div><div class="b">使い方を変えたい</div><div class="d">設定 → 「表示モード」で「家計簿のみ」⇔「家計 + つみたて」を切替。データは消えません。</div></div></div>
+      <div class="st"><div><div class="b">最初からやり直したい</div><div class="d">設定 → 「全データを削除」。取り消せないので事前にバックアップを推奨します。</div></div></div>
+    </div>
+  </div>`;
+}
+function prepForBuy() {
+  go('asset');
+}
+function updateMiniPrice() {
+  const el = document.getElementById('mini-price');
+  const a = activeAsset();
+  if (!assetModeOn()) { el.style.display = 'none'; return; }
+  const pc = a ? S.priceCache[a.id] : null;
+  if (!a || !pc || !pc.last) { el.style.display = 'none'; return; }
+  el.style.display = '';
+  el.innerHTML = `${esc(a.code)} <b>¥${Number(pc.last).toFixed(a.priceDecimals)}</b>`;
+}
+
+/* ================= 家計簿画面 ================= */
+function catOptions(type, sel) {
+  return S.categories.filter(c => c.type === type)
+    .map(c => `<option value="${c.id}" ${c.id === sel ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
+}
+const DEFAULT_PAY_METHODS = ['現金', 'デビットカード', 'クレジットカード', '電子マネー', 'その他'];
+let PAY_METHODS = DEFAULT_PAY_METHODS.slice();
+
+function renderLedger() {
+  const el = document.getElementById('scr-ledger');
+  const tabs = [['entry', '記録'], ['summary', '集計'], ['fixed', '固定費'], ['cats', 'カテゴリ']];
+  el.innerHTML = `<div class="seg" id="ledger-seg">${tabs.map(([id, l]) =>
+    `<button onclick="S.ledgerTab='${id}';renderLedger()" class="${S.ledgerTab === id ? 'on' : ''}">${l}</button>`).join('')}</div>
+  <div id="ledger-body"></div>`;
+  const body = document.getElementById('ledger-body');
+  if (S.ledgerTab === 'entry') body.innerHTML = ledgerEntryHtml();
+  if (S.ledgerTab === 'summary') body.innerHTML = ledgerSummaryHtml();
+  if (S.ledgerTab === 'fixed') body.innerHTML = fixedCostHtml();
+  if (S.ledgerTab === 'cats') body.innerHTML = categoryHtml();
+}
+
+/* --- 記録タブ --- */
+function ledgerEntryHtml() {
+  const recent = S.txs.filter(t => t.date.slice(0, 7) === nowYm()).slice(0, 8);
+  return `
+  <div class="card">
+    <h2>収入・支出を記録</h2>
+    <div class="seg" id="tx-type-seg">
+      <button id="seg-exp" class="on" onclick="setTxType('expense')">支出</button>
+      <button id="seg-inc" onclick="setTxType('income')">収入</button>
+    </div>
+    <input type="hidden" id="tx-type" value="expense">
+    <div class="frow2">
+      <div><label>日付 <span class="req">*必須</span></label>
+      <input type="date" id="tx-date" value="${todayStr()}"></div>
+      <div id="tx-paywrap"><label>支払方法</label>
+      <select id="tx-pay" style="min-height:46px">${PAY_METHODS.map(m => `<option>${m}</option>`).join('')}</select></div>
+    </div>
+    <label>金額 <span class="req">*必須</span></label>
+    <input type="number" id="tx-amount" class="num" inputmode="numeric" min="0" step="1" placeholder="例) 1200" style="font-size:19px;font-weight:700">
+    <label>カテゴリ</label>
+    <select id="tx-category">${catOptions('expense')}</select>
+    <div id="tx-shopwrap">
+      <label>店舗名・内容</label>
+      <input type="text" id="tx-shop" placeholder="例) スーパー、コンビニ">
+    </div>
+    <label>メモ</label>
+    <input type="text" id="tx-memo" placeholder="任意">
+    <div id="ocr-area"></div>
+    <button class="btn primary block mt" onclick="saveTx()">登録する</button>
+    <button class="btn sub block mt" id="ocr-btn" onclick="ocrStart()">レシートを読み取る(支出のみ)</button>
+    <button class="btn sub block mt" onclick="openTsvModal()">TSVを貼り付けて登録</button>
+    ${assetModeOn() ? '<div class="notebox">支出を登録すると、同額が自動的に資産の「未購入金額」として積み上がります。</div>' : ''}
+  </div>
+  <div class="card">
+    <h2>今月の記録</h2>
+    <div id="recent-tx">${recentTxHtml(recent)}</div>
+  </div>`;
+}
+function recentTxHtml(list) {
+  if (list.length === 0) return '<div class="hint">まだ記録はありません。上のフォームから登録できます。</div>';
+  return list.map(t => {
+    const isExp = t.type === 'expense';
+    return `<div class="lrow">
+      <div class="ico ${isExp ? 'exp' : 'inc'}">${isExp ? '支' : '収'}</div>
+      <div class="mid"><div class="t">${esc(catName(t.categoryId))}${t.shop ? '・' + esc(t.shop) : ''}${t.fixedCostId ? ' <span class="pill fb">固定費</span>' : ''}</div>
+      <div class="d">${esc(t.date)} ${t.paymentMethod ? '・' + esc(t.paymentMethod) : ''}</div></div>
+      <div class="amt ${isExp ? 'spend' : 'income'}">${isExp ? '' : '+'}${fmtYen(t.amount)}</div>
+      <div class="ops"><button class="btn sm sub" onclick="editTx('${t.id}')">編集</button></div>
+    </div>`;
+  }).join('');
+}
+function setTxType(t) {
+  document.getElementById('tx-type').value = t;
+  document.getElementById('seg-exp').classList.toggle('on', t === 'expense');
+  document.getElementById('seg-inc').classList.toggle('on', t === 'income');
+  document.getElementById('tx-paywrap').style.display = t === 'expense' ? '' : 'none';
+  document.getElementById('tx-shopwrap').style.display = t === 'expense' ? '' : 'none';
+  document.getElementById('ocr-btn').style.display = t === 'expense' ? '' : 'none';
+  document.querySelector('#tx-category').innerHTML = catOptions(t);
+}
+async function saveTx(ocrFill = null) {
+  const type = document.getElementById('tx-type').value;
+  const date = document.getElementById('tx-date').value;
+  const amount = Math.round(Number(document.getElementById('tx-amount').value));
+  const categoryId = document.getElementById('tx-category').value;
+  if (!date || !amount || amount <= 0) { toast('日付と金額を入力してください'); return; }
+  const tx = {
+    id: uid(), type, date, amount, categoryId,
+    paymentMethod: type === 'expense' ? document.getElementById('tx-pay').value : '',
+    shop: type === 'expense' ? document.getElementById('tx-shop').value.trim() : '',
+    memo: document.getElementById('tx-memo').value.trim(),
+    createdAt: nowLocalTs(), updatedAt: nowLocalTs()
+  };
+  await idbPut('txs', tx);
+  if (type === 'expense') {
+    const a = activeAsset();
+    if (a) await idbPut('reserves', { id: uid(), txId: tx.id, assetId: a.id, amount: tx.amount, status: 'pending', createdAt: nowLocalTs() });
+  }
+  await loadAll();
+  if (ocrFill) ocrFill(tx);
+  toast(type === 'expense' ? (assetModeOn() ? '支出を登録しました(未購入金額に加算)' : '支出を登録しました') : '収入を登録しました');
+  renderLedger(); updateMiniPrice();
+}
+function editTx(id) {
+  const t = S.txs.find(x => x.id === id);
+  if (!t) return;
+  const isExp = t.type === 'expense';
+  openModal(`<h2>記録を編集</h2>
+    <label>日付</label><input type="date" id="m-date" value="${t.date}">
+    <label>金額</label><input type="number" id="m-amount" min="0" step="1" value="${t.amount}">
+    <label>カテゴリ</label><select id="m-category">${catOptions(t.type, t.categoryId)}</select>
+    ${isExp ? `<label>支払方法</label><select id="m-pay">${PAY_METHODS.map(m => `<option ${m === t.paymentMethod ? 'selected' : ''}>${m}</option>`).join('')}</select>
+    <label>店舗名・内容</label><input type="text" id="m-shop" value="${esc(t.shop || '')}">` : ''}
+    <label>メモ</label><input type="text" id="m-memo" value="${esc(t.memo || '')}">
+    <div class="row mt"><button class="btn sub" onclick="closeModal()">キャンセル</button>
+    <button class="btn primary" onclick="applyTx('${t.id}')">保存</button></div>
+    <button class="btn danger block mt" onclick="confirmDeleteTx('${t.id}')">この記録を削除</button>`);
+}
+async function applyTx(id) {
+  const t = S.txs.find(x => x.id === id);
+  const oldAmount = t.amount;
+  t.date = document.getElementById('m-date').value;
+  t.amount = Math.round(Number(document.getElementById('m-amount').value)) || 0;
+  t.categoryId = document.getElementById('m-category').value;
+  if (t.type === 'expense') {
+    t.paymentMethod = document.getElementById('m-pay').value;
+    t.shop = document.getElementById('m-shop').value.trim();
+  }
+  t.memo = document.getElementById('m-memo').value.trim();
+  t.updatedAt = nowLocalTs();
+  await idbPut('txs', t);
+  // 対応する未購入枠を金額差分だけ更新(差引計上しない)
+  const a = activeAsset();
+  if (t.type === 'expense' && a) {
+    const r = S.reserves.find(x => x.txId === id && x.assetId === a.id);
+    if (r) { r.amount = t.amount; await idbPut('reserves', r); }
+  }
+  await loadAll();
+  toast('記録を更新しました');
+  closeModal(); renderTab(currentTab);
+}
+function confirmDeleteTx(id) {
+  const body = assetModeOn()
+    ? 'この記録を削除します。支出の場合は未購入金額からも取り除かれます。よろしいですか?'
+    : 'この記録を削除します。よろしいですか?';
+  confirmModal('記録を削除', body, '削除する', async () => {
+    const t = S.txs.find(x => x.id === id);
+    await idbDel('txs', id);
+    const linked = S.reserves.filter(r => r.txId === id);
+    for (const r of linked) await idbDel('reserves', r.id);
+    await loadAll();
+    toast('削除しました(未購入金額を反映)');
+    closeModal(); renderTab(currentTab);
+  }, true);
+}
+
+/* --- TSV貼り付け登録(他のAIでの読み取り結果を反映) --- */
+function openTsvModal() {
+  openModal(`<h2>TSVデータを貼り付けて登録</h2>
+  <div class="hint">1行 = 1件の支出。タブ区切りで<b>日付 → カテゴリ → 店舗名 → 金額 → 支払方法 → 備考</b>の順に貼り付けてください。</div>
+  <textarea id="tsv-in" rows="7" spellcheck="false" style="margin-top:10px;font-family:ui-monospace,Menlo,monospace;font-size:16px" placeholder="日付	カテゴリ	店舗名	金額	支払方法	備考&#10;2026-11-15	食料品	スーパー	1,280	デビットカード	食材"></textarea>
+  <div id="tsv-preview"></div>
+  <div class="row mt" id="tsv-actions"><button class="btn sub" onclick="closeModal()">キャンセル</button>
+  <button class="btn primary" onclick="tsvReflect()">内容を確認</button></div>`);
+  // クリップボードの内容を自動で貼り付け(権限が出ない場合は手動貼り付け)
+  try {
+    const area = document.getElementById('tsv-in');
+    if (navigator.clipboard && navigator.clipboard.readText && area) {
+      navigator.clipboard.readText().then(txt => {
+        if (!txt || !txt.trim() || !area.value) {
+          if (txt && txt.trim()) { area.value = txt.trim(); tsvReflect(); }
+        }
+      }).catch(() => {});
+    }
+  } catch (err) {}
+}
+function normDateStr(s) {
+  const m = String(s).trim().match(/(\d{4})[./\-年]\s*(\d{1,2})[./\-月]\s*(\d{1,2})/);
+  if (!m) return null;
+  const d = `${m[1]}-${String(m[2]).padStart(2, '0')}-${String(m[3]).padStart(2, '0')}`;
+  return isNaN(new Date(d)) ? null : d;
+}
+function parseTsvLines(raw) {
+  const other = S.categories.find(c => c.type === 'expense' && /その他/.test(c.name)) || S.categories.find(c => c.type === 'expense');
+  return String(raw).split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(line => {
+    const cols = (line.includes('\t') ? line.split('\t') : line.split(/\s{2,}/)).map(c => (c || '').trim());
+    const [d, cat, shop, amt, pay, memo] = cols;
+    const date = normDateStr(d);
+    const amount = Math.round(Number(String(amt || '').replace(/[^\d.]/g, '')));
+    if (!date || !amount || amount <= 0) return { error: true, raw: line };
+    let c = cat ? S.categories.find(x => x.type === 'expense' && x.name === cat) : null;
+    if (!c && cat) c = S.categories.find(x => x.type === 'expense' && (x.name.includes(cat) || cat.includes(x.name)));
+    const fallback = !c;
+    if (!c) c = other;
+    let pm = PAY_METHODS.find(m => m === pay) || null;
+    if (!pm && pay) {
+      if (/デビット/.test(pay)) pm = 'デビットカード';
+      else if (/クレジット/.test(pay)) pm = 'クレジットカード';
+      else if (/電子|IC|交通|Suica|Pasmo|id\b/i.test(pay)) pm = '電子マネー';
+      else if (/現金/.test(pay)) pm = '現金';
+      else pm = 'その他';
+    }
+    return { date, categoryId: c.id, catLabel: c.name, fallback, shop: (shop || '').slice(0, 40), amount, pay: pm || '現金', memo: (memo || '').slice(0, 120) };
+  });
+}
+function tsvReflect() {
+  const preview = document.getElementById('tsv-preview');
+  const rows = parseTsvLines(document.getElementById('tsv-in').value);
+  const ok = rows.filter(r => !r.error), bad = rows.filter(r => r.error);
+  if (ok.length === 0) {
+    preview.innerHTML = '<div class="errbox">読み取れる行がありませんでした。日付・金額がタブ区切りで入っているか確認してください。</div>';
+    return;
+  }
+  if (ok.length === 1) {
+    const r = ok[0];
+    closeModal();
+    go('ledger'); S.ledgerTab = 'entry'; renderLedger();
+    setTxType('expense');
+    document.getElementById('tx-date').value = r.date;
+    document.getElementById('tx-amount').value = r.amount;
+    document.getElementById('tx-category').value = r.categoryId;
+    document.getElementById('tx-pay').value = r.pay;
+    document.getElementById('tx-shop').value = r.shop;
+    document.getElementById('tx-memo').value = r.memo;
+    const area = document.getElementById('ocr-area');
+    if (area) area.innerHTML = `<div class="okbox">TSVの内容をフォームに反映しました。確認して「登録する」を押してください。${r.fallback ? '<br>カテゴリ「' + esc(r.catLabel) + '」に分類しました(入力カテゴリは既存と未一致でした)。' : ''}</div>`;
+    toast('フォームに反映しました');
+    return;
+  }
+  window._tsvRows = ok;
+  preview.innerHTML = `
+  <div class="okbox mt">${ok.length}件の支出を読み取りました。内容を確認して登録してください。</div>
+  <div style="margin-top:6px">${ok.map(r => `
+    <div class="tsvrow${r.fallback ? ' fx' : ''}">
+      <div style="flex:1;min-width:0"><div class="t">${esc(r.date)} ・ ${esc(r.shop || '(店舗名なし)')}</div>
+      <div class="d">${esc(r.catLabel)}${r.fallback ? '(未一致 → その他に分類)' : ''} ・ ${esc(r.pay)}${r.memo ? ' ・ ' + esc(r.memo) : ''}</div></div>
+      <div class="amt">${fmtYen(r.amount)}</div>
+    </div>`).join('')}
+  ${bad.length ? bad.map(b => `<div class="tsvrow fx"><div style="flex:1"><div class="d">読み飛ばし(日付か金額が不正): ${esc(b.raw)}</div></div></div>`).join('') : ''}</div>
+  <button class="btn primary block mt" onclick="tsvSaveAll()">${ok.length}件を一括登録する</button>`;
+}
+async function tsvSaveAll() {
+  const rows = window._tsvRows || [];
+  if (!rows.length) return;
+  const a = activeAsset();
+  for (const r of rows) {
+    const tx = {
+      id: uid(), type: 'expense', date: r.date, amount: r.amount, categoryId: r.categoryId,
+      paymentMethod: r.pay, shop: r.shop, memo: r.memo, createdAt: nowLocalTs(), updatedAt: nowLocalTs()
+    };
+    await idbPut('txs', tx);
+    if (a) await idbPut('reserves', { id: uid(), txId: tx.id, assetId: a.id, amount: tx.amount, status: 'pending', createdAt: nowLocalTs() });
+  }
+  window._tsvRows = null;
+  await loadAll();
+  toast(`${rows.length}件の支出を登録しました${assetModeOn() ? '(未購入金額に加算)' : ''}`);
+  closeModal(); renderTab(currentTab); updateMiniPrice();
+}
+
+/* --- 集計タブ --- */
+let sumYm = null;
+function ledgerSummaryHtml() {
+  if (!sumYm) sumYm = nowYm();
+  const sum = Core.monthSummary(S.txs, sumYm);
+  const br = Core.categoryBreakdown(S.txs, sumYm, 'expense');
+  const months = Core.monthTotals(S.txs, 6);
+  const maxM = Math.max(1, ...months.map(m => Math.max(m.expense, m.income)));
+  const fixedSum = S.fixedCosts.filter(f => f.active !== false).reduce((s, f) => s + f.amount, 0);
+  const brMax = Math.max(1, ...br.map(b => b.amount));
+  // SVG棒グラフ(6ヶ月)
+  const W = 560, H = 190, pad = 34, bw = 22;
+  let bars = '';
+  months.forEach((m, i) => {
+    const x = pad + i * ((W - pad - 10) / 6) + 8;
+    const he = Math.round(m.expense / maxM * (H - 46));
+    const hi = Math.round(m.income / maxM * (H - 46));
+    bars += `<rect x="${x}" y="${H - 26 - he}" width="${bw}" height="${he}" rx="3" fill="var(--spend)"/>` +
+      `<rect x="${x + bw + 4}" y="${H - 26 - hi}" width="${bw}" height="${hi}" rx="3" fill="var(--income)"/>` +
+      `<text x="${x + bw + 2}" y="${H - 8}" text-anchor="middle" font-size="11" fill="var(--sub)">${m.ym.slice(5)}月</text>`;
+  });
+  return `
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <button class="btn sm sub" onclick="navMonth(-1)">← 前月</button>
+      <b>${esc(sumYm.replace('-', '/'))}</b>
+      <button class="btn sm sub" onclick="navMonth(1)">次月 →</button>
+    </div>
+    <div class="statgrid mt">
+      <div class="stat"><div class="l">収入合計</div><div class="v income">${fmtYen(sum.income)}</div></div>
+      <div class="stat"><div class="l">支出合計</div><div class="v spend">${fmtYen(sum.expense)}</div></div>
+      <div class="stat"><div class="l">収支</div><div class="v ${sum.balance >= 0 ? 'plus' : 'minus'}">${fmtSignYen(sum.balance)}</div></div>
+      <div class="stat"><div class="l">登録済み固定費合計</div><div class="v">${fmtYen(fixedSum)}<small>/月</small></div></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>カテゴリ別支出 <span class="tag">${esc(sumYm)}</span></h2>
+    ${br.length === 0 ? '<div class="hint">この月の支出はまだありません。</div>' : br.map(b => `
+      <div class="barslot"><span class="nm">${esc(catName(b.categoryId))}</span>
+      <div class="barwrap"><div class="bar" style="width:${(b.amount / brMax * 100).toFixed(1)}%;background:var(--spend)"></div></div>
+      <span class="amt">${fmtYen(b.amount)}</span></div>`).join('')}
+  </div>
+  <div class="card">
+    <h2>月ごとの収支(直近6ヶ月)</h2>
+    <svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="月別収支グラフ">
+      ${bars}
+      <rect x="0" y="0" width="0" height="0"/>
+    </svg>
+    <div class="legend"><span><span class="sw" style="background:var(--spend)"></span>支出</span>
+    <span><span class="sw" style="background:var(--income)"></span>収入</span></div>
+  </div>`;
+}
+function navMonth(d) {
+  const [y, m] = sumYm.split('-').map(Number);
+  const dt = new Date(y, m - 1 + d, 1);
+  sumYm = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0');
+  renderLedger();
+}
+
+/* --- 固定費タブ --- */
+function fixedCostHtml() {
+  const rows = S.fixedCosts.map(f => `<div class="lrow">
+    <div class="ico exp">固</div>
+    <div class="mid"><div class="t">${esc(f.name)}</div><div class="d">毎月${f.dayOfMonth || '?'}日 ${f.active === false ? '・停止中' : ''}</div></div>
+    <div class="amt">${fmtYen(f.amount)}</div>
+    <div class="ops"><button class="btn sm sub" onclick="editFixed('${f.id}')">編集</button></div>
+  </div>`).join('');
+  const sum = S.fixedCosts.filter(f => f.active !== false).reduce((s, f) => s + f.amount, 0);
+  return `
+  <div class="card">
+    <h2>固定費 <span class="tag">月${fmtYen(sum)}</span></h2>
+    ${rows || '<div class="hint">固定費が未登録です。家賃・通信費などを登録すると毎月の支出入力が楽になります。</div>'}
+    <button class="btn sub block mt" onclick="editFixed(null)">＋ 固定費を追加</button>
+  </div>
+  <div class="card">
+    <h2>今月の固定費をまとめて支出登録</h2>
+    <div class="hint">有効な固定費を、今月の支出として一括登録します(登録済みの固定費はスキップ)。</div>
+    <button class="btn primary block mt" onclick="applyFixedMonth()">今月分をまとめて登録する</button>
+  </div>`;
+}
+function editFixed(id) {
+  const f = id ? S.fixedCosts.find(x => x.id === id) : { name: '', amount: '', dayOfMonth: 25, categoryId: (S.categories.find(c => c.type === 'expense' && c.name === '住居費') || S.categories.find(c => c.type === 'expense')).id, active: true };
+  openModal(`<h2>${id ? '固定費を編集' : '固定費を追加'}</h2>
+    <label>名称</label><input id="f-name" value="${esc(f.name)}" placeholder="例) 家賃">
+    <label>毎月の金額</label><input id="f-amount" type="number" min="0" step="1" value="${f.amount}">
+    <label>引落日</label><input id="f-day" type="number" min="1" max="31" value="${f.dayOfMonth}">
+    <label>カテゴリ</label><select id="f-cat">${catOptions('expense', f.categoryId)}</select>
+    <div class="row mt"><button class="btn sub" onclick="closeModal()">キャンセル</button>
+    <button class="btn primary" onclick="applyFixed(${id ? `'${id}'` : 'null'})">保存</button></div>
+    ${id ? `<button class="btn danger block mt" onclick="confirmDeleteFixed('${id}')">削除</button>` : ''}`);
+}
+async function applyFixed(id) {
+  const name = document.getElementById('f-name').value.trim();
+  const amount = Math.round(Number(document.getElementById('f-amount').value)) || 0;
+  if (!name || amount <= 0) { toast('名称と金額を入力してください'); return; }
+  const rec = {
+    id: id || uid(), name, amount,
+    dayOfMonth: Math.min(31, Math.max(1, Number(document.getElementById('f-day').value) || 25)),
+    categoryId: document.getElementById('f-cat').value, active: true, updatedAt: nowLocalTs()
+  };
+  await idbPut('fixedCosts', rec);
+  await loadAll(); closeModal(); toast('固定費を保存しました'); renderLedger();
+}
+function confirmDeleteFixed(id) {
+  confirmModal('固定費を削除', 'この固定費を削除します。よろしいですか?', '削除する', async () => {
+    await idbDel('fixedCosts', id); await loadAll(); closeModal(); toast('削除しました'); renderLedger();
+  }, true);
+}
+async function applyFixedMonth() {
+  const ym = nowYm();
+  const a = activeAsset();
+  let n = 0;
+  for (const f of S.fixedCosts) {
+    if (f.active === false) continue;
+    const exists = S.txs.some(t => t.fixedCostId === f.id && t.date.slice(0, 7) === ym);
+    if (exists) continue;
+    const date = ym + '-' + String(Math.min(f.dayOfMonth, 28)).padStart(2, '0');
+    const tx = {
+      id: uid(), type: 'expense', date, amount: f.amount, categoryId: f.categoryId,
+      paymentMethod: '現金', shop: f.name, memo: '固定費(自動登録)', fixedCostId: f.id,
+      createdAt: nowLocalTs(), updatedAt: nowLocalTs()
+    };
+    await idbPut('txs', tx);
+    if (a) await idbPut('reserves', { id: uid(), txId: tx.id, assetId: a.id, amount: f.amount, status: 'pending', createdAt: nowLocalTs() });
+    n++;
+  }
+  await loadAll();
+  toast(n > 0 ? `${n}件の固定費を今月の支出として登録しました` : '登録済みの固定費はありませんでした');
+  renderTab(currentTab);
+}
+
+/* --- カテゴリタブ --- */
+function categoryHtml() {
+  const mk = type => S.categories.filter(c => c.type === type).map(c => {
+    const used = S.txs.some(t => t.categoryId === c.id);
+    return `<div class="lrow" data-catid="${c.id}"><div class="ico ${type === 'expense' ? 'exp' : 'inc'}">${type === 'expense' ? '支' : '収'}</div>
+      <div class="mid"><div class="t">${esc(c.name)}</div>${c.builtIn ? '<div class="d">初期カテゴリ</div>' : ''}</div>
+      <div class="ops"><button class="btn sm sub" onclick="renameCat('${c.id}')">編集</button>
+      <button class="btn sm sub" onclick="delCat('${c.id}')">削除</button></div>
+      <div class="drag" onpointerdown="catDragStart(event)" onpointermove="catDragMove(event)" onpointerup="catDragEnd()" onpointercancel="catDragEnd()" aria-label="ドラッグで並び替え">⋮⋮</div></div>`;
+  }).join('');
+  return `
+  <div class="card"><h2>支出カテゴリ <span class="tag">右端のつまみで並び替え</span></h2>${mk('expense')}
+    <button class="btn sub block mt" onclick="addCat('expense')">＋ 支出カテゴリを追加</button>
+    <div class="notebox">行の右端の「⋮⋮」をドラッグ&ドロップして並び替えできます。この並び順は、入力フォームのカテゴリ選択肢(プルダウン)にもそのまま反映されます。</div></div>
+  <div class="card"><h2>収入カテゴリ</h2>${mk('income')}
+    <button class="btn sub block mt" onclick="addCat('income')">＋ 収入カテゴリを追加</button></div>
+  ${payMethodHtml()}`;
+}
+async function moveCat(id, dir) {
+  const c = S.categories.find(x => x.id === id);
+  if (!c) return;
+  const list = S.categories.filter(x => x.type === c.type);
+  const i = list.findIndex(x => x.id === id);
+  const j = i + dir;
+  if (j < 0 || j >= list.length) return;
+  [list[i], list[j]] = [list[j], list[i]];
+  for (let k = 0; k < list.length; k++) { list[k].order = k; await idbPut('categories', list[k]); }
+  await loadAll(); renderLedger();
+}
+/* --- ドラッグ&ドロップでの並び替え(ドラッグ中はDOMを書き換えない方式) --- */
+let dragCtx = null;
+function catDragStart(e) {
+  const row = e.currentTarget.closest('.lrow');
+  if (!row || !(row.dataset.catid || row.dataset.payid)) return;
+  const rows = [...row.parentElement.children].filter(r => r.dataset && (r.dataset.catid || r.dataset.payid));
+  if (rows.length < 2) return;
+  e.preventDefault();
+  const i0 = rows.indexOf(row);
+  const rects = rows.map(r => r.getBoundingClientRect());
+  dragCtx = {
+    row, rows, list: row.parentElement, originIdx: i0, idx: i0,
+    slots: rects.map(rc => rc.top),
+    heights: rects.map(rc => rc.height),
+    grab: e.clientY - rects[i0].top
+  };
+  row.classList.add('dragging');
+  rows.forEach(r => r.classList.remove('drop-above', 'drop-below'));
+  try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
+}
+function catDragMove(e) {
+  if (!dragCtx) return;
+  e.preventDefault();
+  const c = dragCtx, n = c.rows.length;
+  const rowH = c.heights[c.originIdx];
+  // 指の位置にそのまま追従(一覧の範囲内に制限)。スロット位置は開始時に固定済み。
+  let target = e.clientY - c.grab;
+  const topBound = c.slots[0];
+  const botBound = c.slots[n - 1] + c.heights[n - 1] - rowH;
+  target = Math.max(topBound, Math.min(botBound, target));
+  c.row.style.transform = `translateY(${target - c.slots[c.originIdx]}px)`;
+  // 挿入位置=自分以外のスロットの中点を越えた数
+  const cy = target + rowH / 2;
+  const others = c.rows.filter(r => r !== c.row);
+  let idx = 0;
+  for (let i = 0; i < n; i++) {
+    if (c.rows[i] === c.row) continue;
+    if (cy > c.slots[i] + c.heights[i] / 2) idx++;
+  }
+  c.idx = idx;
+  // 挿入位置の目印(緑の線)
+  c.rows.forEach(r => r.classList.remove('drop-above', 'drop-below'));
+  if (idx < others.length) others[idx].classList.add('drop-above');
+  else others[others.length - 1].classList.add('drop-below');
+}
+async function catDragEnd() {
+  if (!dragCtx) return;
+  const c = dragCtx; dragCtx = null;
+  c.row.classList.remove('dragging');
+  c.row.style.transform = '';
+  c.rows.forEach(r => r.classList.remove('drop-above', 'drop-below'));
+  const others = c.rows.filter(r => r !== c.row);
+  const finalRows = [...others.slice(0, c.idx), c.row, ...others.slice(c.idx)];
+  if (c.row.dataset.payid) { // 支払方法の並び順を保存
+    const arr = finalRows.map(r => r.dataset.payid);
+    if (arr.join('|') !== PAY_METHODS.join('|')) {
+      PAY_METHODS = arr.slice();
+      await savePayMethods(); await loadAll(); renderLedger();
+    }
+    return;
+  }
+  let changed = false;
+  for (let k = 0; k < finalRows.length; k++) {
+    const cat = S.categories.find(x => x.id === finalRows[k].dataset.catid);
+    if (cat && cat.order !== k) { cat.order = k; await idbPut('categories', cat); changed = true; }
+  }
+  if (changed) { await loadAll(); renderLedger(); }
+}
+/* --- 支払方法の編集 --- */
+function payMethodHtml() {
+  const rows = PAY_METHODS.map((m, i) => `<div class="lrow" data-payid="${esc(m)}">
+    <div class="ico exp">払</div>
+    <div class="mid"><div class="t">${esc(m)}</div><div class="d">${S.txs.some(t => t.paymentMethod === m) ? '使用中の記録あり' : ''}</div></div>
+    <div class="ops"><button class="btn sm sub" onclick="editPay(${i})">編集</button>
+    <button class="btn sm sub" onclick="delPay(${i})">削除</button></div>
+    <div class="drag" onpointerdown="catDragStart(event)" onpointermove="catDragMove(event)" onpointerup="catDragEnd()" onpointercancel="catDragEnd()" aria-label="ドラッグで並び替え">⋮⋮</div></div>`).join('');
+  return `<div class="card"><h2>支払方法 <span class="tag">右端のつまみで並び替え</span></h2>${rows}
+    <button class="btn sub block mt" onclick="editPay(null)">＋ 支払方法を追加</button>
+    <div class="notebox">行の右端の「⋮⋮」をドラッグ&ドロップして並び替えできます(支出入力のプルダウンにも反映)。名前を変更すると、すでに登録済みの支出の支払方法もまとめて更新されます。削除は、記録で使われている場合や最低1件しかない場合はできません。</div></div>`;
+}
+function editPay(i) {
+  const cur = i == null ? '' : PAY_METHODS[i];
+  openModal(`<h2>${i == null ? '支払方法を追加' : '支払方法を編集'}</h2>
+    <label>名称</label><input id="p-name" value="${esc(cur)}" maxlength="12" placeholder="例) デビットカード">
+    <div class="row mt"><button class="btn sub" onclick="closeModal()">キャンセル</button>
+    <button class="btn primary" onclick="applyPay(${i == null ? 'null' : i})">保存</button></div>`);
+}
+async function applyPay(i) {
+  const name = document.getElementById('p-name').value.trim();
+  if (!name) { toast('名称を入力してください'); return; }
+  if (PAY_METHODS.some((m, j) => m === name && j !== i)) { toast('同名の支払方法が既にあります'); return; }
+  const old = i == null ? null : PAY_METHODS[i];
+  if (i == null) PAY_METHODS.push(name); else PAY_METHODS[i] = name;
+  if (old && old !== name) { // 登録済みの支出の支払方法をまとめて改名
+    for (const t of S.txs) if (t.paymentMethod === old) { t.paymentMethod = name; await idbPut('txs', t); }
+  }
+  await savePayMethods();
+  await loadAll(); closeModal(); toast('支払方法を保存しました'); renderLedger();
+}
+function delPay(i) {
+  const m = PAY_METHODS[i];
+  if (PAY_METHODS.length <= 1) { toast('支払方法は最低1つ必要です'); return; }
+  if (S.txs.some(t => t.paymentMethod === m)) { toast('この支払方法は使われているため削除できません'); return; }
+  confirmModal('支払方法を削除', `「${esc(m)}」を削除します。よろしいですか?`, '削除する', async () => {
+    PAY_METHODS.splice(i, 1);
+    await savePayMethods(); await loadAll(); closeModal(); toast('削除しました'); renderLedger();
+  }, true);
+}
+async function savePayMethods() {
+  await idbPut('settings', { id: 'payMethods', key: 'payMethods', value: PAY_METHODS.slice() });
+}
+function addCat(type) {
+  openModal(`<h2>カテゴリを追加</h2><label>名称</label><input id="c-name">
+    <div class="row mt"><button class="btn sub" onclick="closeModal()">キャンセル</button>
+    <button class="btn primary" onclick="applyCat(null,'${type}')">追加</button></div>`);
+}
+function renameCat(id) {
+  const c = S.categories.find(x => x.id === id);
+  openModal(`<h2>カテゴリを編集</h2><label>名称</label><input id="c-name" value="${esc(c.name)}">
+    <div class="row mt"><button class="btn sub" onclick="closeModal()">キャンセル</button>
+    <button class="btn primary" onclick="applyCat('${id}')">保存</button></div>`);
+}
+async function applyCat(id, type) {
+  const name = document.getElementById('c-name').value.trim();
+  if (!name) { toast('名称を入力してください'); return; }
+  if (id) { const c = S.categories.find(x => x.id === id); c.name = name; await idbPut('categories', c); }
+  else await idbPut('categories', { id: uid(), type, name, order: 99 });
+  await loadAll(); closeModal(); toast('カテゴリを保存しました'); renderLedger();
+}
+function delCat(id) {
+  const used = S.txs.some(t => t.categoryId === id);
+  if (used) { toast('このカテゴリは使われているため削除できません'); return; }
+  confirmModal('カテゴリを削除', '削除してよろしいですか?', '削除する', async () => {
+    await idbDel('categories', id); await loadAll(); toast('削除しました'); renderLedger();
+  }, true);
+}
+'use strict';
+/* ================= 履歴画面 ================= */
+function renderHistory() {
+  if (!S.histYm) S.histYm = nowYm();
+  if (!assetModeOn() && S.histTab !== 'tx') S.histTab = 'tx';
+  const tabs = assetModeOn() ? [['tx', '収支(家計)'], ['buy', '購入(資産)'], ['sell', '売却(資産)']] : [['tx', '収支']];
+  let body = '';
+  if (S.histTab === 'tx') body = histTxHtml();
+  if (S.histTab === 'buy') body = histBuyHtml();
+  if (S.histTab === 'sell') body = histSellHtml();
+  document.getElementById('scr-history').innerHTML = `
+    <div class="seg">${tabs.map(([id, l]) => `<button onclick="S.histTab='${id}';renderHistory()" class="${S.histTab === id ? 'on' : ''}">${l}</button>`).join('')}</div>
+    <div class="card" style="padding:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <button class="btn sm sub" onclick="navHist(-1)">←</button>
+        <b>${esc(S.histYm.replace('-', '/'))}</b>
+        <button class="btn sm sub" onclick="navHist(1)">→</button>
+      </div>${body}</div>`;
+}
+function navHist(d) {
+  const [y, m] = S.histYm.split('-').map(Number);
+  const dt = new Date(y, m - 1 + d, 1);
+  S.histYm = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0');
+  renderHistory();
+}
+function histTxHtml() {
+  const list = S.txs.filter(t => t.date.slice(0, 7) === S.histYm);
+  if (list.length === 0) return '<div class="hint">この月の記録はありません。</div>';
+  return recentTxHtml(list);
+}
+function histBuyHtml() {
+  const a = activeAsset();
+  const list = S.purchases.filter(p => p.assetId === (a || {}).id && (p.datetime || '').slice(0, 7) === S.histYm);
+  if (list.length === 0) return '<div class="hint">この月の購入履歴はありません。</div>';
+  return list.map(p => `<div class="lrow">
+    <div class="ico buy">買</div>
+    <div class="mid"><div class="t">${esc(a.code)} 購入 ${fmtQty(p.actualQty, a.qtyDecimals)}</div>
+    <div class="d">${fmtDateTime(p.datetime)} ・ 約定 ${fmtYen(p.actualRate)}${p.fee ? ' ・ 手数料 ' + fmtYen(p.fee) : ''}${p.memo ? ' ・ ' + esc(p.memo) : ''}</div></div>
+    <div class="amt">${fmtYen(p.amountJPY)}</div>
+    <div class="ops"><button class="btn sm sub" onclick="editPurchase('${p.id}')">編集</button></div></div>`).join('');
+}
+function histSellHtml() {
+  const a = activeAsset();
+  const list = S.sales.filter(s => s.assetId === (a || {}).id && (s.datetime || '').slice(0, 7) === S.histYm);
+  if (list.length === 0) return '<div class="hint">この月の売却履歴はありません。</div>';
+  return list.map(s => `<div class="lrow">
+    <div class="ico sell">売</div>
+    <div class="mid"><div class="t">${esc(a.code)} 売却 ${fmtQty(s.qty, a.qtyDecimals)}</div>
+    <div class="d">${fmtDateTime(s.datetime)} ・ ${fmtYen(s.rate)}${s.fee ? ' ・ 手数料 ' + fmtYen(s.fee) : ''}</div></div>
+    <div class="amt ${s.realized >= 0 ? 'plus' : 'minus'}">${fmtYen(s.amountJPY)}<div class="d ${s.realized >= 0 ? '' : 'spend'}" style="text-align:right">損益 ${fmtSignYen(s.realized || 0)}</div></div>
+    <div class="ops"><button class="btn sm sub" onclick="editSale('${s.id}')">編集</button></div></div>`).join('');
+}
+
+/* ================= XRP画面(買い物→買い→○%上げで売り→コインを増やす) ================= */
+let xrpSel = new Set();      // 未注文で選択中のreserveId
+let boCtx = null;            // 買い注文モーダルの文脈 {ids, editId}
+let soCtx = null;            // 売り注文モーダルの文脈 {purchaseId}
+function renderAsset() {
+  const el = document.getElementById('scr-asset');
+  if (!assetModeOn()) { el.innerHTML = ''; return; }
+  const a = activeAsset();
+  if (!a) { el.innerHTML = '<div class="card"><div class="hint">有効な通貨がありません。設定で通貨を有効にしてください。</div></div>'; return; }
+  el.innerHTML = [
+    xrpPriceHtml(a),
+    xrpHoldHtml(a),
+    xrpPendingHtml(a),
+    xrpBuyOrdersHtml(a),
+    xrpFilledLotsHtml(a),
+    xrpSellOrdersHtml(a),
+    xrpDoneLinkHtml()
+  ].join('');
+}
+function xrpTxLabel(r) {
+  const t = S.txs.find(x => x.id === r.txId) || {};
+  return t.shop || catName(t.categoryId) || '支出';
+}
+/* --- 現在値 --- */
+function xrpPriceHtml(a) {
+  const pc = S.priceCache[a.id] || {};
+  const price = Number(pc.last || 0);
+  const pill = S.apiState === 'ok' ? '<span class="pill ok"><span class="dot"></span>API接続中(GMOコイン)</span>'
+    : S.apiState === 'fallback' ? '<span class="pill fb"><span class="dot"></span>代替ソースで取得中</span>'
+    : S.apiState === 'error' ? '<span class="pill ng"><span class="dot"></span>API接続エラー</span>'
+    : '<span class="pill fb"><span class="dot"></span>取得中…</span>';
+  return `<div class="card">
+    <div style="display:flex;align-items:baseline;gap:10px">
+      <div style="font-size:32px;font-weight:700;font-variant-numeric:tabular-nums" id="ov-last">${price > 0 ? '¥' + price.toFixed(a.priceDecimals) : '---'}</div>
+      <div style="font-size:13px;color:var(--sub)">${esc(a.code)}/JPY</div>
+      <button class="btn sm sub" style="margin-left:auto" onclick="fetchPriceOnce()">更新</button>
+    </div>
+    <div class="hint">本日の安値 <b>${pc.low ? '¥' + Number(pc.low).toFixed(a.priceDecimals) : '---'}</b> / 高値 <b>${pc.high ? '¥' + Number(pc.high).toFixed(a.priceDecimals) : '---'}</b> ・ 最終更新 <span id="ov-ts">${pc.ts ? fmtDateTime(pc.ts) : '-'}</span></div>
+    <div class="mt">${pill}</div>
+    <div id="ov-err">${S.apiErrMsg ? `<div class="errbox">${esc(S.apiErrMsg)}</div>` : ''}</div>
+  </div>`;
+}
+/* --- 保有 --- */
+function xrpHoldHtml(a) {
+  const st = assetStats();
+  const pc = S.priceCache[a.id] || {};
+  const price = Number(pc.last || 0);
+  const evalJpy = Math.round(price * st.holdingsQty);
+  const gained = S.sellOrders.filter(so => so.status === 'filled').reduce((s, so) => s + (so.coinGain || 0), 0);
+  return `<div class="card">
+    <div class="statgrid">
+      <div class="stat"><div class="l">保有枚数</div><div class="v">${fmtQty(st.holdingsQty, a.qtyDecimals)}<small>${esc(a.code)}</small></div></div>
+      <div class="stat"><div class="l">評価額(参考)</div><div class="v asset">${fmtYen(evalJpy)}</div></div>
+    </div>
+    ${gained > 0 ? `<div class="okbox mt">🪙 この運用で <b>+${fmtQty(gained, a.qtyDecimals)} ${esc(a.code)}</b> 増やしました(売却のたびにコインが増えます)</div>` : ''}
+  </div>`;
+}
+/* --- 未注文(家計簿の支出から) --- */
+function xrpPendingHtml(a) {
+  const ordered = new Set(S.purchaseOrders.filter(o => o.status === 'open' && (o.reserveIds || []).length).flatMap(o => o.reserveIds));
+  const list = [...pendingReserves()].filter(r => !ordered.has(r.id))
+    .sort((x, y) => String(x.createdAt || '').localeCompare(String(y.createdAt || '')));
+  const total = list.reduce((s, r) => s + r.amount, 0);
+  const selTotal = list.filter(r => xrpSel.has(r.id)).reduce((s, r) => s + r.amount, 0);
+  const rows = list.map(r => {
+    const t = S.txs.find(x => x.id === r.txId) || {};
+    const on = xrpSel.has(r.id);
+    return `<div class="lrow${on ? ' selrow' : ''}" onclick="togglePend('${r.id}')">
+      <div class="chk">${on ? '✓' : ''}</div>
+      <div class="mid"><div class="t">${esc(xrpTxLabel(r))}</div><div class="d">${esc(t.date || '')}</div></div>
+      <div class="amt">${fmtYen(r.amount)}</div></div>`;
+  }).join('');
+  return `<div class="card">
+    <h2>未注文 <span class="tag">家計簿の支出(合計 ${fmtYen(total)})</span></h2>
+    ${list.length === 0 ? '<div class="hint">家計簿に支出を登録すると、ここに「まだXRPを買っていないお金」として表示されます。選んで買い注文を出してください。</div>' : rows}
+    ${list.length ? `<div class="row mt">
+      <button class="btn sub" onclick="xrpSel=new Set();renderAsset()">選択解除</button>
+      <button class="btn primary" ${xrpSel.size === 0 ? 'disabled style="opacity:.5"' : ''} onclick="openBuyOrderModal([...xrpSel])">選択した${xrpSel.size}件を合算して買い注文(${fmtYen(selTotal)})</button>
+    </div>
+    <div class="notebox">複数の支出を選ぶと、合算した金額で1つの買い注文になります(レートは本日の安値を初期値にします)。</div>` : ''}
+  </div>`;
+}
+function togglePend(id) { if (xrpSel.has(id)) xrpSel.delete(id); else xrpSel.add(id); renderAsset(); }
+/* --- 買い注文(買い注文中) --- */
+function xrpBuyOrdersHtml(a) {
+  const orders = S.purchaseOrders.filter(o => (o.status || 'open') === 'open').sort((x, y) => String(y.createdAt || '').localeCompare(String(x.createdAt || '')));
+  if (!orders.length) return '';
+  const pc = S.priceCache[a.id] || {};
+  const price = Number(pc.last || 0);
+  return orders.map(o => {
+    const filled = price > 0 && price <= Number(o.rate);
+    const names = (o.reserveIds || []).map(id => { const r = S.reserves.find(x => x.id === id); return r ? xrpTxLabel(r) : null; }).filter(Boolean);
+    const prog = o.rate > 0 ? Math.max(0, Math.min(100, (2 - price / Number(o.rate)) * 100)) : 0;
+    return `<div class="card cyc">
+      <div class="head"><span class="badge ${filled ? 'b-done' : 'b-buy'}">${filled ? '約定(価格到達)' : '買い注文中'}</span>
+        <span class="name">${names.length ? esc(names.slice(0, 2).join('・')) + (names.length > 2 ? ` ほか${names.length - 2}件` : '') : '買い注文'}</span>
+        <span class="amt">${fmtYen(o.amount)}</span></div>
+      <div class="pair"><span>注文 <b>${fmtYen(o.rate)}</b> → <b>${fmtQty(o.qty, a.qtyDecimals)} ${esc(a.code)}</b></span></div>
+      ${filled ? '' : `<div class="progressbar"><i style="width:${prog}%"></i></div>
+      <div class="after"><span class="left">あと ${fmtYen(Math.max(0, Math.round(price - Number(o.rate))))} 下がれば注文価格</span></div>`}
+      ${filled
+        ? `<button class="btn primary block" onclick="fillBuyOrder('${o.id}')">約定を確定して売り注文へ →</button>`
+        : `<div class="ops"><button onclick="deleteBuyOrder('${o.id}')">取り消し</button><button class="main" onclick="openBuyOrderModal([], '${o.id}')">編集</button></div>`}
+    </div>`;
+  }).join('');
+}
+/* --- 買い約定済み(売り注文がまだ) --- */
+function xrpFilledLotsHtml(a) {
+  const soMap = new Set(S.sellOrders.map(so => so.purchaseId));
+  const lots = S.purchases.filter(p => p.assetId === a.id && !soMap.has(p.id));
+  if (!lots.length) return '';
+  return lots.map(p => {
+    const names = (p.reserveAlloc || []).map(l => { const r = S.reserves.find(x => x.id === l.reserveId); return r ? xrpTxLabel(r) : null; }).filter(Boolean);
+    return `<div class="card cyc">
+      <div class="head"><span class="badge b-done">買い約定</span><span class="name">${names.length ? esc(names.slice(0, 2).join('・')) : esc(p.memo || '購入')}</span><span class="amt">${fmtYen(p.amountJPY)}</span></div>
+      <div class="pair"><span>約定 <b>${fmtYen(p.actualRate)}</b> → <b>${fmtQty(p.actualQty, a.qtyDecimals)} ${esc(a.code)}</b></span></div>
+      <button class="btn primary block" onclick="openSellOrderModal('${p.id}')">売り注文を作成 →</button>
+    </div>`;
+  }).join('');
+}
+/* --- 売り注文(売り注文中) --- */
+function xrpSellOrdersHtml(a) {
+  const orders = S.sellOrders.filter(so => so.status === 'open');
+  if (!orders.length) return '';
+  const pc = S.priceCache[a.id] || {};
+  const price = Number(pc.last || 0);
+  return orders.map(so => {
+    const p = S.purchases.find(x => x.id === so.purchaseId) || {};
+    const buyRate = Number(p.actualRate || 0);
+    const filled = price > 0 && price >= Number(so.rate);
+    const prog = so.rate > buyRate ? Math.max(0, Math.min(100, (price - buyRate) / (so.rate - buyRate) * 100)) : 0;
+    const diff = so.coinGain != null ? so.coinGain : (p.amountJPY ? so.qty - p.amountJPY / so.rate : 0);
+    return `<div class="card cyc">
+      <div class="head"><span class="badge ${filled ? 'b-done' : 'b-sell'}">${filled ? '約定(価格到達)' : '売り注文中'}</span><span class="name">${esc(xrpTxLabel({ txId: p.id })) === '支出' ? '売り注文' : ''}${(p.reserveAlloc || []).length ? esc((p.reserveAlloc || []).map(l => { const r = S.reserves.find(x => x.id === l.reserveId); return r ? xrpTxLabel(r) : null; }).filter(Boolean).slice(0, 2).join('・')) : '売り注文'}</span><span class="amt">${fmtQty(so.qty, a.qtyDecimals)} ${esc(a.code)}</span></div>
+      <div class="pair"><span>買 <b>${fmtYen(buyRate)}</b> → 目標 <b>${Math.round((so.gainRate || 0) * 100)}%</b> 指値 <b>${fmtYen(so.rate)}</b></span></div>
+      ${filled ? '' : `<div class="progressbar"><i style="width:${prog}%"></i></div>
+      <div class="after"><span class="left">指値まで あと ${fmtYen(Math.max(0, Math.round(so.rate - price)))}</span><span class="diff">売れたら +${fmtQty(diff, a.qtyDecimals)} ${esc(a.code)} 🪙</span></div>`}
+      ${filled
+        ? `<button class="btn primary block" onclick="completeSell('${so.id}')">約定を確定して完了にする →</button>`
+        : `<div class="ops"><button onclick="deleteSellOrder('${so.id}')">取り消し</button><button class="main" onclick="openSellOrderModal('${so.purchaseId}', '${so.id}')">編集</button></div>`}
+    </div>`;
+  }).join('');
+}
+/* --- 完了リンク --- */
+function xrpDoneLinkHtml() {
+  const n = S.sellOrders.filter(so => so.status === 'filled').length;
+  return `<div class="card"><button class="btn sub block" onclick="go('xrphist')">完了した取引(${n}件)を見る →</button></div>`;
+}
+/* --- 買い注文モーダル --- */
+function openBuyOrderModal(ids, editId = null) {
+  const a = activeAsset();
+  boCtx = { ids: ids.slice(), editId };
+  const editOrder = editId ? S.purchaseOrders.find(o => o.id === editId) : null;
+  const reserves = (editOrder ? (editOrder.reserveIds || []) : ids).map(id => S.reserves.find(r => r.id === id)).filter(Boolean);
+  const amount = editOrder ? editOrder.amount : reserves.reduce((s, r) => s + r.amount, 0);
+  const pc = S.priceCache[a.id] || {};
+  const defRate = editOrder ? editOrder.rate : (Number(pc.low) || Number(pc.last) || 0);
+  const names = reserves.map(r => xrpTxLabel(r));
+  openModal(`<h2>買い注文の作成</h2>
+    <div class="hint">GMOコインに出す買い注文の内容を決めます。注文レートの初期値は<b>本日の安値</b>です。自由に編集できます。</div>
+    <div class="kv"><span class="k">買付金額(合算)</span><span class="v" style="font-weight:700">${fmtYen(amount)}</span></div>
+    ${names.length ? `<div class="hint">${names.map(esc).join('・')}</div>` : ''}
+    <label>注文レート(円/${esc(a.code)}) <span class="req">*必須</span> — 初期値: 本日の安値 ${defRate ? fmtYen(defRate) : '---'}</label>
+    <input type="number" id="bo-rate" inputmode="decimal" min="0" step="${a.priceStep}" value="${defRate || ''}" oninput="boCalc()">
+    <div class="kv"><span class="k">購入数量(自動計算)</span><span class="v" id="bo-qty">---</span></div>
+    <div class="kv"><span class="k">発注相当額(数量×レート)</span><span class="v" id="bo-jpy">---</span></div>
+    <div class="copycard">
+      <div class="l">GMOコインに入力する注文数量(${esc(a.code)})</div><div class="v" id="bo-c-qty">---</div>
+      <button class="btn sm sub" onclick="copyBoField('bo-qty')">📋 コピー</button>
+    </div>
+    <div class="copycard">
+      <div class="l">GMOコインに入力する注文レート(円/${esc(a.code)})</div><div class="v" id="bo-c-rate">---</div>
+      <button class="btn sm sub" onclick="copyBoField('bo-rate')">📋 コピー</button>
+    </div>
+    <div class="notebox">実際の注文はGMOコインのアプリで行ってください。作成後はステータスが「買い注文中」になり、価格が注文レートに到達すると「約定」扱いになります。</div>
+    <div class="row mt"><button class="btn sub" onclick="closeModal()">キャンセル</button>
+    <button class="btn primary" onclick="submitBuyOrder()">${editOrder ? '変更を保存' : '買い注文を作成'}</button></div>`);
+  boCalc();
+}
+function boCalc() {
+  if (!boCtx) return;
+  const a = activeAsset();
+  const editOrder = boCtx.editId ? S.purchaseOrders.find(o => o.id === boCtx.editId) : null;
+  const reserves = (editOrder ? (editOrder.reserveIds || []) : boCtx.ids).map(id => S.reserves.find(r => r.id === id)).filter(Boolean);
+  const amount = editOrder ? editOrder.amount : reserves.reduce((s, r) => s + r.amount, 0);
+  const rate = Number((document.getElementById('bo-rate') || {}).value) || 0;
+  const calc = rate > 0 ? Core.calcBuyQty(amount, rate, a.minOrderQty, a.qtyStep) : { qty: 0, ok: false };
+  const qv = calc.qty > 0 ? calc.qty.toFixed(a.qtyDecimals).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '') : '0';
+  const q = document.getElementById('bo-qty'), j = document.getElementById('bo-jpy');
+  if (q) q.textContent = rate > 0 ? `${qv} ${esc(a.code)}` : '---';
+  if (j) j.textContent = rate > 0 ? fmtYen(Math.round(calc.qty * rate)) : '---';
+  const cq = document.getElementById('bo-c-qty'), cr = document.getElementById('bo-c-rate');
+  if (cq) cq.textContent = calc.qty > 0 ? String(calc.qty) : '---';
+  if (cr) cr.textContent = rate > 0 ? rate.toFixed(a.priceDecimals) : '---';
+  const warn = document.getElementById('bo-warn');
+  if (warn) warn.innerHTML = (rate > 0 && calc.qty > 0 && !calc.ok) ? `<div class="warnbox">最小注文数量 ${esc(String(a.minOrderQty))} ${esc(a.code)} に満たないため、このままでは発注できません。</div>` : '';
+}
+async function copyBoField(id) {
+  const v = document.getElementById(id).textContent;
+  if (!v || v === '---') { toast('値が未確定です'); return; }
+  const ok = await copyText(v.split(' ')[0]);
+  toast(ok ? 'コピーしました' : 'コピーに失敗しました');
+}
+async function submitBuyOrder() {
+  if (!boCtx) return;
+  const a = activeAsset();
+  const rate = Number(document.getElementById('bo-rate').value) || 0;
+  if (!rate) { toast('注文レートを入力してください'); return; }
+  if (boCtx.editId) {
+    const o = S.purchaseOrders.find(x => x.id === boCtx.editId);
+    if (!o) { closeModal(); return; }
+    o.rate = rate;
+    o.qty = Core.calcBuyQty(o.amount, rate, a.minOrderQty, a.qtyStep).qty;
+    await idbPut('purchaseOrders', o);
+    await loadAll(); closeModal(); toast('買い注文を変更しました'); renderAsset();
+    return;
+  }
+  const reserves = boCtx.ids.map(id => S.reserves.find(r => r.id === id)).filter(Boolean);
+  if (!reserves.length) { toast('対象の未注文がありません'); return; }
+  const amount = reserves.reduce((s, r) => s + r.amount, 0);
+  const calc = Core.calcBuyQty(amount, rate, a.minOrderQty, a.qtyStep);
+  if (!(calc.qty > 0)) { toast('このレートでは最小注文数量に届きません'); return; }
+  await idbPut('purchaseOrders', {
+    id: uid(), kind: 'buy', assetId: a.id, amount, rate, qty: calc.qty,
+    reserveIds: reserves.map(r => r.id), status: 'open', createdAt: nowLocalTs()
+  });
+  xrpSel = new Set();
+  await loadAll(); closeModal();
+  toast(`買い注文を作成しました(${fmtYen(amount)} @ ${fmtYen(rate)})`);
+  renderAsset();
+}
+async function deleteBuyOrder(orderId) {
+  confirmModal('買い注文の取り消し', 'この買い注文を取り消します。対象の支出は「未注文」に戻ります。よろしいですか?', '取り消す', async () => {
+    await idbDel('purchaseOrders', orderId);
+    await loadAll(); toast('買い注文を取り消しました'); renderAsset();
+  }, true);
+}
+/* --- 買い約定→購入登録→売り注文モーダル --- */
+async function fillBuyOrder(orderId) {
+  const a = activeAsset();
+  const o = S.purchaseOrders.find(x => x.id === orderId);
+  if (!o) return;
+  const amountJPY = Math.round(Number(o.rate) * Number(o.qty));
+  let alloc;
+  if ((o.reserveIds || []).length) {
+    alloc = o.reserveIds.map(id => { const r = S.reserves.find(x => x.id === id); return r ? { reserveId: id, txId: r.txId, amount: r.amount } : null; }).filter(Boolean);
+  } else {
+    alloc = Core.allocatePurchase(pendingReserves(), amountJPY).links;
+  }
+  const pur = {
+    id: uid(), assetId: a.id, datetime: nowLocalTs(), actualRate: Number(o.rate), actualQty: Number(o.qty), amountJPY,
+    orderRate: Number(o.rate), orderQty: Number(o.qty), fee: null, memo: '買い注文の約定', reserveAlloc: alloc, createdAt: nowLocalTs()
+  };
+  await idbPut('purchases', pur);
+  for (const l of alloc) {
+    const r = S.reserves.find(x => x.id === l.reserveId);
+    if (!r) continue;
+    if (l.amount >= r.amount) { r.status = 'linked'; r.purchaseId = pur.id; await idbPut('reserves', r); }
+    else {
+      await idbPut('reserves', { id: r.id, txId: r.txId, assetId: r.assetId, amount: l.amount, status: 'linked', purchaseId: pur.id, createdAt: r.createdAt });
+      await idbPut('reserves', { id: uid(), txId: r.txId, assetId: r.assetId, amount: r.amount - l.amount, status: 'pending', createdAt: nowLocalTs() });
+    }
+  }
+  o.status = 'filled';
+  await idbPut('purchaseOrders', o);
+  await loadAll();
+  toast(`買い約定を記録しました(${fmtQty(pur.actualQty, a.qtyDecimals)} ${esc(a.code)})`);
+  openSellOrderModal(pur.id);
+}
+/* --- 売り注文モーダル --- */
+function openSellOrderModal(purchaseId, editId = null) {
+  const a = activeAsset();
+  const p = S.purchases.find(x => x.id === purchaseId);
+  if (!p) return;
+  soCtx = { purchaseId, editId };
+  const editOrder = editId ? S.sellOrders.find(x => x.id === editId) : null;
+  const gain = editOrder ? Math.round((editOrder.gainRate || 0.06) * 100) : 6;
+  openModal(`<h2>売り注文の作成</h2>
+    <div class="hint">買い約定した <b>${fmtQty(p.actualQty, a.qtyDecimals)} ${esc(a.code)}</b>(@ ${fmtYen(p.actualRate)})を、何%上がったら売るか決めます。</div>
+    <label>目標上昇率(%) — 6〜40%の間で</label>
+    <div class="row" id="so-chips">${[6, 8, 10, 15, 20, 25, 30, 40].map(v => `<button class="btn sm ${v === gain ? 'primary' : 'sub'}" onclick="setSoGain(${v})">${v}%</button>`).join('')}</div>
+    <input type="number" id="so-gain" inputmode="decimal" min="1" max="99" step="1" value="${gain}" oninput="soCalc()">
+    <div class="kv"><span class="k">売り注文レート(円/${esc(a.code)})</span><span class="v" id="so-rate" style="font-weight:700">---</span></div>
+    <div class="kv"><span class="k">売却数量</span><span class="v" id="so-qty">${fmtQty(p.actualQty, a.qtyDecimals)} ${esc(a.code)}(買い約定分すべて)</span></div>
+    <div class="kv"><span class="k">この指値で売れたとき獲得できるコイン</span><span class="v asset" id="so-diff" style="font-weight:700">---</span></div>
+    <div class="copycard">
+      <div class="l">GMOコインに入力する売却数量(${esc(a.code)})</div><div class="v" id="so-c-qty">---</div>
+      <button class="btn sm sub" onclick="copySo('so-c-qty')">📋 コピー</button>
+    </div>
+    <div class="copycard">
+      <div class="l">GMOコインに入力する売却レート(円/${esc(a.code)})</div><div class="v" id="so-c-rate">---</div>
+      <button class="btn sm sub" onclick="copySo('so-c-rate')">📋 コピー</button>
+    </div>
+    <div class="notebox">実際の売却はGMOコインのアプリで行ってください。価格が指値に到達すると「約定」扱いになり、確定するとサイクル完了です。</div>
+    <div class="row mt"><button class="btn sub" onclick="closeModal()">キャンセル</button>
+    <button class="btn primary" onclick="submitSellOrder()">${editOrder ? '変更を保存' : '売り注文を作成'}</button></div>`);
+  soCalc();
+}
+function setSoGain(v) { document.getElementById('so-gain').value = v; soCalc(); }
+function soCalc() {
+  if (!soCtx) return;
+  const a = activeAsset();
+  const p = S.purchases.find(x => x.id === soCtx.purchaseId);
+  if (!p) return;
+  const g = (Number(document.getElementById('so-gain').value) || 0) / 100;
+  const rate = g > 0 ? Core.calcTargetPrice(p.actualRate, g, a.priceStep) : 0;
+  document.getElementById('so-rate').textContent = rate ? fmtYen(rate) : '---';
+  const diff = rate ? p.actualQty - p.amountJPY / rate : 0;
+  document.getElementById('so-diff').textContent = rate ? `+${fmtQty(Math.max(0, diff), a.qtyDecimals)} ${esc(a.code)}` : '---';
+  document.getElementById('so-c-qty').textContent = rate ? String(p.actualQty) : '---';
+  document.getElementById('so-c-rate').textContent = rate ? rate.toFixed(a.priceDecimals) : '---';
+}
+async function copySo(id) {
+  const v = document.getElementById(id).textContent;
+  if (!v || v === '---') { toast('値が未確定です'); return; }
+  const ok = await copyText(v.split(' ')[0]);
+  toast(ok ? 'コピーしました' : 'コピーに失敗しました');
+}
+async function submitSellOrder() {
+  if (!soCtx) return;
+  const a = activeAsset();
+  const p = S.purchases.find(x => x.id === soCtx.purchaseId);
+  if (!p) { closeModal(); return; }
+  const g = (Number(document.getElementById('so-gain').value) || 0) / 100;
+  if (!(g > 0) || g > 1) { toast('目標上昇率は1〜99%で入力してください'); return; }
+  const rate = Core.calcTargetPrice(p.actualRate, g, a.priceStep);
+  if (soCtx.editId) {
+    const so = S.sellOrders.find(x => x.id === soCtx.editId);
+    if (!so) { closeModal(); return; }
+    so.rate = rate; so.gainRate = g;
+    await idbPut('sellOrders', so);
+    await loadAll(); closeModal(); toast('売り注文を変更しました'); renderAsset();
+    return;
+  }
+  await idbPut('sellOrders', {
+    id: uid(), assetId: a.id, purchaseId: p.id, qty: p.actualQty, rate, gainRate: g, status: 'open', createdAt: nowLocalTs()
+  });
+  await loadAll(); closeModal();
+  toast(`売り注文を作成しました(目標 +${Math.round(g * 100)}% / 指値 ${fmtYen(rate)})`);
+  renderAsset();
+}
+async function deleteSellOrder(orderId) {
+  confirmModal('売り注文の取り消し', 'この売り注文を取り消します。買い約定した記録は残ります。よろしいですか?', '取り消す', async () => {
+    await idbDel('sellOrders', orderId);
+    await loadAll(); toast('売り注文を取り消しました'); renderAsset();
+  }, true);
+}
+/* --- 売り約定→完了 --- */
+async function completeSell(orderId) {
+  const a = activeAsset();
+  const so = S.sellOrders.find(x => x.id === orderId);
+  if (!so) return;
+  const p = S.purchases.find(x => x.id === so.purchaseId);
+  if (!p) return;
+  const st = assetStats();
+  const lotsAsc = st.lots.map(l => ({ id: l.purchaseId, rate: l.rate, remainQty: l.qty }));
+  const f = Core.fifoAllocateSale(lotsAsc, { qty: so.qty, amountJPY: Math.round(so.qty * so.rate), fee: 0 });
+  const sale = {
+    id: uid(), assetId: a.id, sellOrderId: so.id, datetime: nowLocalTs(), rate: Number(so.rate), qty: Number(so.qty),
+    amountJPY: Math.round(so.qty * so.rate), fee: null, memo: '売り注文の約定', alloc: f.alloc, realized: f.realized, createdAt: nowLocalTs()
+  };
+  await idbPut('sales', sale);
+  so.status = 'filled';
+  so.coinGain = roundQty ? Number((so.qty - p.amountJPY / so.rate).toFixed(8)) : so.qty - p.amountJPY / so.rate;
+  so.filledAt = nowLocalTs();
+  await idbPut('sellOrders', so);
+  await loadAll();
+  toast(`サイクル完了!🪙 +${fmtQty(so.coinGain, a.qtyDecimals)} ${esc(a.code)}`);
+  renderAsset();
+}
+/* ================= 完了した取引(別画面) ================= */
+function renderXrpHist() {
+  const el = document.getElementById('scr-xrphist');
+  if (!assetModeOn()) { el.innerHTML = ''; return; }
+  const a = activeAsset();
+  if (!a) { el.innerHTML = '<div class="card"><div class="hint">有効な通貨がありません。</div></div>'; return; }
+  const st = assetStats();
+  const pc = S.priceCache[a.id] || {};
+  const price = Number(pc.last || 0);
+  const evalJpy = Math.round(price * st.holdingsQty);
+  const cycles = S.sellOrders.filter(so => so.status === 'filled')
+    .sort((x, y) => String(y.filledAt || '').localeCompare(String(x.filledAt || '')));
+  const legacy = S.sales.filter(s => s.assetId === a.id && !s.sellOrderId)
+    .sort((x, y) => String(y.datetime || '').localeCompare(String(x.datetime || '')));
+  const gained = cycles.reduce((s, so) => s + (so.coinGain || 0), 0);
+  const cycleRows = cycles.map(so => {
+    const p = S.purchases.find(x => x.id === so.purchaseId) || {};
+    const names = (p.reserveAlloc || []).map(l => { const r = S.reserves.find(x => x.id === l.reserveId); return r ? xrpTxLabel(r) : null; }).filter(Boolean);
+    return `<div class="cyc lrow" style="display:block">
+      <div class="head"><span class="badge b-done">完了</span><span class="name">${names.length ? esc(names.slice(0, 2).join('・')) : esc(p.memo || '購入')}</span>
+      <span class="diff" style="margin-left:auto;color:var(--asset);font-weight:700">+${fmtQty(so.coinGain || 0, a.qtyDecimals)} ${esc(a.code)} 🪙</span></div>
+      <div class="pair" style="margin-top:4px"><span>${fmtDateTime(so.filledAt || so.createdAt)}</span><span>買 <b>${fmtYen(p.actualRate)}</b> / 売 <b>${fmtYen(so.rate)}</b>(+${Math.round((so.gainRate || 0) * 100)}%)</span><span>元本 <b>${fmtYen(p.amountJPY)}</b></span></div>
+    </div>`;
+  }).join('');
+  const legacyRows = legacy.length ? `<h2 style="margin-top:10px">以前の売却履歴(ルーティン外)</h2>` + legacy.map(s => `
+    <div class="lrow"><div class="ico sell">売</div>
+    <div class="mid"><div class="t">${esc(a.code)} 売却 ${fmtQty(s.qty, a.qtyDecimals)}</div><div class="d">${fmtDateTime(s.datetime)} ・ ${fmtYen(s.rate)}</div></div>
+    <div class="amt ${s.realized >= 0 ? 'plus' : 'minus'}">${fmtYen(s.amountJPY)}<div class="d" style="text-align:right">損益 ${fmtSignYen(s.realized || 0)}</div></div>
+    <div class="ops"><button class="btn sm sub" onclick="editSale('${s.id}')">削除</button></div></div>`).join('') : '';
+  el.innerHTML = `
+  <div class="card">
+    <button class="btn sm sub" onclick="go('asset')">← XRP画面に戻る</button>
+    <h2 class="mt">完了した取引</h2>
+    <div class="statgrid">
+      <div class="stat"><div class="l">完了サイクル</div><div class="v">${cycles.length}<small>回</small></div></div>
+      <div class="stat"><div class="l">累計獲得コイン</div><div class="v asset">${fmtQty(gained, a.qtyDecimals)}<small>${esc(a.code)}</small></div></div>
+      <div class="stat"><div class="l">実現損益(円)</div><div class="v ${st.realized >= 0 ? 'plus' : 'minus'}">${fmtSignYen(st.realized)}</div></div>
+      <div class="stat"><div class="l">保有/評価額</div><div class="v">${fmtQty(st.holdingsQty, a.qtyDecimals)}<small>${esc(a.code)}</small></div></div>
+      <div class="stat"><div class="l">含み損益(参考)</div><div class="v ${st.unrealized > 0 ? 'plus' : st.unrealized < 0 ? 'minus' : ''}">${fmtSignYen(st.unrealized)}</div></div>
+      <div class="stat"><div class="l">累計購入/売却</div><div class="v">${fmtYen(st.totalBuyJPY)} / ${fmtYen(st.totalSellJPY)}</div></div>
+    </div>
+    <div class="notebox">実現損益は手数料を差し引いた円額。累計獲得コインは、売却で増えた${esc(a.code)}の累計です。</div>
+  </div>
+  ${st.lots.length ? `<div class="card"><h2>未売却ロット(古い順)</h2>
+    <div style="overflow-x:auto"><table class="tbl"><tr><th>購入日時</th><th class="r">残数量(${esc(a.code)})</th><th class="r">取得価格</th><th class="r">元本</th></tr>
+    ${st.lots.map(l => `<tr><td>${fmtDateTime(l.datetime)}</td><td class="r">${fmtQty(l.qty, a.qtyDecimals)}</td><td class="r">${fmtYen(Core.round(l.rate, 2))}</td><td class="r">${fmtYen(l.amountJPY)}</td></tr>`).join('')}
+    </table></div></div>` : ''}
+  <div class="card"><h2>完了サイクル <span class="tag">新しい順</span></h2>
+    ${cycles.length === 0 ? '<div class="hint">「売り注文 → 完了にする」まで済んだ取引がここに並びます。</div>' : cycleRows}
+    ${legacyRows}
+  </div>`;
+}
+/* --- 履歴の削除(従来フローとの互換) --- */
+function editPurchase(id) {
+  const p = S.purchases.find(x => x.id === id);
+  if (!p) return;
+  confirmModal('購入履歴の削除', 'この購入履歴を削除します。紐づいた支出は再び未購入金額に戻ります。よろしいですか?', '削除する', async () => {
+    for (const r of S.reserves.filter(r => r.purchaseId === id)) await idbDel('reserves', r.id);
+    const txIds = new Set((p.reserveAlloc || []).map(l => l.txId));
+    for (const txId of txIds) {
+      const tx = S.txs.find(t => t.id === txId);
+      if (tx) await idbPut('reserves', { id: uid(), txId, assetId: p.assetId, amount: tx.amount, status: 'pending', createdAt: tx.date });
+    }
+    await idbDel('purchases', id);
+    await loadAll(); toast('削除しました(未購入金額へ戻しました)'); closeModal(); renderTab(currentTab);
+  }, true);
+}
+function editSale(id) {
+  const s = S.sales.find(x => x.id === id);
+  confirmModal('売却履歴の削除', 'この売却履歴を削除します。保有数量と損益が再計算されます。よろしいですか?', '削除する', async () => {
+    await idbDel('sales', id); await loadAll(); toast('削除しました'); closeModal(); renderTab(currentTab);
+  }, true);
+}
+'use strict';
+/* ================= 価格取得(GMOコイン公開API + 代替) ================= */
+const PRICE_API = {
+  gmo: {
+    name: 'GMOコイン公開API',
+    ticker: pair => `https://api.coin.z.com/public/v1/ticker?symbol=${pair}`,
+    parse: j => {
+      const d = j.data[0];
+      return { last: Number(d.last), ask: Number(d.ask), bid: Number(d.bid), high: Number(d.high), low: Number(d.low), officialLow: true, ts: d.timestamp };
+    }
+  },
+  bitbank: {
+    name: 'bitbank公開API(代替)',
+    ticker: pair => {
+      const [c, q] = pair.split('_');
+      return `https://public.bitbank.cc/${c.toLowerCase()}_${q.toLowerCase()}/ticker`;
+    },
+    parse: j => {
+      if (j.success !== 1) throw new Error('bitbank error');
+      const d = j.data;
+      return { last: Number(d.last), ask: Number(d.sell), bid: Number(d.buy), high: Number(d.high), low: Number(d.low), officialLow: true, ts: d.timestamp ? new Date(d.timestamp).toISOString() : new Date().toISOString() };
+    }
+  }
+};
+function jstDateStr(d = new Date()) {
+  const j = new Date(d.getTime() + 9 * 3600 * 1000);
+  return j.toISOString().slice(0, 10);
+}
+function fetchWithTimeout(url, ms = 9000) {
+  return Promise.race([
+    fetch(url, { cache: 'no-store' }),
+    new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))
+  ]);
+}
+async function fetchPriceOnce() {
+  if (!assetModeOn()) return;
+  const a = activeAsset();
+  if (!a) return;
+  const sources = ['gmo', 'bitbank'];
+  let ok = false;
+  for (const src of sources) {
+    const api = PRICE_API[src];
+    try {
+      const r = await fetchWithTimeout(api.ticker(a.pair));
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const parsed = api.parse(await r.json());
+      applyPrice(a, parsed, src);
+      ok = true;
+      break;
+    } catch (e) {
+      S.apiErrMsg = `${api.name}: ${e.message || e}`;
+    }
+  }
+  if (!ok) {
+    S.apiState = 'error';
+    // 最安値の観測値フォールバックは保持済み
+  }
+  await savePriceCache();
+  if (currentTab === 'asset' || currentTab === 'home') renderTab(currentTab);
+}
+function applyPrice(a, p, source) {
+  const today = jstDateStr();
+  const prev = S.priceCache[a.id] || {};
+  const rec = {
+    id: a.id, last: p.last, ask: p.ask, bid: p.bid, high: p.high,
+    lowSource: p.officialLow ? 'official' : (prev.lowSource || 'observed'),
+    lowDate: today, ts: nowLocalTs(), apiTs: p.ts || ''
+  };
+  // 日付が変わったら新しい日の最安値管理へ
+  if (prev.lowDate !== today) {
+    rec.low = p.officialLow ? p.low : p.last;
+    rec.high = p.officialLow ? p.high : p.last;
+  } else {
+    rec.low = p.officialLow ? p.low : Math.min(prev.low || Infinity, p.last);
+    rec.high = p.officialLow ? Math.max(prev.high || 0, p.high || p.last) : Math.max(prev.high || 0, p.last);
+  }
+  if (!p.officialLow && prev.lowSource === 'official' && prev.lowDate === today) {
+    rec.lowSource = 'official'; rec.low = prev.low; // 公式値を優先して保持
+  }
+  S.priceCache[a.id] = rec;
+  S.apiState = source === 'gmo' ? 'ok' : 'fallback';
+  S.apiSource = source;
+  S.apiErrMsg = '';
+}
+async function savePriceCache() {
+  const a = activeAsset();
+  if (a && S.priceCache[a.id]) await idbPut('priceCache', S.priceCache[a.id]);
+}
+let priceTimer = null;
+function startPriceLoop() {
+  if (!priceTimer) {
+    priceTimer = setInterval(() => { if (!document.hidden && assetModeOn()) fetchPriceOnce(); }, 60000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && assetModeOn()) fetchPriceOnce(); });
+  }
+  fetchPriceOnce();
+}
+function stopPriceLoop() { if (priceTimer) { clearInterval(priceTimer); priceTimer = null; } }
+
+/* ================= 設定・バックアップ画面 ================= */
+function renderSettings() {
+  const a = activeAsset();
+  const curs = S.currencies;
+  document.getElementById('scr-settings').innerHTML = `
+  <div class="card">
+    <h2>表示モード <span class="tag">家計簿のみ / つみたて</span></h2>
+    <div class="row">
+      <button class="btn ${assetModeOn() ? 'sub' : 'primary'}" onclick="setAssetMode(false)">家計簿のみ</button>
+      <button class="btn ${assetModeOn() ? 'primary' : 'sub'}" onclick="setAssetMode(true)">家計 + つみたて</button>
+    </div>
+    <div class="hint mt">「家計簿のみ」では、つみたて・暗号資産の画面がすべて非表示になり、価格取得などの外部通信も行わなくなります。データは消えないため、いつでも切り替えられます。</div>
+    <button class="btn sub block mt" onclick="go('help')">アプリの使い方を見る</button>
+  </div>
+  ${assetModeOn() ? `<div class="card">
+    <h2>通貨マスタ <span class="tag">暗号資産の管理</span></h2>
+    ${curs.map(c => `<div class="lrow"><div class="ico ${c.enabled ? 'buy' : ''}" style="${c.enabled ? '' : 'background:var(--line2);color:var(--sub)'}">${esc(c.code.slice(0, 3))}</div>
+      <div class="mid"><div class="t">${esc(c.name)}(${esc(c.code)})</div><div class="d">${esc(c.exchange)} ・ ${c.enabled ? '有効' : '無効(将来追加用)'}</div></div>
+      <div class="ops">${c.enabled ? `<button class="btn sm sub" onclick="editCurrency('${c.id}')">編集</button>` : ''}</div></div>`).join('')}
+    <div class="notebox">通貨ごとに「取引所・価格API・桁数・最小注文数量・刻み幅」を独立管理しています。新しい通貨の追加はここから行えます(BTC・ETHは仕様を登録済み。初期はXRPのみ有効)。</div>
+  </div>` : ''}
+  <div class="card">
+    <h2>バックアップ・復元 <span class="tag">JSON</span></h2>
+    <div class="hint">家計簿データ・カテゴリ・固定費・取引履歴・通貨マスタ・購入/売却履歴・設定をすべてJSONファイルに出力します。</div>
+    <button class="btn primary block mt" onclick="exportBackup()">⬇ JSONでバックアップ</button>
+    <label style="margin-top:16px">復元(JSONファイルを選択)</label>
+    <input type="file" id="import-file" accept="application/json,.json" onchange="importBackup(this)">
+    <div class="dangerbox">復元は現在の全データを<b>上書き</b>します。実行前に確認画面を表示します。</div>
+  </div>
+  <div class="card">
+    <h2>レシート読み取り(OCR)の設定</h2>
+    <div class="hint">OCRは端末内で処理され、レシート画像が外部に送信されることはありません。初回利用時にOCRエンジン(Tesseract.js)をCDNからダウンロードします(許可時のみ)。</div>
+    <div class="kv mt"><span class="k">利用許可</span><span class="v">${S.settings.ocrConsent && S.settings.ocrConsent.value ? '許可済み' : '未許可'}</span></div>
+    <button class="btn sub block mt" onclick="resetOcrConsent()">許可設定をリセット</button>
+  </div>
+  <div class="card">
+    <h2>データ初期化</h2>
+    <div class="dangerbox">すべての家計簿・資産データを削除します。元に戻せません。</div>
+    <button class="btn danger block mt" onclick="confirmWipe()">全データを削除</button>
+  </div>
+  <div class="card">
+    <h2>このアプリについて</h2>
+    <div class="small">
+      <p class="kv"><span class="k">保存先</span><span class="v">端末内IndexedDB</span></p>
+      <p class="kv"><span class="k">外部通信</span><span class="v">価格API・OCRエンジン取得のみ</span></p>
+      <p class="kv"><span class="k">APIキー</span><span class="v">不使用(公開APIのみ)</span></p>
+      <div class="notebox">個人の家計簿・取引データは端末外へ送信されません。取引の実行(注文)はGMOコインのアプリで手動で行ってください。</div>
+    </div>
+  </div>`;
+}
+function editCurrency(id) {
+  const c = S.currencies.find(x => x.id === id);
+  openModal(`<h2>通貨設定: ${esc(c.code)}</h2>
+    <label>通貨名称</label><input id="cu-name" value="${esc(c.name)}">
+    <label>取引所</label><input id="cu-ex" value="${esc(c.exchange)}">
+    <label>価格表示桁数</label><input id="cu-pd" type="number" min="0" max="8" value="${c.priceDecimals}">
+    <label>数量表示桁数</label><input id="cu-qd" type="number" min="0" max="8" value="${c.qtyDecimals}">
+    <label>最小注文数量(${esc(c.code)})</label><input id="cu-min" type="text" inputmode="decimal" value="${esc(String(c.minOrderQty))}">
+    <label>数量の刻み幅(${esc(c.code)})</label><input id="cu-qs" type="text" inputmode="decimal" value="${esc(String(c.qtyStep))}">
+    <label>注文価格の刻み幅(円)</label><input id="cu-ps" type="text" inputmode="decimal" value="${esc(String(c.priceStep))}">
+    <label>初期上昇率(%)(売却目標)</label><input id="cu-gr" type="number" min="0.1" step="0.1" value="${(c.gainRate * 100).toFixed(1)}">
+    <div class="row mt"><button class="btn sub" onclick="closeModal()">キャンセル</button>
+    <button class="btn primary" onclick="applyCurrency('${c.id}')">保存</button></div>`);
+}
+async function applyCurrency(id) {
+  const c = S.currencies.find(x => x.id === id);
+  c.name = document.getElementById('cu-name').value.trim() || c.name;
+  c.exchange = document.getElementById('cu-ex').value.trim() || c.exchange;
+  c.priceDecimals = Math.max(0, Number(document.getElementById('cu-pd').value) || 0);
+  c.qtyDecimals = Math.max(0, Number(document.getElementById('cu-qd').value) || 0);
+  const mo = document.getElementById('cu-min').value.trim(); if (mo && Number(mo) > 0) c.minOrderQty = mo;
+  const qs = document.getElementById('cu-qs').value.trim(); if (qs && Number(qs) > 0) c.qtyStep = qs;
+  const ps = document.getElementById('cu-ps').value.trim(); if (ps && Number(ps) > 0) c.priceStep = ps;
+  const gr = Number(document.getElementById('cu-gr').value); if (gr > 0) c.gainRate = gr / 100;
+  await idbPut('currencies', c);
+  await loadAll(); closeModal(); toast('通貨設定を保存しました'); renderSettings();
+}
+
+/* --- バックアップ・復元 --- */
+async function exportBackup() {
+  const data = { app: 'tsumiki', schemaVersion: 1, exportedAt: new Date().toISOString(), data: {} };
+  for (const s of STORES) data.data[s] = await idbAll(s);
+  const blob = new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const aEl = document.createElement('a');
+  aEl.href = url;
+  aEl.download = 'tsumiki-backup-' + todayStr().replace(/-/g, '') + '.json';
+  document.body.appendChild(aEl); aEl.click(); aEl.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 3000);
+  toast('バックアップをダウンロードしました');
+}
+function importBackup(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    let json;
+    try { json = JSON.parse(reader.result); } catch (e) { toast('JSONを読み込めませんでした'); return; }
+    if (!json || json.app !== 'tsumiki' || !json.data) { toast('このアプリのバックアップではありません'); return; }
+    const counts = Object.entries(json.data).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.length : 0}件`).join(' / ');
+    confirmModal('データを復元しますか?',
+      `復元すると<b>現在の全データが上書き</b>されます。この操作は取り消せません。<br><br>バックアップ内容:<br><span class="mut">${esc(counts)}</span><br>作成日時: ${esc(json.exportedAt || '?')}`,
+      '復元する', async () => {
+        for (const s of STORES) {
+          await idbClear(s);
+          if (Array.isArray(json.data[s])) await idbBulkPut(s, json.data[s]);
+        }
+        await loadAll();
+        toast('復元が完了しました');
+        go('home');
+      }, true);
+  };
+  reader.readAsText(file);
+  input.value = '';
+}
+async function confirmWipe() {
+  confirmModal('全データを削除', '家計簿・資産の全データを削除します。この操作は取り消せません。事前にバックアップを推奨します。よろしいですか?', 'すべて削除', async () => {
+    for (const s of STORES) await idbClear(s);
+    await seedIfNeeded(); await loadAll();
+    toast('初期化しました'); go('home');
+  }, true);
+}
+
+/* ================= レシートOCR(端末内処理) ================= */
+async function loadTesseract() {
+  return new Promise((res, rej) => {
+    if (window.Tesseract) return res();
+    const sc = document.createElement('script');
+    sc.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+    sc.onload = res; sc.onerror = () => rej(new Error('OCRエンジンの取得に失敗しました'));
+    document.head.appendChild(sc);
+  });
+}
+function ocrStart() {
+  if (document.getElementById('tx-type').value !== 'expense') { toast('レシート読み取りは支出のみです'); return; }
+  const consented = S.settings.ocrConsent && S.settings.ocrConsent.value;
+  if (!consented) return ocrConsentModal();
+  ocrPickFile();
+}
+function ocrConsentModal() {
+  openModal(`<h2>レシート読み取りの利用許可</h2>
+  <div class="small">
+    <p>OCRエンジン(Tesseract.js)をCDNからダウンロードし、<b>端末内(ブラウザ内)</b>で文字を読み取ります。</p>
+    <p style="margin-top:8px">• レシート画像がサーバーへ<b>送信されることはありません</b><br>
+    • 画像の選択以降の処理も端末内で完結します<br>• OCRエンジンのダウンロードに通信が発生します(初回のみ)</p>
+    <p style="margin-top:8px">この方法で読み取ることに同意しますか?</p>
+  </div>
+  <div class="row mt"><button class="btn sub" onclick="closeModal()">同意しない</button>
+  <button class="btn primary" onclick="ocrAgree()">同意して使う</button></div>`);
+}
+async function ocrAgree() {
+  await idbPut('settings', { id: 'ocrConsent', key: 'ocrConsent', value: true });
+  await loadAll(); closeModal(); ocrPickFile();
+}
+function ocrPickFile() {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = 'image/*';
+  inp.onchange = () => { if (inp.files && inp.files[0]) ocrRun(inp.files[0]); };
+  inp.click();
+}
+async function ocrRun(file) {
+  const area = document.getElementById('ocr-area');
+  area.innerHTML = '<div class="okbox">📷 画像を読み取り中…(端末内処理・数秒〜数十秒)</div>';
+  try {
+    await loadTesseract();
+    const bmp = await createImageBitmap(file);
+    const cv = document.createElement('canvas');
+    const maxW = 1600;
+    const scale = Math.min(1, maxW / bmp.width);
+    cv.width = Math.round(bmp.width * scale); cv.height = Math.round(bmp.height * scale);
+    cv.getContext('2d').drawImage(bmp, 0, 0, cv.width, cv.height);
+    const dataUrl = cv.toDataURL('image/png');
+    const ret = await Tesseract.recognize(dataUrl, 'jpn');
+    const text = ret.data.text || '';
+    const parsed = parseReceipt(text);
+    if (parsed.amount) {
+      document.getElementById('tx-amount').value = parsed.amount;
+      if (parsed.date) document.getElementById('tx-date').value = parsed.date;
+      if (parsed.shop) document.getElementById('tx-shop').value = parsed.shop.slice(0, 30);
+      area.innerHTML = `<div class="okbox">読み取り結果をフォームに反映しました。内容を確認・修正してから登録してください。<br><span class="mut">店舗: ${esc(parsed.shop || '不明')} / 金額: ${fmtYen(parsed.amount)} / 信頼度: ${Math.round(ret.data.confidence)}%</span></div>`;
+    } else {
+      area.innerHTML = '<div class="errbox">金額を読み取れませんでした。手動で入力してください。(レシート全体が明るく写っていると認識率が上がります)</div>';
+    }
+  } catch (e) {
+    area.innerHTML = `<div class="errbox">読み取りに失敗しました: ${esc(e.message || e)}<br>手動で入力してください。</div>`;
+  }
+}
+function parseReceipt(text) {
+  const lines = text.split(/\n+/).map(l => l.trim()).filter(Boolean);
+  // 日付
+  let date = null;
+  const dm = text.match(/(\d{4})[./\-年]\s*(\d{1,2})[./\-月]\s*(\d{1,2})/);
+  if (dm) date = dm[1] + '-' + String(dm[2]).padStart(2, '0') + '-' + String(dm[3]).padStart(2, '0');
+  // 金額: 「合計」「小計」「総合計」行の右側の数値を優先
+  let amount = null;
+  const num = s => { const m = String(s).match(/(\d[\d,，]*)/); return m ? Number(m[1].replace(/[,,，]/g, '')) : null; };
+  for (const l of lines) {
+    if (/合計|総合計|合 計/.test(l)) {
+      const v = num(l.replace(/円/g, ''));
+      if (v) amount = v;
+    }
+  }
+  if (!amount) for (const l of lines) {
+    if (/小計/.test(l)) { const v = num(l); if (v) amount = v; }
+  }
+  if (!amount) { // 最大の金額を拾う(レシート末尾の合計が最大であることが多い)
+    let best = 0;
+    for (const l of lines) { const v = num(l); if (v && v > best && v < 10000000) best = v; }
+    amount = best || null;
+  }
+  const shop = lines.find(l => !/^[¥¥￥\d\s,，.年月日/:.-]+$/.test(l)) || '';
+  return { date, amount, shop: shop ? shop.replace(/[^\p{L}\p{N}ぁ-んァ-ヶ一-龠々ーa-zA-Z0-9 　]/gu, '').trim() : '' };
+}
+async function resetOcrConsent() {
+  await idbPut('settings', { id: 'ocrConsent', key: 'ocrConsent', value: null });
+  await loadAll(); toast('許可設定をリセットしました'); renderSettings();
+}
+
+/* ================= 起動 ================= */
+(async function init() {
+  buildTabbar();
+  await seedIfNeeded();
+  await loadAll();
+  go('home');
+  if (assetModeOn()) startPriceLoop();
+  showWelcome();
+})();
+
+/* テスト・デバッグ用にグローバル公開(const/letはwindowに載らないため) */
+try { Object.assign(window, { Core, S, STORES, activeAsset, pendingTotal, pendingReserves, assetStats, loadAll, seedIfNeeded, idbAll, idbClear, idbPut, idbBulkPut, fetchPriceOnce, jstDateStr, nowYm, assetModeOn, pickMode, setAssetMode, showWelcome, buildTabbar, openTsvModal, parseTsvLines, tsvSaveAll, stopPriceLoop, go }); } catch (e) {}
+</script>
+</body>
+</html>
