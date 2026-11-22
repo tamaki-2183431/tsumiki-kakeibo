@@ -207,6 +207,16 @@ header.app .hdr-help:active{opacity:.7}
 .buyord{padding-top:13px;padding-bottom:13px}
 .buyord .pair{margin-top:3px}
 .buyord .progressbar{margin-top:6px}
+.qa{display:flex;flex-direction:column;gap:8px}
+.qa details{border:1px solid var(--line2);border-radius:10px;background:var(--surface2);padding:10px 12px}
+.qa details[open]{background:var(--surface)}
+.qa summary{cursor:pointer;list-style:none;display:flex;align-items:flex-start;font-weight:700;font-size:13.5px;line-height:1.5}
+.qa summary::-webkit-details-marker{display:none}
+.qa summary::before{content:'Q';color:var(--asset);font-weight:800;margin-right:8px;flex-shrink:0}
+.qa summary::after{content:'＋';margin-left:auto;padding-left:10px;color:var(--sub);font-weight:700;flex-shrink:0}
+.qa details[open] summary::after{content:'−'}
+.qa .a{margin-top:8px;padding-left:22px;font-size:12.5px;line-height:1.7;color:var(--sub)}
+.qa .a b{color:var(--ink);font-weight:600}
 .cyc .head .name{flex:1 1 auto;min-width:0}
 .cyc .head .amt{margin-left:auto;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
 .cyc .pair{display:flex;gap:12px;font-size:11.5px;color:var(--sub);font-variant-numeric:tabular-nums;flex-wrap:wrap;margin-top:5px}
@@ -935,8 +945,31 @@ function renderHelp() {
       <div class="st"><div><div class="b">使い方を変えたい</div><div class="d">設定 → 「表示モード」で「家計簿のみ」⇔「家計 + つみたて」を切替。データは消えません。</div></div></div>
       <div class="st"><div><div class="b">最初からやり直したい</div><div class="d">設定 → 「全データを削除」。取り消せないので事前にバックアップを推奨します。</div></div></div>
     </div>
+  </div>
+  <div class="card">
+    <h2>よくある質問 <span class="tag">タップで開く</span></h2>
+    <div class="qa">
+      <details><summary>入力したデータはどこに保存されますか?</summary>
+        <div class="a">端末のブラウザ内(IndexedDB)に保存され、外部のサーバーには送信しません。同じ端末・同じブラウザで開けば残りますが、<b>ブラウザのデータ消去や端末の初期化で消えます</b>。設定 →「JSONでバックアップ」で定期的に控えを取ってください。</div></details>
+      <details><summary>機種変更でデータを引き継げますか?</summary>
+        <div class="a">自動同期はありません。<b>旧端末で「JSONでバックアップ」→ 新端末で「JSONから復元」</b>の順で移行してください。復元は上書き前に確認画面が出ます。</div></details>
+      <details><summary>レシートの読み取りがうまくいきません</summary>
+        <div class="a">明るい場所で、レシート全体がまっすぐ写るように撮ると精度が上がります。うまく読めないときは、他のAIにレシートを読ませて<b>「TSVを貼り付けて登録」</b>するのが確実です。</div></details>
+      <details><summary>支出を登録したのに「未購入金額」が増えません</summary>
+        <div class="a">設定 →「表示モード」が<b>「家計簿のみ」</b>になっていると積み立ては行いません。「家計 + つみたて」に切り替えると、その時点の支出分から表示されます。支出の修正・削除にも自動で追従します。</div></details>
+      <details><summary>「家計簿のみ」と「家計 + つみたて」の違いは?</summary>
+        <div class="a">「家計 + つみたて」は支出と同額を自動で積み立て、資産(XRP)の購入・売却画面も使えます。「家計簿のみ」は家計簿機能だけに絞った表示です。<b>切り替えてもデータは消えません</b>。</div></details>
+      <details><summary>価格が「---」のまま、または更新されません</summary>
+        <div class="a">価格は公開API(GMOコイン、取得できない場合はbitbank)から約1分ごとに取得します。通信環境を確認し、レートカードの<b>「更新」</b>を押してください。表示は参考値で、手数料は含みません。</div></details>
+      <details><summary>アプリが自動で注文・売却してくれますか?</summary>
+        <div class="a">いいえ。<b>数量や目標価格の計算を補助するだけ</b>で、発注は取引所のアプリで手動で行います。約定したら「購入履歴」「売却履歴」に登録すると、保有数量や損益に反映されます。</div></details>
+      <details><summary>カテゴリを追加・並べ替えできますか?</summary>
+        <div class="a">家計簿タブ →「カテゴリ」で追加・名前変更・削除ができます。行の右端「⋮⋮」をドラッグすると並び替えられ、<b>入力フォームのプルダウンにも反映</b>されます。</div></details>
+      <details><summary>月の途中から使い始めました。過去の分は?</summary>
+        <div class="a">記録タブで日付を過去にして登録すれば、その月の集計に入ります。登録済みの記録も「編集」から日付を変更できます。</div></details>
+    </div>
   </div>`;
-}
+
 function prepForBuy() {
   go('asset');
 }
