@@ -200,7 +200,13 @@ header.app .hdr-help:active{opacity:.7}
 /* --- XRPタブ(サイクル管理) --- */
 .cyc .head{display:flex;align-items:center;gap:8px}
 .cyc .head .name{font-size:13px;font-weight:700}
-.cyc .badgeline{margin-bottom:7px}
+.cyc{position:relative}
+.cyc .badgeline{margin-bottom:6px}
+.xbtn{position:absolute;top:6px;right:8px;width:32px;height:32px;border:0;background:transparent;color:var(--sub);font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;border-radius:8px;cursor:pointer;padding:0}
+.xbtn:active{background:var(--bg)}
+.buyord{padding-top:13px;padding-bottom:13px}
+.buyord .pair{margin-top:3px}
+.buyord .progressbar{margin-top:6px}
 .cyc .head .name{flex:1 1 auto;min-width:0}
 .cyc .head .amt{margin-left:auto;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
 .cyc .pair{display:flex;gap:12px;font-size:11.5px;color:var(--sub);font-variant-numeric:tabular-nums;flex-wrap:wrap;margin-top:5px}
@@ -1683,8 +1689,8 @@ function xrpBuyOrdersHtml(a) {
     const filled = price > 0 && price <= Number(o.rate);
     const names = (o.reserveIds || []).map(id => { const r = S.reserves.find(x => x.id === id); return r ? xrpTxLabel(r) : null; }).filter(Boolean);
     const prog = o.rate > 0 ? Math.max(0, Math.min(100, (2 - price / Number(o.rate)) * 100)) : 0;
-    return `<div class="card cyc">
-      <div class="badgeline"><span class="badge ${filled ? 'b-done' : 'b-buy'}">${filled ? '約定(価格到達)' : '買い注文中'}</span></div>
+    return `<div class="card cyc buyord">
+      <div class="badgeline"><span class="badge ${filled ? 'b-done' : 'b-buy'}">${filled ? '約定(価格到達)' : '買い注文中'}</span>${filled ? '' : `<button class="xbtn" aria-label="買い注文を取り消す" onclick="deleteBuyOrder('${o.id}')">×</button>`}</div>
       <div class="head"><span class="name">${names.length ? esc(names.slice(0, 2).join('・')) + (names.length > 2 ? ` ほか${names.length - 2}件` : '') : '買い注文'}</span>
         <span class="amt">${fmtYen(o.amount)}</span></div>
       <div class="pair"><span>注文 <b>${fmtYen(o.rate)}</b> → <b>${fmtQty(o.qty, a.qtyDecimals)} ${esc(a.code)}</b></span></div>
@@ -1692,7 +1698,7 @@ function xrpBuyOrdersHtml(a) {
       <div class="after"><span class="left">あと ${fmtYen(Math.max(0, Math.round(price - Number(o.rate))))} 下がれば注文価格</span></div>`}
       ${filled
         ? `<button class="btn primary block" onclick="fillBuyOrder('${o.id}')">約定を確定して売り注文へ →</button>`
-        : `<div class="ops"><button onclick="deleteBuyOrder('${o.id}')">取り消し</button><button class="main" onclick="openBuyOrderModal([], '${o.id}')">編集</button></div>`}
+        : ''}
     </div>`;
   }).join('');
 }
