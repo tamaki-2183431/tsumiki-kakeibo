@@ -356,6 +356,23 @@ const Core = (() => {
     }
     return { expense: exp, income: inc, balance: inc - exp };
   }
+  // 日別サマリ(その月の全日)
+  function dayTotals(txs, ym) { // ym: 'YYYY-MM' → [{day, date, expense, income, balance, count}]
+    const [y, m] = ym.split('-').map(Number);
+    const last = new Date(y, m, 0).getDate();
+    const days = [];
+    for (let d = 1; d <= last; d++) days.push({ day: d, date: ym + '-' + String(d).padStart(2, '0'), expense: 0, income: 0, balance: 0, count: 0 });
+    for (const t of txs) {
+      const ds = String(t.date);
+      if (ds.slice(0, 7) !== ym) continue;
+      const rec = days[Number(ds.slice(8, 10)) - 1];
+      if (!rec) continue;
+      if (t.type === 'expense') rec.expense += t.amount; else rec.income += t.amount;
+      rec.count++;
+    }
+    for (const rec of days) rec.balance = rec.income - rec.expense;
+    return days;
+  }
   function categoryBreakdown(txs, ym, type) {
     const m = new Map();
     for (const t of txs) {
@@ -381,7 +398,7 @@ const Core = (() => {
     round, stepDecimals, floorStep, ceilStep, stepCount,
     calcBuyQty, calcTargetPrice, calcSellQty, remainingQty,
     allocatePurchase, shortfallOf, fifoRemaining, fifoAllocateSale,
-    monthSummary, categoryBreakdown, monthTotals
+    monthSummary, dayTotals, categoryBreakdown, monthTotals
   };
 })();
 
@@ -1192,6 +1209,7 @@ function ledgerSummaryHtml() {
   const sum = Core.monthSummary(S.txs, sumYm);
   const br = Core.categoryBreakdown(S.txs, sumYm, 'expense');
   const months = Core.monthTotals(S.txs, 6);
+  const days = Core.dayTotals(S.txs, sumYm);
   const maxM = Math.max(1, ...months.map(m => Math.max(m.expense, m.income)));
   const fixedSum = S.fixedCosts.filter(f => f.active !== false).reduce((s, f) => s + f.amount, 0);
   const brMax = Math.max(1, ...br.map(b => b.amount));
@@ -1235,6 +1253,42 @@ function ledgerSummaryHtml() {
     </svg>
     <div class="legend"><span><span class="sw" style="background:var(--spend)"></span>支出</span>
     <span><span class="sw" style="background:var(--income)"></span>収入</span></div>
+  </div>
+  ${ledgerDayCardHtml(days, sumYm)}`;
+}
+/* --- 日ごとの収支カード --- */
+function ledgerDayCardHtml(days, ym) {
+  const active = days.filter(d => d.count > 0).slice().reverse();
+  const maxD = Math.max(1, ...days.map(d => Math.max(d.expense, d.income)));
+  const DW = 560, DH = 190, dpad = 30, plotH = DH - 54;
+  const stepX = (DW - dpad - 6) / days.length;
+  const bw = Math.max(3, Math.min(8, stepX / 2 - 1.2));
+  const WD = ['日', '月', '火', '水', '木', '金', '土'];
+  let bars = '';
+  days.forEach((d, i) => {
+    const x = dpad + i * stepX + Math.max(0, (stepX - bw * 2 - 1) / 2);
+    const he = Math.round(d.expense / maxD * plotH);
+    const hi = Math.round(d.income / maxD * plotH);
+    if (he > 0) bars += `<rect x="${x.toFixed(1)}" y="${DH - 30 - he}" width="${bw.toFixed(1)}" height="${he}" rx="1.5" fill="var(--spend)"/>`;
+    if (hi > 0) bars += `<rect x="${(x + bw + 1).toFixed(1)}" y="${DH - 30 - hi}" width="${bw.toFixed(1)}" height="${hi}" rx="1.5" fill="var(--income)"/>`;
+    if (d.day === 1 || d.day % 5 === 0 || d.day === days.length)
+      bars += `<text x="${(x + bw).toFixed(1)}" y="${DH - 11}" text-anchor="middle" font-size="10" fill="var(--sub)">${d.day}</text>`;
+  });
+  return `
+  <div class="card">
+    <h2>日ごとの収支 <span class="tag">${esc(ym.replace('-', '/'))}</span></h2>
+    <svg class="chart" viewBox="0 0 ${DW} ${DH}" role="img" aria-label="日別収支グラフ">${bars}</svg>
+    <div class="legend"><span><span class="sw" style="background:var(--spend)"></span>支出</span>
+    <span><span class="sw" style="background:var(--income)"></span>収入</span></div>
+    ${active.length === 0 ? '<div class="hint">この月の記録はまだありません。記録タブから支出・収入を登録できます。</div>' : active.map(d => {
+      const wd = WD[new Date(d.date + 'T00:00:00').getDay()];
+      return `<div class="lrow">
+        <div class="ico ${d.income > 0 && d.balance >= 0 ? 'inc' : 'exp'}">${d.day}</div>
+        <div class="mid"><div class="t">${Number(ym.slice(5))}月${d.day}日(${wd})</div>
+        <div class="d">支出 ${fmtYen(d.expense)} ・ 収入 ${fmtYen(d.income)} ・ ${d.count}件</div></div>
+        <div class="amt" style="color:var(--${d.balance >= 0 ? 'ok' : 'danger'})">${fmtSignYen(d.balance)}</div>
+      </div>`;
+    }).join('')}
   </div>`;
 }
 function navMonth(d) {
