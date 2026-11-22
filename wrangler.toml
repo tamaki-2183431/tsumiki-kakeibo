@@ -1,4 +1,4 @@
 # Cloudflare Pages のビルド出力先はGUIが編集不可のため、このファイルで指定する
 # pages_build_output_dir = リポジトリ内で公開するディレクトリ（"./" = リポジトリ直下）
-name = "__APP_NAME__"
+name = "tsumiki-kakeibo"
 pages_build_output_dir = "./"
