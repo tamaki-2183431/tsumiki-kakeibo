@@ -1208,7 +1208,7 @@ function ledgerEntryHtml() {
     <select id="tx-category">${catOptions('expense')}</select>
     <div id="tx-shopwrap">
       <label>店舗名</label>
-      <input type="text" id="tx-shop" placeholder="例) スーパー、コンビニ" oninput="shopAutofill()">
+      <input type="text" id="tx-shop" placeholder="例) スーパー、コンビニ" oninput="shopAutofill(this,event)" oncompositionend="shopAutofill(this)">
       <label>商品名 <span class="hint" style="display:inline">(任意)</span></label>
       <input type="text" id="tx-item" placeholder="例) 洗剤 詰替 800g">
       <label>店舗住所 <span class="hint" style="display:inline">(任意)</span></label>
@@ -1388,8 +1388,9 @@ async function upsertShop(name, addr, tel) {
   await idbPut('settings', { id: 'shops', key: 'shops', value: map });
   S.settings.shops = { id: 'shops', key: 'shops', value: map };
 }
-function shopAutofill() {
-  const el = document.getElementById('tx-shop');
+function shopAutofill(src, ev) {
+  if (ev && ev.isComposing) return;
+  const el = src || document.getElementById('tx-shop');
   if (!el) return;
   const m = getShop(el.value);
   if (!m) return;
@@ -2069,27 +2070,31 @@ function shopRows() {
   });
   return Object.keys(map).map(k => map[k]).sort((a, b) => String(a.kana || a.name).localeCompare(String(b.kana || b.name), 'ja'));
 }
-function setShopQ() {
-  const el = document.getElementById('shop-q');
+function setShopQ(src, ev) {
+  if (ev && ev.isComposing) return;
+  const el = src || document.getElementById('shop-q');
   shopQ = el ? el.value : '';
-  const pos = el ? el.selectionStart : 0;
-  renderLedger();
-  setTimeout(() => { const n = document.getElementById('shop-q'); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) {} } }, 0);
+  const box = document.getElementById('shop-list');
+  if (box) box.innerHTML = shopListInner();
 }
-function shopsHtml() {
+function shopListInner() {
   const all = shopRows();
   const q = (shopQ || '').trim().toLowerCase();
   const list = q ? all.filter(r => [r.name, r.kana, r.addr, r.tel].join(' ').toLowerCase().indexOf(q) >= 0) : all;
   const spent = all.reduce((a, r) => a + r.total, 0);
-  return `<div class="card"><h2>店舗 <span class="tag">${all.length}件</span> ${hbtn('qa-shoplist')}</h2>
-    <input type="search" id="shop-q" value="${esc(shopQ || '')}" placeholder="店舗名・よみがな・住所・電話番号で検索" oninput="setShopQ()">
-    <div class="hint" style="margin:6px 0">${q ? '検索結果 <b>' + list.length + '件</b>' : '登録した支出の店舗を<b>50音順</b>に表示'} ・ 支出合計 ${fmtYen(spent)}</div>
+  return `<div class="hint" style="margin:6px 0">${q ? '検索結果 <b>' + list.length + '件</b>' : '登録した支出の店舗を<b>50音順</b>に表示'} ・ 支出合計 ${fmtYen(spent)}</div>
     ${list.length ? list.map(r => `<div class="lrow tap" onclick="openShopDetail('${esc(r.k)}')">
       <div class="ico exp">店</div>
       <div class="mid"><div class="t">${esc(r.name)}${r.kana ? ' <span class="hint" style="display:inline">' + esc(r.kana) + '</span>' : ''}</div>
       <div class="d">${r.n}回 ・ ${fmtYen(r.total)}${r.last ? ' ・ 最終 ' + esc(r.last) : ''}${r.addr ? ' ・ ' + esc(r.addr) : ''}</div></div>
       <div class="amt">${r.n}回</div></div>`).join('')
-      : '<div class="hint">該当する店舗がありません。検索語を変えるか、支出を登録すると自動で追加されます。</div>'}
+      : '<div class="hint">該当する店舗がありません。検索語を変えるか、支出を登録すると自動で追加されます。</div>'}`;
+}
+function shopsHtml() {
+  const all = shopRows();
+  return `<div class="card"><h2>店舗 <span class="tag">${all.length}件</span> ${hbtn('qa-shoplist')}</h2>
+    <input type="search" id="shop-q" value="${esc(shopQ || '')}" placeholder="店舗名・よみがな・住所・電話番号で検索" oninput="setShopQ(this,event)" oncompositionend="setShopQ(this)">
+    <div id="shop-list">${shopListInner()}</div>
     <button class="btn sub block mt" onclick="editShop('')">＋ 店舗を追加</button>
     <div class="notebox">店舗名は支出の登録・TSV取り込みから自動でたまります。漢字の店名は「編集」で<b>よみがな</b>を入れると50音順が正確になります。タップすると店舗の詳細と直近の支出が見られます。</div></div>`;
 }
@@ -2309,7 +2314,7 @@ function renderHistory() {
   if (S.histTab === 'sell') body = histSellHtml();
   const catOpts = S.categories.map(c => `<option value="${c.id}" ${histF.cat === c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
   const inner = S.histTab === 'tx'
-    ? `<div class="srch"><input id="hist-q" type="search" placeholder="店舗名・商品名・メモ・金額で検索" value="${esc(histQ)}" oninput="histSearch(this.value)"></div>
+    ? `<div class="srch"><input id="hist-q" type="search" placeholder="店舗名・商品名・メモ・金額で検索" value="${esc(histQ)}" oninput="histSearch(this.value,event)" oncompositionend="histSearch(this.value)"></div>
       <div class="chips">${[['all', '全期間'], ['year', '今年'], ['last', '去年'], ['month', 'この月']].map(([k, l]) =>
         `<button class="chip ${histF.period === k ? 'on' : ''}" onclick="histSet('period','${k}')">${l}</button>`).join('')}
         <button class="chip reset" onclick="histReset()">クリア</button></div>
@@ -2340,7 +2345,8 @@ function navHist(d) {
 }
 let histQ = '';
 let histF = { period: 'all', cat: '', pay: '', sort: 'new' };
-function histSearch(v) { histQ = v || ''; histListRefresh(); }
+function histSearch(q, ev) {
+  if (ev && ev.isComposing) return; histQ = v || ''; histListRefresh(); }
 function histSet(k, v) { histF[k] = v; histListRefresh(); }
 function histReset() { histQ = ''; histF = { period: 'all', cat: '', pay: '', sort: 'new' }; renderHistory(); }
 function histListRefresh() { const el = document.getElementById('hist-list'); if (el) el.innerHTML = histTxHtml(); }
