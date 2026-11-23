@@ -918,8 +918,11 @@ function gemPrompt() {
 
 1. 抽出項目
 画像から以下の情報を正確に抽出してください。
-日付(YYYY-MM-DD形式) / カテゴリ / 店舗名 / 金額(税込) / 支払方法 / 備考(具体的な商品名など)
-画像から読み取れない情報は、推測で補完せず「不明」としてください。
+日付(YYYY-MM-DD形式) / カテゴリ / 店舗名 / 金額(税込) / 支払方法 / 商品名 / 備考 / 店舗住所 / 店舗電話番号
+・商品名: レシートの明細行から代表的な商品名を1つ(例: 牛乳 1L)。複数あれば「牛乳 1L ほか2点」のようにまとめる。
+・店舗住所: レシート上部の店舗情報から都道府県・市区町村・番地まで(建物名は任意)。
+・店舗電話番号: 「TEL」「電話」表記の番号をハイフン付きで。
+画像から読み取れない情報は、推測で補完せず空欄にしてください(表・TSVとも列は省略せず、空のフィールドとして残す)。
 
 2. カテゴリの分類ルール【厳守】
 「カテゴリ」は、必ず以下のいずれか1つを使用してください。
@@ -943,9 +946,10 @@ ${ex.join('\n')}
 
 4. 出力形式
 レシート1枚ごとに、次の2つを出力してください。
-(1) 確認用の表: 列の順番は「日付 | カテゴリ | 店舗名 | 金額(税込) | 支払方法 | 備考」固定。
-(2) 貼り付け用データ: 1行1件、タブ区切りで「日付 → カテゴリ → 店舗名 → 金額 → 支払方法 → 備考」の順にし、コードブロック内に「データ行のみ」を出力。見出しや説明文は含めない。
+(1) 確認用の表: 列の順番は「日付 | カテゴリ | 店舗名 | 金額(税込) | 支払方法 | 商品名 | 備考 | 店舗住所 | 店舗電話番号」固定。
+(2) 貼り付け用データ: 1行1件、タブ区切りで「日付 → カテゴリ → 店舗名 → 金額 → 支払方法 → 商品名 → 備考 → 店舗住所 → 店舗電話番号」の順にし、コードブロック内に「データ行のみ」を出力。見出しや説明文は含めない。
 金額は半角数字(例: 1280 または 1,280)。日付は必ずYYYY-MM-DD形式。
+空欄の項目でもタブは省略せず、9列を必ず維持してください(列がずれるとアプリ側で取り込みエラーになります)。
 
 最重要ルール
 「カテゴリ」の自由生成は禁止です。必ず上記のリストから選び、存在しない項目名を新しく作ることは、いかなる場合も禁止です。`;
@@ -1072,6 +1076,10 @@ function renderHelp() {
       <div class="a">明るい場所で、レシート全体がまっすぐ写るように撮ると精度が上がります。うまく読めないときは、他のAIにレシートを読ませて<b>「TSVを貼り付けて登録」</b>するのが確実です。</div></details>
       <details id="qa-cat-manage"><summary>カテゴリを追加・並べ替えできますか?</summary>
       <div class="a">家計簿タブ →「カテゴリ」で追加・名前変更・削除ができます。行の右端「⋮⋮」をドラッグすると並び替えられ、<b>入力フォームのプルダウンにも反映</b>されます。</div></details>
+      <details id="qa-tsv"><summary>TSVは何列で貼ればいいですか?</summary>
+        <div class="a"><b>日付 → カテゴリ → 店舗名 → 金額 → 支払方法 → 商品名 → 備考 → 店舗住所 → 店舗電話番号</b>の9列(タブ区切り)です。空欄があってもタブは省略せず、列をずらさないでください。6列までの旧形式(日付/カテゴリ/店舗名/金額/支払方法/備考)もそのまま取り込めます。</div></details>
+      <details id="qa-shopinfo"><summary>店舗住所や電話番号は何に使えますか?</summary>
+        <div class="a">取り込んだ住所・電話番号は履歴の詳細に表示され、電話番号はタップで発信できます。検索欄でも住所・電話番号で絞り込めます(例: 「渋谷」「03-1234」)。データは端末内にのみ保存されます。</div></details>
       <details id="qa-tsv-cat"><summary>TSVのカテゴリ名が、自分で入れた名前と違うカテゴリになりました</summary>
       <div class="a">貼り付け時の<b>表記ゆれ吸収</b>が働いたためです。「食料品」「スーパー」→ 食費、「外食費」→ 外食、「電気代」→ 光熱水道 のように、レシートでよく使う言い回しを登録済みカテゴリへ寄せています。変換された行はプレビューに<b>「食料品 → 食費」</b>と表示されるので、登録前に確認できます。意図と違う場合は、その行だけ登録後に「編集」でカテゴリを変更してください。</div></details>
       <details id="qa-fuzzy-off"><summary>表記ゆれの自動補正を止められますか?</summary>
@@ -1198,6 +1206,10 @@ function ledgerEntryHtml() {
       <input type="text" id="tx-shop" placeholder="例) スーパー、コンビニ">
       <label>商品名 <span class="hint" style="display:inline">(任意)</span></label>
       <input type="text" id="tx-item" placeholder="例) 洗剤 詰替 800g">
+      <label>店舗住所 <span class="hint" style="display:inline">(任意)</span></label>
+      <input type="text" id="tx-addr" placeholder="例) 東京都渋谷区1-2-3">
+      <label>店舗電話番号 <span class="hint" style="display:inline">(任意)</span></label>
+      <input type="tel" id="tx-tel" placeholder="例) 03-1234-5678">
     </div>
     <label>メモ</label>
     <input type="text" id="tx-memo" placeholder="任意">
@@ -1244,6 +1256,8 @@ async function saveTx(ocrFill = null) {
     paymentMethod: type === 'expense' ? document.getElementById('tx-pay').value : '',
     shop: type === 'expense' ? document.getElementById('tx-shop').value.trim() : '',
     item: type === 'expense' ? ((document.getElementById('tx-item') || {}).value || '').trim() : '',
+    shopAddr: type === 'expense' ? ((document.getElementById('tx-addr') || {}).value || '').trim() : '',
+    shopTel: type === 'expense' ? ((document.getElementById('tx-tel') || {}).value || '').trim() : '',
     memo: document.getElementById('tx-memo').value.trim(),
     createdAt: nowLocalTs(), updatedAt: nowLocalTs()
   };
@@ -1267,7 +1281,9 @@ function editTx(id) {
     <label>カテゴリ</label><select id="m-category">${catOptions(t.type, t.categoryId)}</select>
     ${isExp ? `<label>支払方法</label><select id="m-pay">${PAY_METHODS.map(m => `<option ${m === t.paymentMethod ? 'selected' : ''}>${m}</option>`).join('')}</select>
     <label>店舗名</label><input type="text" id="m-shop" value="${esc(t.shop || '')}">
-    <label>商品名</label><input type="text" id="m-item" value="${esc(t.item || '')}">` : ''}
+    <label>商品名</label><input type="text" id="m-item" value="${esc(t.item || '')}">
+    <label>店舗住所</label><input type="text" id="m-addr" value="${esc(t.shopAddr || '')}">
+    <label>店舗電話番号</label><input type="tel" id="m-tel" value="${esc(t.shopTel || '')}">` : ''}
     <label>メモ</label><input type="text" id="m-memo" value="${esc(t.memo || '')}">
     <div class="row mt"><button class="btn sub" onclick="closeModal()">キャンセル</button>
     <button class="btn primary" onclick="applyTx('${t.id}')">保存</button></div>
@@ -1283,6 +1299,8 @@ async function applyTx(id) {
     t.paymentMethod = document.getElementById('m-pay').value;
     t.shop = document.getElementById('m-shop').value.trim();
     t.item = ((document.getElementById('m-item') || {}).value || '').trim();
+    t.shopAddr = ((document.getElementById('m-addr') || {}).value || '').trim();
+    t.shopTel = ((document.getElementById('m-tel') || {}).value || '').trim();
   }
   t.memo = document.getElementById('m-memo').value.trim();
   t.updatedAt = nowLocalTs();
@@ -1325,8 +1343,8 @@ function confirmDeleteTx(id) {
 /* --- TSV貼り付け登録(他のAIでの読み取り結果を反映) --- */
 function openTsvModal() {
   openModal(`<h2>TSVデータを貼り付けて登録 ${hbtn('qa-tsv')}</h2>
-  <div class="hint">1行 = 1件の支出。タブ区切りで<b>日付 → カテゴリ → 店舗名 → 金額 → 支払方法 → 備考</b>の順に貼り付けてください。<br>カテゴリ名は表記ゆれを自動で吸収します(例: 食料品→食費、スーパー→食費、外食費→外食)。どれにも寄せられない場合のみ「その他」系に分類します。</div>
-  <textarea id="tsv-in" rows="7" spellcheck="false" style="margin-top:10px;font-family:ui-monospace,Menlo,monospace;font-size:16px" placeholder="日付	カテゴリ	店舗名	金額	支払方法	備考&#10;2026-11-15	食料品	スーパー	1,280	デビットカード	食材"></textarea>
+  <div class="hint">1行 = 1件の支出。タブ区切りで<b>日付 → カテゴリ → 店舗名 → 金額 → 支払方法 → 商品名 → 備考 → 店舗住所 → 店舗電話番号</b>の順に貼り付けてください(6列までの旧形式も取り込めます)。<br>カテゴリ名は表記ゆれを自動で吸収します(例: 食料品→食費、スーパー→食費、外食費→外食)。どれにも寄せられない場合のみ「その他」系に分類します。</div>
+  <textarea id="tsv-in" rows="7" spellcheck="false" style="margin-top:10px;font-family:ui-monospace,Menlo,monospace;font-size:16px" placeholder="日付	カテゴリ	店舗名	金額	支払方法	商品名	備考	店舗住所	店舗電話番号&#10;2026-11-15	食料品	スーパー	1,280	デビットカード	牛乳 1L	食材	東京都渋谷区1-2-3	03-1234-5678"></textarea>
   <div id="tsv-preview"></div>
   <div class="row mt" id="tsv-actions"><button class="btn sub" onclick="closeModal()">キャンセル</button>
   <button class="btn primary" onclick="tsvReflect()">内容を確認</button></div>`);
@@ -1417,7 +1435,12 @@ function parseTsvLines(raw) {
   const other = S.categories.find(c => c.type === 'expense' && /その他/.test(c.name)) || S.categories.find(c => c.type === 'expense');
   return String(raw).split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(line => {
     const cols = (line.includes('\t') ? line.split('\t') : line.split(/\s{2,}/)).map(c => (c || '').trim());
-    const [d, cat, shop, amt, pay, memo] = cols;
+    const [d, cat, shop, amt, pay, c6, c7, c8, c9] = cols;
+    const wide = cols.length >= 7;
+    const item = wide ? (c6 || '') : '';
+    const memo = wide ? (c7 || '') : (c6 || '');
+    let shopAddr = wide ? (c8 || '') : '';
+    let shopTel = wide ? (c9 || '') : '';
     const date = normDateStr(d);
     const amount = Math.round(Number(String(amt || '').replace(/[^\d.]/g, '')));
     if (!date || !amount || amount <= 0) return { error: true, raw: line };
@@ -1433,7 +1456,13 @@ function parseTsvLines(raw) {
       else if (/現金/.test(pay)) pm = '現金';
       else pm = 'その他';
     }
-    return { date, categoryId: c.id, catLabel: c.name, fallback, rawCat: (cat || ''), match: hit.match, score: hit.score, shop: (shop || '').slice(0, 40), amount, pay: pm || '現金', memo: (memo || '').slice(0, 120) };
+    const isTel = v => /^0\d{1,4}-?\d{1,4}-?\d{3,4}$/.test(String(v || '').replace(/[－ー]/g, '-').trim());
+    const isAddr = v => /[都道府県].*[市区町村]|丁目|番地/.test(String(v || ''));
+    if (!shopTel) { const f = cols.slice(5).find(isTel); if (f) shopTel = f; }
+    if (!shopAddr) { const f = cols.slice(5).find(v => isAddr(v) && v !== shopTel); if (f) shopAddr = f; }
+    return { date, categoryId: c.id, catLabel: c.name, fallback, rawCat: (cat || ''), match: hit.match, score: hit.score,
+      shop: (shop || '').slice(0, 40), item: item.slice(0, 60), amount, pay: pm || '現金',
+      memo: memo.slice(0, 120), shopAddr: shopAddr.slice(0, 120), shopTel: shopTel.slice(0, 20) };
   });
 }
 function tsvReflect() {
@@ -1454,6 +1483,9 @@ function tsvReflect() {
     document.getElementById('tx-category').value = r.categoryId;
     document.getElementById('tx-pay').value = r.pay;
     document.getElementById('tx-shop').value = r.shop;
+      if (document.getElementById('tx-item')) document.getElementById('tx-item').value = r.item || '';
+      if (document.getElementById('tx-addr')) document.getElementById('tx-addr').value = r.shopAddr || '';
+      if (document.getElementById('tx-tel')) document.getElementById('tx-tel').value = r.shopTel || '';
     document.getElementById('tx-memo').value = r.memo;
     const area = document.getElementById('ocr-area');
     if (area) area.innerHTML = `<div class="okbox">TSVの内容をフォームに反映しました。確認して「登録する」を押してください。${r.fallback ? '<br>カテゴリ「' + esc(r.rawCat || '空欄') + '」は既存と一致しなかったため、' + esc(r.catLabel) + ' に分類しました。' : (r.match === 'fuzzy' ? '<br>カテゴリ「' + esc(r.rawCat) + '」を「' + esc(r.catLabel) + '」に寄せました(表記ゆれを吸収)。' : '')}</div>`;
@@ -1466,7 +1498,7 @@ function tsvReflect() {
   <div style="margin-top:6px">${ok.map(r => `
     <div class="tsvrow${r.fallback ? ' fx' : ''}">
       <div style="flex:1;min-width:0"><div class="t">${esc(r.date)} ・ ${esc(r.shop || '(店舗名なし)')}</div>
-      <div class="d">${r.match === 'fuzzy' ? esc(r.rawCat) + ' → <b>' + esc(r.catLabel) + '</b> <span class="pill">表記ゆれ</span>' : esc(r.catLabel)}${r.fallback ? '(未一致 → ' + esc(r.catLabel) + ' に分類)' : ''} ・ ${esc(r.pay)}${r.memo ? ' ・ ' + esc(r.memo) : ''}</div></div>
+      <div class="d">${r.match === 'fuzzy' ? esc(r.rawCat) + ' → <b>' + esc(r.catLabel) + '</b> <span class="pill">表記ゆれ</span>' : esc(r.catLabel)}${r.fallback ? '(未一致 → ' + esc(r.catLabel) + ' に分類)' : ''}${r.item ? ' ・ ' + esc(r.item) : ''} ・ ${esc(r.pay)}${r.memo ? ' ・ ' + esc(r.memo) : ''}${r.shopAddr ? ' ・ ' + esc(r.shopAddr) : ''}${r.shopTel ? ' ・ ☎' + esc(r.shopTel) : ''}</div></div>
       <div class="amt">${fmtYen(r.amount)}</div>
     </div>`).join('')}
   ${bad.length ? bad.map(b => `<div class="tsvrow fx"><div style="flex:1"><div class="d">読み飛ばし(日付か金額が不正): ${esc(b.raw)}</div></div></div>`).join('') : ''}</div>
@@ -1479,7 +1511,7 @@ async function tsvSaveAll() {
   for (const r of rows) {
     const tx = {
       id: uid(), type: 'expense', date: r.date, amount: r.amount, categoryId: r.categoryId,
-      paymentMethod: r.pay, shop: r.shop, memo: r.memo, createdAt: nowLocalTs(), updatedAt: nowLocalTs()
+      paymentMethod: r.pay, shop: r.shop, item: r.item, shopAddr: r.shopAddr, shopTel: r.shopTel, memo: r.memo, createdAt: nowLocalTs(), updatedAt: nowLocalTs()
     };
     await idbPut('txs', tx);
     if (a) await idbPut('reserves', { id: uid(), txId: tx.id, assetId: a.id, amount: tx.amount, status: 'pending', createdAt: nowLocalTs() });
@@ -2154,7 +2186,7 @@ function histTxHtml() {
     if (histF.cat) list = list.filter(t => t.categoryId === histF.cat);
     if (histF.pay) list = list.filter(t => (t.paymentMethod || '') === histF.pay);
     if (q) list = list.filter(t => {
-      const hay = [t.shop, t.item, t.memo, catName(t.categoryId), t.paymentMethod, t.date,
+      const hay = [t.shop, t.item, t.memo, t.shopAddr, t.shopTel, catName(t.categoryId), t.paymentMethod, t.date,
         t.type === 'expense' ? '支出' : '収入', String(t.amount)].join(' ').toLowerCase();
       return hay.indexOf(q) >= 0;
     });
@@ -2181,6 +2213,8 @@ function openTxDetail(id) {
     <div class="kv"><span>カテゴリ</span><b>${esc(catName(t.categoryId))}</b></div>
     ${isExp ? `<div class="kv"><span>店舗名</span><b>${esc(t.shop || '—')}</b></div>
     <div class="kv"><span>商品名</span><b>${esc(t.item || '—')}</b></div>
+    <div class="kv"><span>店舗住所</span><b>${esc(t.shopAddr || '—')}</b></div>
+    <div class="kv"><span>電話番号</span><b>${t.shopTel ? `<a href="tel:${esc(t.shopTel.replace(/[^0-9+]/g, ''))}">${esc(t.shopTel)}</a>` : '—'}</b></div>
     <div class="kv"><span>支払方法</span><b>${esc(t.paymentMethod || '—')}</b></div>` : ''}
     <div class="kv"><span>メモ</span><b>${esc(t.memo || '—')}</b></div>
     ${t.fixedCostId ? '<div class="kv"><span>区分</span><b>固定費</b></div>' : ''}
