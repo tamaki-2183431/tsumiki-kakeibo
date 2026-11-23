@@ -267,6 +267,8 @@ header.app .hdr-help:active{opacity:.7}
 .steps .st .b{font-weight:600;font-size:13.5px}
 .steps .st .d{font-size:12px;color:var(--sub);margin-top:1px}
 div.errskip{display:none}
+#toast .tact{margin-left:12px;background:none;border:1px solid rgba(255,255,255,.55);color:inherit;border-radius:8px;padding:4px 10px;font:inherit;font-weight:700;cursor:pointer}
+#toast .tact:active{opacity:.75}
 </style>
 </head>
 <body>
@@ -489,6 +491,22 @@ function toast(msg) {
   t.classList.add('on');
   clearTimeout(toast._h);
   toast._h = setTimeout(() => t.classList.remove('on'), 2200);
+}
+function toastAction(msg, label, fn, ms) {
+  const t = document.getElementById('toast');
+  t.innerHTML = `<span>${esc(msg)}</span><button class="tact" type="button">${esc(label)}</button>`;
+  t.classList.add('on');
+  clearTimeout(toast._h);
+  const btn = t.querySelector('.tact');
+  if (btn) btn.onclick = async () => {
+    t.classList.remove('on'); clearTimeout(toast._h);
+    try { await fn(); } catch (e) { console.error(e); toast('元に戻せませんでした'); }
+  };
+  toast._h = setTimeout(() => { t.classList.remove('on'); }, ms || 9000);
+}
+function refreshAfterDelete() {
+  try { renderLedger(); } catch (e) {}
+  try { if (document.getElementById('hist-list')) renderHistory(); } catch (e) {}
 }
 async function copyText(txt) {
   try {
@@ -1157,13 +1175,21 @@ function confirmDeleteTx(id) {
     ? 'この記録を削除します。支出の場合は未購入金額からも取り除かれます。よろしいですか?'
     : 'この記録を削除します。よろしいですか?';
   confirmModal('記録を削除', body, '削除する', async () => {
-    const t = S.txs.find(x => x.id === id);
+    const found = S.txs.find(x => x.id === id);
+    if (!found) { closeModal(); return; }
+    const snap = JSON.parse(JSON.stringify(found));
+    const linked = S.reserves.filter(r => r.txId === id).map(r => JSON.parse(JSON.stringify(r)));
     await idbDel('txs', id);
-    const linked = S.reserves.filter(r => r.txId === id);
     for (const r of linked) await idbDel('reserves', r.id);
     await loadAll();
-    toast('削除しました(未購入金額を反映)');
-    closeModal(); renderTab(currentTab);
+    closeModal(); renderTab(currentTab); refreshAfterDelete();
+    toastAction('記録を削除しました', '元に戻す', async () => {
+      await idbPut('txs', snap);
+      for (const r of linked) await idbPut('reserves', r);
+      await loadAll();
+      renderTab(currentTab); refreshAfterDelete();
+      toast('削除を取り消しました');
+    }, 9000);
   }, true);
   if (document.getElementById('hist-list')) renderHistory();
 }
