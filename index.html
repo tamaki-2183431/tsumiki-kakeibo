@@ -1408,6 +1408,7 @@ function ledgerAnalysisCardHtml(ym) {
   const catTotals = {};
   months.forEach(m => Object.keys(m.byC).forEach(k => { catTotals[k] = (catTotals[k] || 0) + m.byC[k]; }));
   const cats = Object.keys(catTotals).sort((a, b) => catTotals[b] - catTotals[a]).slice(0, 8);
+  rowsC.forEach(r => { if (cats.indexOf(r.id) < 0) cats.push(r.id); });
   const colorOf = id => PAL[Math.max(0, cats.indexOf(id)) % PAL.length];
   const mMax = Math.max(1, ...months.map(m => m.v));
   const SW = 560, SH = 300, pad = 34, ph = SH - 62;
@@ -1475,8 +1476,8 @@ function ledgerAnalysisCardHtml(ym) {
       const p2 = anPct(r.d, r.p);
       return `<div class="cmp" onclick="openCatDetail('${esc(r.id)}','${ym}')">
         <div class="cmL"><div class="cmN">${esc(catName(r.id))} <span class="cmC">${r.n}件</span></div>
-          <div class="cmpbar"><i style="width:${(r.c / maxC * 100).toFixed(1)}%;background:var(--spend)"></i></div>
-          ${r.p > 0 ? `<div class="cmpbar"><i style="width:${(r.p / maxC * 100).toFixed(1)}%;background:var(--sub);opacity:.45"></i></div>` : ''}
+          <div class="cmpbar"><i style="width:${(r.c / maxC * 100).toFixed(1)}%;background:${colorOf(r.id)}"></i></div>
+          ${r.p > 0 ? `<div class="cmpbar"><i style="width:${(r.p / maxC * 100).toFixed(1)}%;background:${colorOf(r.id)};opacity:.35"></i></div>` : ''}
         </div>
         <div class="cmR"><div class="cmA">${fmtYen(r.c)}</div><div class="cmP">前月 ${r.p ? fmtYen(r.p) : '記録なし'}</div></div>
         <div class="dlt" style="color:var(--${r.d > 0 ? 'spend' : r.d < 0 ? 'ok' : 'sub'})">${r.p === 0 ? '新規' : (r.d > 0 ? '+' : '') + fmtYen(r.d)}<div class="dltp">${p2 === null ? '' : (p2 >= 0 ? '+' : '') + p2 + '%'}</div></div>
