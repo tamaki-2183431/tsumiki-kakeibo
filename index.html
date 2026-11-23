@@ -949,7 +949,7 @@ ${ex.join('\n')}
 (1) 確認用の表: 列の順番は「日付 | カテゴリ | 店舗名 | 金額(税込) | 支払方法 | 商品名 | 備考 | 店舗住所 | 店舗電話番号」固定。
 (2) 貼り付け用データ: 1行1件、タブ区切りで「日付 → カテゴリ → 店舗名 → 金額 → 支払方法 → 商品名 → 備考 → 店舗住所 → 店舗電話番号」の順にし、コードブロック内に「データ行のみ」を出力。見出しや説明文は含めない。
 金額は半角数字(例: 1280 または 1,280)。日付は必ずYYYY-MM-DD形式。
-空欄の項目でもタブは省略せず、9列を必ず維持してください(列がずれるとアプリ側で取り込みエラーになります)。
+見出し行(日付/カテゴリ/…)を付けても構いません(アプリは列名でも解釈します)。空欄の項目でもタブは省略せず、9列を必ず維持してください(列がずれるとアプリ側で取り込みエラーになります)。
 
 最重要ルール
 「カテゴリ」の自由生成は禁止です。必ず上記のリストから選び、存在しない項目名を新しく作ることは、いかなる場合も禁止です。`;
@@ -1076,10 +1076,12 @@ function renderHelp() {
       <div class="a">明るい場所で、レシート全体がまっすぐ写るように撮ると精度が上がります。うまく読めないときは、他のAIにレシートを読ませて<b>「TSVを貼り付けて登録」</b>するのが確実です。</div></details>
       <details id="qa-cat-manage"><summary>カテゴリを追加・並べ替えできますか?</summary>
       <div class="a">家計簿タブ →「カテゴリ」で追加・名前変更・削除ができます。行の右端「⋮⋮」をドラッグすると並び替えられ、<b>入力フォームのプルダウンにも反映</b>されます。</div></details>
+      <details id="qa-shopmaster"><summary>店舗マスタとは何ですか?</summary>
+        <div class="a">店舗名ごとに住所・電話番号を覚えておく仕組みです。TSV取り込みや手入力で住所・電話が入ると自動で保存され、次回同じ店舗名を入力したときに<b>空欄を自動補完</b>します。「カテゴリ」タブの店舗マスタから手動で追加・編集・削除もできます(削除しても過去の記録は消えません)。</div></details>
       <details id="qa-tsv"><summary>TSVは何列で貼ればいいですか?</summary>
-        <div class="a"><b>日付 → カテゴリ → 店舗名 → 金額 → 支払方法 → 商品名 → 備考 → 店舗住所 → 店舗電話番号</b>の9列(タブ区切り)です。空欄があってもタブは省略せず、列をずらさないでください。</div></details>
+        <div class="a"><b>日付 → カテゴリ → 店舗名 → 金額 → 支払方法 → 商品名 → 備考 → 店舗住所 → 店舗電話番号</b>の9列(タブ区切り)です。空欄があってもタブは省略せず、列をずらさないでください。1行目に<b>「日付・カテゴリ・店舗名…」のヘッダー</b>を付けた場合は、列名を見て自動で対応付けます(列順が違ってもOK)。</div></details>
       <details id="qa-shopinfo"><summary>店舗住所や電話番号は何に使えますか?</summary>
-        <div class="a">取り込んだ住所・電話番号は履歴の詳細に表示され、電話番号はタップで発信できます。検索欄でも住所・電話番号で絞り込めます(例: 「渋谷」「03-1234」)。データは端末内にのみ保存されます。</div></details>
+        <div class="a">取り込んだ住所・電話番号は履歴の詳細に表示され、電話番号はタップで発信できます。同じ店舗名で2回目以降は店舗マスタから自動補完されます。検索欄でも住所・電話番号で絞り込めます(例: 「渋谷」「03-1234」)。データは端末内にのみ保存されます。</div></details>
       <details id="qa-tsv-cat"><summary>TSVのカテゴリ名が、自分で入れた名前と違うカテゴリになりました</summary>
       <div class="a">貼り付け時の<b>表記ゆれ吸収</b>が働いたためです。「食料品」「スーパー」→ 食費、「外食費」→ 外食、「電気代」→ 光熱水道 のように、レシートでよく使う言い回しを登録済みカテゴリへ寄せています。変換された行はプレビューに<b>「食料品 → 食費」</b>と表示されるので、登録前に確認できます。意図と違う場合は、その行だけ登録後に「編集」でカテゴリを変更してください。</div></details>
       <details id="qa-fuzzy-off"><summary>表記ゆれの自動補正を止められますか?</summary>
@@ -1203,7 +1205,7 @@ function ledgerEntryHtml() {
     <select id="tx-category">${catOptions('expense')}</select>
     <div id="tx-shopwrap">
       <label>店舗名</label>
-      <input type="text" id="tx-shop" placeholder="例) スーパー、コンビニ">
+      <input type="text" id="tx-shop" placeholder="例) スーパー、コンビニ" oninput="shopAutofill()">
       <label>商品名 <span class="hint" style="display:inline">(任意)</span></label>
       <input type="text" id="tx-item" placeholder="例) 洗剤 詰替 800g">
       <label>店舗住所 <span class="hint" style="display:inline">(任意)</span></label>
@@ -1263,6 +1265,7 @@ async function saveTx(ocrFill = null) {
   };
   await idbPut('txs', tx);
   if (type === 'expense') {
+    await upsertShop(tx.shop, tx.shopAddr, tx.shopTel);
     const a = activeAsset();
     if (a) await idbPut('reserves', { id: uid(), txId: tx.id, assetId: a.id, amount: tx.amount, status: 'pending', createdAt: nowLocalTs() });
   }
@@ -1345,6 +1348,7 @@ function openTsvModal() {
   openModal(`<h2>TSVデータを貼り付けて登録 ${hbtn('qa-tsv')}</h2>
   <div class="hint">1行 = 1件の支出。タブ区切りで<b>日付 → カテゴリ → 店舗名 → 金額 → 支払方法 → 商品名 → 備考 → 店舗住所 → 店舗電話番号</b>の順に貼り付けてください。<br>カテゴリ名は表記ゆれを自動で吸収します(例: 食料品→食費、スーパー→食費、外食費→外食)。どれにも寄せられない場合のみ「その他」系に分類します。</div>
   <textarea id="tsv-in" rows="7" spellcheck="false" style="margin-top:10px;font-family:ui-monospace,Menlo,monospace;font-size:16px" placeholder="日付	カテゴリ	店舗名	金額	支払方法	商品名	備考	店舗住所	店舗電話番号&#10;2026-11-15	食料品	スーパー	1,280	デビットカード	牛乳 1L	食材	東京都渋谷区1-2-3	03-1234-5678"></textarea>
+  <div id="tsv-note" class="hint" style="margin-bottom:6px"></div>
   <div id="tsv-preview"></div>
   <div class="row mt" id="tsv-actions"><button class="btn sub" onclick="closeModal()">キャンセル</button>
   <button class="btn primary" onclick="tsvReflect()">内容を確認</button></div>`);
@@ -1365,6 +1369,30 @@ function normDateStr(s) {
   if (!m) return null;
   const d = `${m[1]}-${String(m[2]).padStart(2, '0')}-${String(m[3]).padStart(2, '0')}`;
   return isNaN(new Date(d)) ? null : d;
+}
+/* --- 店舗マスタ --- */
+function shopKey(name) { return String(name || '').normalize('NFKC').toLowerCase().replace(/[\s\u3000]/g, ''); }
+function getShops() { return ((S.settings || {}).shops || {}).value || {}; }
+function getShop(name) { if (!name) return null; return getShops()[shopKey(name)] || null; }
+async function upsertShop(name, addr, tel) {
+  const k = shopKey(name);
+  if (!k || (!addr && !tel)) return;
+  const map = getShops();
+  const cur = map[k] || {};
+  const next = { name: String(name).trim().slice(0, 40), addr: (addr || cur.addr || '').slice(0, 120), tel: (tel || cur.tel || '').slice(0, 20), updatedAt: nowLocalTs() };
+  if (cur.addr === next.addr && cur.tel === next.tel) return;
+  map[k] = next;
+  await idbPut('settings', { id: 'shops', key: 'shops', value: map });
+  S.settings.shops = { id: 'shops', key: 'shops', value: map };
+}
+function shopAutofill() {
+  const el = document.getElementById('tx-shop');
+  if (!el) return;
+  const m = getShop(el.value);
+  if (!m) return;
+  const a = document.getElementById('tx-addr'), t = document.getElementById('tx-tel');
+  if (a && !a.value && m.addr) a.value = m.addr;
+  if (t && !t.value && m.tel) t.value = m.tel;
 }
 /* --- カテゴリ名の表記ゆれ吸収 --- */
 const CAT_ALIAS = [
@@ -1431,22 +1459,54 @@ function resolveCat(raw) {
   if (best && bs >= 0.45) return { id: best.id, label: best.name, match: 'fuzzy', score: bs, via: best.name };
   return none;
 }
+let tsvHeaderUsed = false;
+let tsvMasterFilled = 0;
+const TSV_COLMAP = [
+  [/^(店舗住所|住所|address|addr)/, 'addr'],
+  [/^(店舗電話|電話|tel|phone)/, 'tel'],
+  [/^(商品名|商品|item)/, 'item'],
+  [/^(備考|メモ|memo|note)/, 'memo'],
+  [/^(カテゴリ|分類|category)/, 'cat'],
+  [/^(支払|決済|payment|pay)/, 'pay'],
+  [/^(店舗名|店名|shop|store)/, 'shop'],
+  [/^(金額|合計|税込|amount|total)/, 'amount'],
+  [/^(日付|利用日|date)/, 'date'],
+];
+function tsvHeaderMap(cells) {
+  const map = {};
+  cells.forEach((cell, i) => {
+    const v = String(cell || '').normalize('NFKC').toLowerCase().replace(/[\s\u3000()（）*＊:：]/g, '');
+    if (!v) return;
+    for (const [re, field] of TSV_COLMAP) {
+      if (map[field] === undefined && re.test(v)) { map[field] = i; return; }
+    }
+  });
+  return (map.date !== undefined && map.amount !== undefined) ? map : null;
+}
 function parseTsvLines(raw) {
   const other = S.categories.find(c => c.type === 'expense' && /その他/.test(c.name)) || S.categories.find(c => c.type === 'expense');
-  return String(raw).split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(line => {
+  const POS = { date: 0, cat: 1, shop: 2, amount: 3, pay: 4, item: 5, memo: 6, addr: 7, tel: 8 };
+  const lines = String(raw).split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  tsvHeaderUsed = false; tsvMasterFilled = 0;
+  let map = null;
+  if (lines.length) {
+    const first = (lines[0].includes('\t') ? lines[0].split('\t') : lines[0].split(/\s{2,}/)).map(c => (c || '').trim());
+    map = tsvHeaderMap(first);
+    if (map) { tsvHeaderUsed = true; lines.shift(); }
+  }
+  return lines.map(line => {
     const cols = (line.includes('\t') ? line.split('\t') : line.split(/\s{2,}/)).map(c => (c || '').trim());
-    const [d, cat, shop, amt, pay, c6, c7, c8, c9] = cols;
-    const item = c6 || '';
-    const memo = c7 || '';
-    let shopAddr = c8 || '';
-    let shopTel = c9 || '';
-    const date = normDateStr(d);
-    const amount = Math.round(Number(String(amt || '').replace(/[^\d.]/g, '')));
+    const pick = f => { const idx = map ? map[f] : POS[f]; return idx === undefined ? '' : (cols[idx] || ''); };
+    const date = normDateStr(pick('date'));
+    const cat = pick('cat');
+    const shop = pick('shop');
+    const amount = Math.round(Number(String(pick('amount')).replace(/[^\d.]/g, '')));
     if (!date || !amount || amount <= 0) return { error: true, raw: line };
     const hit = cat ? resolveCat(cat) : { id: null, label: null, match: 'none', score: 0, via: '' };
     let c = hit.id ? S.categories.find(x => x.id === hit.id) : null;
     const fallback = !c;
     if (!c) c = other;
+    const pay = pick('pay');
     let pm = PAY_METHODS.find(m => m === pay) || null;
     if (!pm && pay) {
       if (/デビット/.test(pay)) pm = 'デビットカード';
@@ -1455,19 +1515,32 @@ function parseTsvLines(raw) {
       else if (/現金/.test(pay)) pm = '現金';
       else pm = 'その他';
     }
-    const isTel = v => /^0\d{1,4}-?\d{1,4}-?\d{3,4}$/.test(String(v || '').replace(/[－ー]/g, '-').trim());
+    const item = pick('item');
+    const memo = pick('memo');
+    let shopAddr = pick('addr');
+    let shopTel = pick('tel');
+    const isTel = v => /^0\d{1,4}-?\d{1,4}-?\d{3,4}$/.test(String(v || '').replace(/[－ー]/g, '-'));
     const isAddr = v => /[都道府県].*[市区町村]|丁目|番地/.test(String(v || ''));
-    if (!shopTel) { const f = cols.slice(5).find(isTel); if (f) shopTel = f; }
-    if (!shopAddr) { const f = cols.slice(5).find(v => isAddr(v) && v !== shopTel); if (f) shopAddr = f; }
+    if (!shopTel) { const f = cols.find(isTel); if (f) shopTel = f; }
+    if (!shopAddr) { const f = cols.find(v => isAddr(v) && v !== shopTel); if (f) shopAddr = f; }
+    let fromMaster = false;
+    const mst = shop ? getShop(shop) : null;
+    if (mst) {
+      if (!shopAddr && mst.addr) { shopAddr = mst.addr; fromMaster = true; }
+      if (!shopTel && mst.tel) { shopTel = mst.tel; fromMaster = true; }
+      if (fromMaster) tsvMasterFilled++;
+    }
     return { date, categoryId: c.id, catLabel: c.name, fallback, rawCat: (cat || ''), match: hit.match, score: hit.score,
       shop: (shop || '').slice(0, 40), item: item.slice(0, 60), amount, pay: pm || '現金',
-      memo: memo.slice(0, 120), shopAddr: shopAddr.slice(0, 120), shopTel: shopTel.slice(0, 20) };
+      memo: memo.slice(0, 120), shopAddr: shopAddr.slice(0, 120), shopTel: shopTel.slice(0, 20), fromMaster };
   });
 }
 function tsvReflect() {
   const preview = document.getElementById('tsv-preview');
   const rows = parseTsvLines(document.getElementById('tsv-in').value);
   const ok = rows.filter(r => !r.error), bad = rows.filter(r => r.error);
+  const note = document.getElementById('tsv-note');
+  if (note) note.innerHTML = [tsvHeaderUsed ? '<b>ヘッダー行を検出</b>し、列名で取り込みました。' : '', tsvMasterFilled ? '<b>店舗マスタ</b>から住所・電話番号を' + tsvMasterFilled + '件補完しました。' : ''].filter(Boolean).join(' ');
   if (ok.length === 0) {
     preview.innerHTML = '<div class="errbox">読み取れる行がありませんでした。日付・金額がタブ区切りで入っているか確認してください。</div>';
     return;
@@ -1513,6 +1586,7 @@ async function tsvSaveAll() {
       paymentMethod: r.pay, shop: r.shop, item: r.item, shopAddr: r.shopAddr, shopTel: r.shopTel, memo: r.memo, createdAt: nowLocalTs(), updatedAt: nowLocalTs()
     };
     await idbPut('txs', tx);
+    await upsertShop(tx.shop, tx.shopAddr, tx.shopTel);
     if (a) await idbPut('reserves', { id: uid(), txId: tx.id, assetId: a.id, amount: tx.amount, status: 'pending', createdAt: nowLocalTs() });
   }
   window._tsvRows = null;
@@ -1970,7 +2044,47 @@ function categoryHtml() {
     <div class="notebox">行の右端の「⋮⋮」をドラッグ&ドロップして並び替えできます。この並び順は、入力フォームのカテゴリ選択肢(プルダウン)にもそのまま反映されます。</div></div>
   <div class="card"><h2>収入カテゴリ ${hbtn('qa-cat-manage')}</h2>${mk('income')}
     <button class="btn sub block mt" onclick="addCat('income')">＋ 収入カテゴリを追加</button></div>
-  ${payMethodHtml()}`;
+  ${payMethodHtml()}
+  ${shopMasterHtml()}`;
+}
+function shopMasterHtml() {
+  const list = Object.keys(getShops()).map(k => ({ k, v: getShops()[k] })).sort((a, b) => String(a.v.name || '').localeCompare(String(b.v.name || ''), 'ja'));
+  return `<div class="card"><h2>店舗マスタ <span class="tag">${list.length}件</span> ${hbtn('qa-shopmaster')}</h2>
+    ${list.length ? list.map(({ k, v }) => `<div class="lrow"><div class="ico exp">店</div>
+      <div class="mid"><div class="t">${esc(v.name || k)}</div><div class="d">${esc(v.addr || '住所未登録')}${v.tel ? ' ・ ☎' + esc(v.tel) : ''}</div></div>
+      <div class="ops"><button class="btn sm sub" onclick="editShop('${esc(k)}')">編集</button>
+      <button class="btn sm sub" onclick="delShop('${esc(k)}')">削除</button></div></div>`).join('')
+      : '<div class="hint">まだ登録がありません。支出を登録すると店舗名・住所・電話番号が自動でたまります。</div>'}
+    <button class="btn sub block mt" onclick="editShop('')">＋ 店舗を追加</button>
+    <div class="notebox">TSV取り込みや手入力で住所・電話番号が入ると、店舗名ごとに自動保存されます。次回から同じ店舗名を入力すると<b>空欄を自動補完</b>します。</div></div>`;
+}
+function editShop(key) {
+  const v = key ? (getShops()[key] || {}) : {};
+  openModal(`<h2>${key ? '店舗を編集' : '店舗を追加'}</h2>
+    <label>店舗名</label><input type="text" id="s-name" value="${esc(v.name || '')}" placeholder="例) スーパーマーケットA">
+    <label>住所</label><input type="text" id="s-addr" value="${esc(v.addr || '')}" placeholder="例) 東京都渋谷区1-2-3">
+    <label>電話番号</label><input type="tel" id="s-tel" value="${esc(v.tel || '')}" placeholder="例) 03-1234-5678">
+    <div class="row mt"><button class="btn sub" onclick="closeModal()">キャンセル</button>
+    <button class="btn primary" onclick="saveShop('${esc(key)}')">保存</button></div>`);
+}
+async function saveShop(key) {
+  const name = document.getElementById('s-name').value.trim();
+  const addr = document.getElementById('s-addr').value.trim();
+  const tel = document.getElementById('s-tel').value.trim();
+  if (!name) { toast('店舗名を入力してください'); return; }
+  const map = getShops();
+  if (key && key !== shopKey(name)) delete map[key];
+  map[shopKey(name)] = { name, addr, tel, updatedAt: nowLocalTs() };
+  await idbPut('settings', { id: 'shops', key: 'shops', value: map });
+  await loadAll(); closeModal(); renderLedger(); toast('店舗を保存しました');
+}
+async function delShop(key) {
+  const v = getShops()[key] || {};
+  confirmModal('店舗を削除', '「' + esc(v.name || key) + '」をマスタから削除します。過去の記録は消えません。', '削除する', async () => {
+    const map = getShops(); delete map[key];
+    await idbPut('settings', { id: 'shops', key: 'shops', value: map });
+    await loadAll(); renderLedger(); toast('削除しました');
+  });
 }
 async function moveCat(id, dir) {
   const c = S.categories.find(x => x.id === id);
