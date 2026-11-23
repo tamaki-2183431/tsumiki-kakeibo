@@ -234,6 +234,18 @@ header.app .hdr-help:active{opacity:.7}
 #ledger-body[data-sum="overview"] .sec-cat,#ledger-body[data-sum="overview"] .sec-day{display:none}
 #ledger-body[data-sum="cat"] .sec-ov,#ledger-body[data-sum="cat"] .sec-day{display:none}
 #ledger-body[data-sum="day"] .sec-ov,#ledger-body[data-sum="day"] .sec-cat{display:none}
+.brow{padding:8px 0;border-bottom:1px solid var(--surface2);cursor:pointer}
+.brow:active{opacity:.7}
+.bhead{display:flex;justify-content:space-between;font-size:12px;font-weight:700;margin-bottom:5px}
+.bhead b.over{color:var(--danger)}
+.btrack{height:7px;border-radius:4px;background:var(--surface2);overflow:hidden}
+.btrack i{display:block;height:100%;background:var(--asset);border-radius:4px}
+.btrack i.over{background:var(--danger)}
+.bsub{font-size:11px;color:var(--sub);margin-top:4px}
+.bsub b.over{color:var(--danger)}
+.binput{display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid var(--surface2)}
+.binput span{flex:1;font-size:13px}
+.binput input{width:120px;text-align:right}
 .chips{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
 .chip{border:1px solid var(--line);background:var(--surface);color:var(--sub);border-radius:999px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer}
 .chip.on{background:var(--asset);border-color:var(--asset);color:#fff}
@@ -1421,6 +1433,38 @@ function anFill() {
       <div class="hint">分析カードの表示でエラーが発生しました(${esc(String(e && e.message || e))})。記録タブで支出を1件登録すると再計算されます。</div></div>`;
   }
 }
+/* --- カテゴリ予算 --- */
+function getBudgets() {
+  const b = (S.settings && S.settings.budgets && S.settings.budgets.value) || {};
+  const out = {};
+  Object.keys(b).forEach(k => { const v = Math.round(Number(b[k]) || 0); if (v > 0) out[k] = v; });
+  return out;
+}
+async function saveBudgets(map) {
+  await idbPut('settings', { id: 'budgets', key: 'budgets', value: map });
+  await loadAll();
+  closeModal();
+  renderLedger();
+  toast('予算を保存しました');
+}
+function openBudgetModal() {
+  const cur = getBudgets();
+  const cats = S.categories.filter(c => c.type !== 'income');
+  openModal(`<h2>カテゴリ予算(月額)</h2>
+    <div class="hint" style="margin-bottom:8px">1ヶ月の上限額。空欄または0は「予算なし」です。</div>
+    ${cats.map(c => `<div class="binput"><span>${esc(c.name)}</span>
+      <input type="number" inputmode="numeric" min="0" step="500" data-cat="${c.id}" value="${cur[c.id] || ''}" placeholder="0"></div>`).join('')}
+    <div class="row mt"><button class="btn sub" onclick="closeModal()">キャンセル</button>
+    <button class="btn primary" onclick="applyBudgets()">保存</button></div>`);
+}
+function applyBudgets() {
+  const map = {};
+  document.querySelectorAll('.binput input[data-cat]').forEach(inp => {
+    const v = Math.round(Number(inp.value) || 0);
+    if (v > 0) map[inp.dataset.cat] = v;
+  });
+  saveBudgets(map);
+}
 /* --- 支出分析カード --- */
 function anYmShift(ym, n) {
   const [y, m] = ym.split('-').map(Number);
@@ -1491,6 +1535,10 @@ function ledgerAnalysisCardHtml(ym) {
 
   // 見えてきたこと
   const tips = [];
+  const bud = getBudgets();
+  const bRows = rowsC.filter(r => bud[r.id]).map(r => ({
+    id: r.id, c: r.c, limit: bud[r.id], pct: Math.round(r.c / bud[r.id] * 100), over: r.c - bud[r.id]
+  })).sort((a, b) => b.pct - a.pct);
   const fixedSum = cur.filter(t => t.fixedCostId).reduce((a, t) => a + t.amount, 0);
   const lowArr = cur.filter(t => t.amount < 1000);
   const lowSum = lowArr.reduce((a, t) => a + t.amount, 0);
@@ -1512,6 +1560,15 @@ function ledgerAnalysisCardHtml(ym) {
     tips.push({ t: `¥1,000未満の支出が ${lowArr.length}件`, d: `合計 ${fmtYen(lowSum)}(支出の ${Math.round(lowSum / total * 100)}%)。コンビニ・自販機・少額決済の積み上げです。週に2回だけでも「買わない日」を作ると効きます。` });
   }
   if (neu) tips.push({ t: `新しいカテゴリ「${catName(neu.id)}」が登場`, d: `今月 ${fmtYen(neu.c)}・${neu.n}件。一時的な出費か、これから続く支出かを来月の数字で見極めましょう。` });
+
+  bRows.filter(r => r.pct >= 100).slice(0, 2).forEach(r => tips.unshift({
+    t: `${catName(r.id)} が予算超過 (${r.pct}%)`,
+    d: `今月 ${fmtYen(r.c)} / 予算 ${fmtYen(r.limit)} で ${fmtYen(r.over)} オーバー。来月の上限を見直すか、このカテゴリの回数を減らすのが効きます。`
+  }));
+  bRows.filter(r => r.pct >= 80 && r.pct < 100).slice(0, 1).forEach(r => tips.unshift({
+    t: `${catName(r.id)} が予算の ${r.pct}%`,
+    d: `残り ${fmtYen(r.limit - r.c)}。月末まであと何日あるかを考えて、1回あたりの金額を意識すると超過を防げます。`
+  }));
 
   return `
   <div class="card" id="an-card">
@@ -1537,6 +1594,15 @@ function ledgerAnalysisCardHtml(ym) {
         <div class="dlt" style="color:var(--${r.d > 0 ? 'spend' : r.d < 0 ? 'ok' : 'sub'})">${r.p === 0 ? '新規' : (r.d > 0 ? '+' : '') + fmtYen(r.d)}<div class="dltp">${p2 === null ? '' : (p2 >= 0 ? '+' : '') + p2 + '%'}</div></div>
       </div>`;
     }).join('')}
+    <b class="seclab">カテゴリ予算 <small>タップで編集</small></b>
+    ${bRows.length === 0
+      ? `<div class="hint" style="margin-bottom:8px">カテゴリごとの月予算を決めると、消化率と超過アラートがここに出ます。</div>
+         <button class="btn sm sub" onclick="openBudgetModal()">予算を設定</button>`
+      : bRows.map(r => `<div class="brow" onclick="openBudgetModal()">
+          <div class="bhead"><span>${esc(catName(r.id))}</span><b class="${r.pct > 100 ? 'over' : ''}">${r.pct}%</b></div>
+          <div class="btrack"><i class="${r.pct > 100 ? 'over' : ''}" style="width:${Math.min(100, r.pct)}%"></i></div>
+          <div class="bsub">${fmtYen(r.c)} / ${fmtYen(r.limit)}${r.over > 0 ? ` ・ <b class="over">超過 ${fmtYen(r.over)}</b>` : ` ・ 残り ${fmtYen(r.limit - r.c)}`}</div>
+        </div>`).join('') + `<button class="btn sm sub mt" onclick="openBudgetModal()">予算を編集</button>`}
     <b class="seclab">見えてきたこと</b>
     ${tips.slice(0, 4).map(t => `<div class="tip"><div class="t">${t.t}</div><div class="d">${t.d}</div></div>`).join('')}
     <div class="hint" style="margin-top:10px">棒の色(積み上げのセグメント)や凡例のカテゴリ名をタップすると、そのカテゴリの詳細(6ヶ月の推移・お店別)が開きます。</div>
