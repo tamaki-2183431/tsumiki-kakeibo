@@ -882,7 +882,28 @@ function setAssetMode(v) {
 }
 
 /* --- 使い方ページ --- */
-const GEM_PROMPT = `あなたは、ユーザーのレシートを管理・集計する「家計簿アシスタント」です。
+function gemCatNames() {
+  return (S.categories || []).filter(c => c.type !== 'income').map(c => c.name);
+}
+function gemFallbackCat() {
+  const names = gemCatNames();
+  return names.filter(n => /^その他/.test(n))[0] || names[names.length - 1] || 'その他';
+}
+function gemPrompt() {
+  const names = gemCatNames();
+  const list = names.join(' / ');
+  const fb = gemFallbackCat();
+  const has = n => names.indexOf(n) >= 0;
+  const ex = [];
+  if (has('食費')) ex.push('スーパー・コンビニで買った食品 → 食費');
+  if (has('日用品')) ex.push('洗剤・ティッシュ・ゴミ袋 → 日用品');
+  if (has('交通費')) ex.push('電車・バス・タクシー → 交通費');
+  if (has('娯楽')) ex.push('映画・ゲーム・遊園地 → 娯楽');
+  if (has('光熱水道')) ex.push('電気・ガス・水道の請求 → 光熱水道');
+  if (has('通信費')) ex.push('携帯・インターネットの請求 → 通信費');
+  ex.push(`ガソリン・本・雑誌など、上のどれにも明確に当てはまらないもの → ${fb}(具体的な内容は「備考」に記載)`);
+  ex.push(`判断できないもの → ${fb}`);
+  return `あなたは、ユーザーのレシートを管理・集計する「家計簿アシスタント」です。
 ユーザーからレシートの画像がアップロードされたら、以下のルールに厳密に従って処理してください。
 
 1. 抽出項目
@@ -892,29 +913,23 @@ const GEM_PROMPT = `あなたは、ユーザーのレシートを管理・集計
 
 2. カテゴリの分類ルール【厳守】
 「カテゴリ」は、必ず以下のいずれか1つを使用してください。
-食費 / 日用品 / 交通費 / 住居費 / 光熱水道 / 通信費 / 保険・医療 / 教育・教養 / 娯楽 / その他の支出
+これはこのアプリで現在設定されているカテゴリの一覧です(並び順もアプリと同じ)。
+${list}
 
 重要な制約
-・上記以外のカテゴリ名を絶対に生成しないでください。表記は上記と完全一致させてください。
+・上記以外のカテゴリ名を絶対に生成しないでください。表記は上記と完全一致させてください(送り仮名・記号・スペースも含む)。
 ・独自の項目・費目・カテゴリを新しく作ってはいけません。
-・「外食費」「飲料費」「雑費」「交際費」「ガソリン代」など、上記に存在しない名称をカテゴリとして出力してはいけません。
-・どこにも明確に該当しない場合や判断に迷った場合は、必ず「その他の支出」にしてください。
+・カテゴリ名を短縮したり、類語に言い換えたりしないでください。
+・どこにも明確に該当しない場合や判断に迷った場合は、必ず「${fb}」にしてください。
 ・より具体的な分類名を付けたい場合でもカテゴリには使わず、「備考」に記載してください。
 
 分類例
-スーパーで購入した食品 → 食費
-コンビニで購入した弁当 → 食費
-洗剤・ティッシュ・ゴミ袋 → 日用品
-電車・バス・タクシー → 交通費
-映画・ゲーム・遊園地 → 娯楽
-ガソリン → その他の支出(備考に「ガソリン」と記載)
-本・雑誌 → その他の支出(備考に書名を記載)
-分類できないもの → その他の支出
+${ex.join('\n')}
 店舗の種類だけで判断せず、レシートに記載された商品・サービスの内容を優先して分類してください。
 
 3. 出力前の検証【必須】
 出力する前に「カテゴリ」の値を確認し、上記リストのいずれかと完全一致している場合のみ出力してください。
-一致しない場合は出力前に適切なカテゴリへ修正し、判断できない場合は「その他の支出」に修正してください。
+一致しない場合は出力前に適切なカテゴリへ修正し、判断できない場合は「${fb}」に修正してください。
 
 4. 出力形式
 レシート1枚ごとに、次の2つを出力してください。
@@ -923,27 +938,28 @@ const GEM_PROMPT = `あなたは、ユーザーのレシートを管理・集計
 金額は半角数字(例: 1280 または 1,280)。日付は必ずYYYY-MM-DD形式。
 
 最重要ルール
-「カテゴリ」の自由生成は禁止です。必ず定義済みのリストから選び、存在しない項目名を新しく作ることは、いかなる場合も禁止です。`;
+「カテゴリ」の自由生成は禁止です。必ず上記のリストから選び、存在しない項目名を新しく作ることは、いかなる場合も禁止です。`;
+}
 
 function copyPrompt() {
   const done = () => toast('プロンプトをコピーしました');
   if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(GEM_PROMPT).then(done).catch(() => copyPromptFallback(done));
+    navigator.clipboard.writeText(gemPrompt()).then(done).catch(() => copyPromptFallback(done));
   } else copyPromptFallback(done);
 }
 function copyPromptFallback(done) {
   try {
     const ta = document.createElement('textarea');
-    ta.value = GEM_PROMPT; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    ta.value = gemPrompt(); ta.style.position = 'fixed'; ta.style.opacity = '0';
     document.body.appendChild(ta); ta.select();
     document.execCommand('copy'); ta.remove(); done();
   } catch (e) { toast('コピーできませんでした。テキストを手動で選択してコピーしてください'); }
 }
 function openPromptModal() {
   openModal(`<h2>Gemini用プロンプトの例</h2>
-  <div class="hint">Gemの指示としてこのプロンプトを保存 → レシート画像をアップロード → 出力の「貼り付け用データ」コードブロック内をコピー → アプリの「TSVを貼り付けて登録」に貼り付け。<br>カテゴリ一覧はこのアプリに登録済みのものと一致しています。アプリ側でカテゴリを追加・変更している場合は、リスト部分を合わせて書き換えてください。</div>
+  <div class="hint">Gemの指示としてこのプロンプトを保存 → レシート画像をアップロード → 出力の「貼り付け用データ」コードブロック内をコピー → アプリの「TSVを貼り付けて登録」に貼り付け。<br>カテゴリ一覧は、いま開いているアプリのカテゴリ設定から自動生成しています(家計簿タブ →「カテゴリ」の支出カテゴリ)。<b>カテゴリを追加・改名したら、この画面を開き直してコピーし直し、Gem側の指示も貼り替えてください。</b></div>
   <button class="btn primary block mt" onclick="copyPrompt()">プロンプトの例をコピー</button>
-  <pre class="promptbox">${esc(GEM_PROMPT)}</pre>
+  <pre class="promptbox">${esc(gemPrompt())}</pre>
   <button class="btn sub block mt" onclick="closeModal()">閉じる</button>`);
 }
 function helpFromWelcome() { closeModal(); go('help'); }
@@ -988,7 +1004,7 @@ function renderHelp() {
       <div class="st"><div><div class="b">④ 「貼り付け」の確認が出たら許可</div><div class="d">初回のみ「貼り付けを許可しますか?」と聞かれたら、<b>「貼り付け」(または「許可」)を選んでください</b>。次回からは自動で貼り付きます。</div></div></div>
       <div class="st"><div><div class="b">⑤ 自動で貼り付かなかったときは</div><div class="d">貼り付け欄を長押し→「貼り付け」で手動でも貼り付けられます。その後「内容を確認」→「登録する」です。</div></div></div>
     </div>
-    <div class="notebox">AIが出したカテゴリ名がアプリにない場合は、その行は自動で「その他」に分類されます。よく使うカテゴリ名をGemの出力に合わせておくと分類が安定します。</div>
+    <div class="notebox">AIが出したカテゴリ名がアプリにない場合は、その行は自動で「その他」に分類されます。Gem用プロンプトのカテゴリ一覧はアプリの設定から自動生成されるので、カテゴリを増やしたらプロンプトをコピーし直すだけで追従します。</div>
     <button class="btn sub block mt" onclick="openPromptModal()">Gemini用プロンプトの例を見る(コピー可)</button>
   </div>
 
