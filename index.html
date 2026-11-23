@@ -231,6 +231,9 @@ header.app .hdr-help:active{opacity:.7}
 .kv{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--surface2);font-size:13px}
 .kv span{color:var(--sub);white-space:nowrap}
 .kv b{text-align:right;word-break:break-word}
+#ledger-body[data-sum="overview"] .sec-cat,#ledger-body[data-sum="overview"] .sec-day{display:none}
+#ledger-body[data-sum="cat"] .sec-ov,#ledger-body[data-sum="cat"] .sec-day{display:none}
+#ledger-body[data-sum="day"] .sec-ov,#ledger-body[data-sum="day"] .sec-cat{display:none}
 .chips{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
 .chip{border:1px solid var(--line);background:var(--surface);color:var(--sub);border-radius:999px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer}
 .chip.on{background:var(--asset);border-color:var(--asset);color:#fff}
@@ -1050,7 +1053,11 @@ function renderLedger() {
   <div id="ledger-body"></div>`;
   const body = document.getElementById('ledger-body');
   if (S.ledgerTab === 'entry') body.innerHTML = ledgerEntryHtml();
-  if (S.ledgerTab === 'summary') { body.innerHTML = ledgerSummaryHtml(); anFill(); }
+  if (S.ledgerTab === 'summary') {
+    body.innerHTML = ledgerSummaryHtml();
+    body.dataset.sum = S.sumTab || 'overview';
+    if ((S.sumTab || 'overview') === 'overview') anFill();
+  }
   if (S.ledgerTab === 'fixed') body.innerHTML = fixedCostHtml();
   if (S.ledgerTab === 'cats') body.innerHTML = categoryHtml();
 }
@@ -1312,6 +1319,7 @@ async function tsvSaveAll() {
 let sumYm = null;
 function ledgerSummaryHtml() {
   if (!sumYm) sumYm = nowYm();
+  if (!S.sumTab) S.sumTab = 'overview';
   const sum = Core.monthSummary(S.txs, sumYm);
   const br = Core.categoryBreakdown(S.txs, sumYm, 'expense');
   const months = Core.monthTotals(S.txs, 6);
@@ -1331,7 +1339,11 @@ function ledgerSummaryHtml() {
       `<text x="${x + bw + 2}" y="${H - 8}" text-anchor="middle" font-size="11" fill="var(--sub)">${m.ym.slice(5)}月</text>`;
   });
   return `
-  <div class="card">
+  <div class="seg" style="margin-bottom:10px">
+    ${[['overview', '概要'], ['cat', 'カテゴリ'], ['day', '日別']].map(([k, l]) =>
+      `<button onclick="S.sumTab='${k}';renderLedger()" class="${S.sumTab === k ? 'on' : ''}">${l}</button>`).join('')}
+  </div>
+  <div class="card sec-ov">
     <div style="display:flex;align-items:center;justify-content:space-between">
       <button class="btn sm sub" onclick="navMonth(-1)">← 前月</button>
       <b>${esc(sumYm.replace('-', '/'))}</b>
@@ -1344,15 +1356,15 @@ function ledgerSummaryHtml() {
       <div class="stat"><div class="l">登録済み固定費合計</div><div class="v">${fmtYen(fixedSum)}<small>/月</small></div></div>
     </div>
   </div>
-  <div id="an-slot"></div>
-  <div class="card">
+  <div class="sec-ov" id="an-slot"></div>
+  <div class="card sec-cat">
     <h2>カテゴリ別支出 <span class="tag">${esc(sumYm)}</span></h2>
     ${br.length === 0 ? '<div class="hint">この月の支出はまだありません。</div>' : br.map(b => `
       <div class="barslot"><span class="nm">${esc(catName(b.categoryId))}</span>
       <div class="barwrap"><div class="bar" style="width:${(b.amount / brMax * 100).toFixed(1)}%;background:var(--spend)"></div></div>
       <span class="amt">${fmtYen(b.amount)}</span></div>`).join('')}
   </div>
-  <div class="card">
+  <div class="card sec-cat">
     <h2>月ごとの収支(直近6ヶ月)</h2>
     <svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="月別収支グラフ">
       ${bars}
@@ -1361,7 +1373,7 @@ function ledgerSummaryHtml() {
     <div class="legend"><span><span class="sw" style="background:var(--spend)"></span>支出</span>
     <span><span class="sw" style="background:var(--income)"></span>収入</span></div>
   </div>
-  ${ledgerDayCardHtml(days, sumYm)}`;
+  <div class="sec-day">${ledgerDayCardHtml(days, sumYm)}</div>`;
 }
 /* --- 日ごとの収支カード --- */
 function ledgerDayCardHtml(days, ym) {
