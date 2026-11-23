@@ -1243,7 +1243,7 @@ function confirmDeleteTx(id) {
 /* --- TSV貼り付け登録(他のAIでの読み取り結果を反映) --- */
 function openTsvModal() {
   openModal(`<h2>TSVデータを貼り付けて登録</h2>
-  <div class="hint">1行 = 1件の支出。タブ区切りで<b>日付 → カテゴリ → 店舗名 → 金額 → 支払方法 → 備考</b>の順に貼り付けてください。</div>
+  <div class="hint">1行 = 1件の支出。タブ区切りで<b>日付 → カテゴリ → 店舗名 → 金額 → 支払方法 → 備考</b>の順に貼り付けてください。<br>カテゴリ名は表記ゆれを自動で吸収します(例: 食料品→食費、スーパー→食費、外食費→外食)。どれにも寄せられない場合のみ「その他」系に分類します。</div>
   <textarea id="tsv-in" rows="7" spellcheck="false" style="margin-top:10px;font-family:ui-monospace,Menlo,monospace;font-size:16px" placeholder="日付	カテゴリ	店舗名	金額	支払方法	備考&#10;2026-11-15	食料品	スーパー	1,280	デビットカード	食材"></textarea>
   <div id="tsv-preview"></div>
   <div class="row mt" id="tsv-actions"><button class="btn sub" onclick="closeModal()">キャンセル</button>
@@ -1266,6 +1266,71 @@ function normDateStr(s) {
   const d = `${m[1]}-${String(m[2]).padStart(2, '0')}-${String(m[3]).padStart(2, '0')}`;
   return isNaN(new Date(d)) ? null : d;
 }
+/* --- カテゴリ名の表記ゆれ吸収 --- */
+const CAT_ALIAS = [
+  [/食料|食品|スーパー|青果|精肉|鮮魚|惣菜|弁当|パン|米|飲料|菓子|おやつ/, ['食費', '食料品', '食']],
+  [/外食|飲食|カフェ|喫茶|レストラン|居酒屋|ファストフード|食堂/, ['外食', '外食費']],
+  [/日用|雑貨|洗剤|ティッシュ|ドラッグ|薬局|消耗品|生活用品/, ['日用品', '日用雑貨']],
+  [/交通|電車|バス|タクシー|鉄道|運賃|ガソリン|駐車|高速|車/, ['交通費', '交通']],
+  [/光熱|電気|ガス|水道|上下水/, ['光熱水道', '光熱費', '水道光熱費']],
+  [/通信|携帯|スマホ|インターネット|ネット|プロバイダ|WiFi|Wi-Fi/, ['通信費', '通信']],
+  [/保険|医療|病院|クリニック|歯科|処方|健康/, ['保険・医療', '医療費', '保険']],
+  [/教育|教養|書籍|本|塾|習い事|学費|勉強|資格/, ['教育・教養', '教育費']],
+  [/娯楽|映画|ゲーム|趣味|レジャー|遊園地|旅行|観光|音楽/, ['娯楽', '娯楽費']],
+  [/住居|家賃|住宅|管理費|更新料|引越/, ['住居費', '住居']],
+  [/衣類|服|靴|ファッション|クリーニング/, ['被服費', '衣類', '被服']],
+];
+function normCat(x) {
+  return String(x || '').normalize('NFKC').toLowerCase()
+    .replace(/[\s\u3000・･\-ー_/／()（）\[\]［］「」『』,，.。:：]/g, '');
+}
+function catDice(a, b) {
+  if (!a || !b) return 0;
+  const grams = t => { const m = new Map(); for (let i = 0; i < t.length - 1; i++) { const g = t.slice(i, i + 2); m.set(g, (m.get(g) || 0) + 1); } return m; };
+  const A = grams(a), B = grams(b);
+  if (!A.size || !B.size) return a === b ? 1 : 0;
+  let inter = 0, total = 0;
+  A.forEach((v, k) => { total += v; inter += Math.min(v, B.get(k) || 0); });
+  B.forEach(v => { total += v; });
+  return total ? (2 * inter) / total : 0;
+}
+function resolveCat(raw) {
+  const cats = (S.categories || []).filter(c => c.type === 'expense');
+  const n = normCat(raw);
+  const none = { id: null, label: null, match: 'none', score: 0, via: '' };
+  if (!n) return none;
+  // 1. 正規化して完全一致
+  let hit = cats.find(c => normCat(c.name) === n);
+  if (hit) return { id: hit.id, label: hit.name, match: 'exact', score: 1, via: hit.name };
+  // 2. 類語辞書(レシート特有の言い回し)
+  for (const [re, alias] of CAT_ALIAS) {
+    if (!re.test(raw) && !re.test(n)) continue;
+    for (const a of alias) {
+      const c = cats.find(x => normCat(x.name) === normCat(a));
+      if (c) return { id: c.id, label: c.name, match: 'fuzzy', score: 0.7, via: a };
+    }
+  }
+  // 3. 部分一致(2文字以上)
+  if (n.length >= 2) {
+    const part = cats.filter(c => { const cn = normCat(c.name); return cn && (cn.includes(n) || n.includes(cn)) && Math.min(cn.length, n.length) >= 2; })
+      .sort((a, b) => Math.abs(normCat(a.name).length - n.length) - Math.abs(normCat(b.name).length - n.length))[0];
+    if (part) return { id: part.id, label: part.name, match: 'fuzzy', score: 0.8, via: part.name };
+  }
+  // 3b. 1文字の略称(食→食費 など)
+  if (n.length === 1) {
+    const one = cats.filter(c => { const cn = normCat(c.name); return cn.indexOf(n) === 0 && cn.length <= 3; })
+      .sort((a, b) => normCat(a.name).length - normCat(b.name).length)[0];
+    if (one) return { id: one.id, label: one.name, match: 'fuzzy', score: 0.5, via: one.name };
+  }
+  // 4. 類似度(2-gram Dice)
+  let best = null, bs = 0;
+  cats.forEach(c => {
+    const sc = catDice(n, normCat(c.name));
+    if (sc > bs) { bs = sc; best = c; }
+  });
+  if (best && bs >= 0.45) return { id: best.id, label: best.name, match: 'fuzzy', score: bs, via: best.name };
+  return none;
+}
 function parseTsvLines(raw) {
   const other = S.categories.find(c => c.type === 'expense' && /その他/.test(c.name)) || S.categories.find(c => c.type === 'expense');
   return String(raw).split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(line => {
@@ -1274,8 +1339,8 @@ function parseTsvLines(raw) {
     const date = normDateStr(d);
     const amount = Math.round(Number(String(amt || '').replace(/[^\d.]/g, '')));
     if (!date || !amount || amount <= 0) return { error: true, raw: line };
-    let c = cat ? S.categories.find(x => x.type === 'expense' && x.name === cat) : null;
-    if (!c && cat) c = S.categories.find(x => x.type === 'expense' && (x.name.includes(cat) || cat.includes(x.name)));
+    const hit = cat ? resolveCat(cat) : { id: null, label: null, match: 'none', score: 0, via: '' };
+    let c = hit.id ? S.categories.find(x => x.id === hit.id) : null;
     const fallback = !c;
     if (!c) c = other;
     let pm = PAY_METHODS.find(m => m === pay) || null;
@@ -1286,7 +1351,7 @@ function parseTsvLines(raw) {
       else if (/現金/.test(pay)) pm = '現金';
       else pm = 'その他';
     }
-    return { date, categoryId: c.id, catLabel: c.name, fallback, shop: (shop || '').slice(0, 40), amount, pay: pm || '現金', memo: (memo || '').slice(0, 120) };
+    return { date, categoryId: c.id, catLabel: c.name, fallback, rawCat: (cat || ''), match: hit.match, score: hit.score, shop: (shop || '').slice(0, 40), amount, pay: pm || '現金', memo: (memo || '').slice(0, 120) };
   });
 }
 function tsvReflect() {
@@ -1309,7 +1374,7 @@ function tsvReflect() {
     document.getElementById('tx-shop').value = r.shop;
     document.getElementById('tx-memo').value = r.memo;
     const area = document.getElementById('ocr-area');
-    if (area) area.innerHTML = `<div class="okbox">TSVの内容をフォームに反映しました。確認して「登録する」を押してください。${r.fallback ? '<br>カテゴリ「' + esc(r.catLabel) + '」に分類しました(入力カテゴリは既存と未一致でした)。' : ''}</div>`;
+    if (area) area.innerHTML = `<div class="okbox">TSVの内容をフォームに反映しました。確認して「登録する」を押してください。${r.fallback ? '<br>カテゴリ「' + esc(r.rawCat || '空欄') + '」は既存と一致しなかったため、' + esc(r.catLabel) + ' に分類しました。' : (r.match === 'fuzzy' ? '<br>カテゴリ「' + esc(r.rawCat) + '」を「' + esc(r.catLabel) + '」に寄せました(表記ゆれを吸収)。' : '')}</div>`;
     toast('フォームに反映しました');
     return;
   }
@@ -1319,7 +1384,7 @@ function tsvReflect() {
   <div style="margin-top:6px">${ok.map(r => `
     <div class="tsvrow${r.fallback ? ' fx' : ''}">
       <div style="flex:1;min-width:0"><div class="t">${esc(r.date)} ・ ${esc(r.shop || '(店舗名なし)')}</div>
-      <div class="d">${esc(r.catLabel)}${r.fallback ? '(未一致 → その他に分類)' : ''} ・ ${esc(r.pay)}${r.memo ? ' ・ ' + esc(r.memo) : ''}</div></div>
+      <div class="d">${r.match === 'fuzzy' ? esc(r.rawCat) + ' → <b>' + esc(r.catLabel) + '</b> <span class="pill">表記ゆれ</span>' : esc(r.catLabel)}${r.fallback ? '(未一致 → ' + esc(r.catLabel) + ' に分類)' : ''} ・ ${esc(r.pay)}${r.memo ? ' ・ ' + esc(r.memo) : ''}</div></div>
       <div class="amt">${fmtYen(r.amount)}</div>
     </div>`).join('')}
   ${bad.length ? bad.map(b => `<div class="tsvrow fx"><div style="flex:1"><div class="d">読み飛ばし(日付か金額が不正): ${esc(b.raw)}</div></div></div>`).join('') : ''}</div>
