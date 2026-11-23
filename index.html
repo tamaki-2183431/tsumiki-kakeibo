@@ -228,6 +228,10 @@ header.app .hdr-help:active{opacity:.7}
 .lgd{cursor:pointer}
 .lgd:active{opacity:.7}
 .lgdwrap{flex-wrap:wrap;gap:6px 14px;font-size:11px}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--surface2);font-size:13px}
+.kv span{color:var(--sub);white-space:nowrap}
+.kv b{text-align:right;word-break:break-word}
+.srch{margin:2px 0 8px}
 .prow{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid var(--surface2)}
 .lrow.tap:active{background:var(--surface2)}
 .qa{display:flex;flex-direction:column;gap:8px}
@@ -1069,12 +1073,11 @@ function recentTxHtml(list) {
   if (list.length === 0) return '<div class="hint">まだ記録はありません。上のフォームから登録できます。</div>';
   return list.map(t => {
     const isExp = t.type === 'expense';
-    return `<div class="lrow">
+    return `<div class="lrow tap" onclick="openTxDetail('${t.id}')">
       <div class="ico ${isExp ? 'exp' : 'inc'}">${isExp ? '支' : '収'}</div>
       <div class="mid"><div class="t">${esc(catName(t.categoryId))}${t.shop ? '・' + esc(t.shop) : ''}${t.fixedCostId ? ' <span class="pill fb">固定費</span>' : ''}</div>
-      <div class="d">${esc(t.date)} ${t.paymentMethod ? '・' + esc(t.paymentMethod) : ''}</div></div>
+      <div class="d">${esc(t.date)} ${t.paymentMethod ? '・' + esc(t.paymentMethod) : ''}${t.memo ? ' ・ ' + esc(t.memo) : ''}</div></div>
       <div class="amt ${isExp ? 'spend' : 'income'}">${isExp ? '' : '+'}${fmtYen(t.amount)}</div>
-      <div class="ops"><button class="btn sm sub" onclick="editTx('${t.id}')">編集</button></div>
     </div>`;
   }).join('');
 }
@@ -1147,6 +1150,7 @@ async function applyTx(id) {
   await loadAll();
   toast('記録を更新しました');
   closeModal(); renderTab(currentTab);
+  if (document.getElementById('hist-list')) renderHistory();
 }
 function confirmDeleteTx(id) {
   const body = assetModeOn()
@@ -1161,6 +1165,7 @@ function confirmDeleteTx(id) {
     toast('削除しました(未購入金額を反映)');
     closeModal(); renderTab(currentTab);
   }, true);
+  if (document.getElementById('hist-list')) renderHistory();
 }
 
 /* --- TSV貼り付け登録(他のAIでの読み取り結果を反映) --- */
@@ -1815,6 +1820,9 @@ function renderHistory() {
   if (S.histTab === 'tx') body = histTxHtml();
   if (S.histTab === 'buy') body = histBuyHtml();
   if (S.histTab === 'sell') body = histSellHtml();
+  const inner = S.histTab === 'tx'
+    ? `<div class="srch"><input id="hist-q" type="search" placeholder="店舗名・商品名・メモで検索(全期間)" value="${esc(histQ)}" oninput="histSearch(this.value)"></div><div id="hist-list">${body}</div>`
+    : body;
   document.getElementById('scr-history').innerHTML = `
     <div class="seg">${tabs.map(([id, l]) => `<button onclick="S.histTab='${id}';renderHistory()" class="${S.histTab === id ? 'on' : ''}">${l}</button>`).join('')}</div>
     <div class="card" style="padding:12px">
@@ -1822,18 +1830,57 @@ function renderHistory() {
         <button class="btn sm sub" onclick="navHist(-1)">←</button>
         <b>${esc(S.histYm.replace('-', '/'))}</b>
         <button class="btn sm sub" onclick="navHist(1)">→</button>
-      </div>${body}</div>`;
+      </div>${inner}</div>`;
 }
 function navHist(d) {
   const [y, m] = S.histYm.split('-').map(Number);
   const dt = new Date(y, m - 1 + d, 1);
   S.histYm = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0');
+  histQ = '';
   renderHistory();
 }
+let histQ = '';
+function histSearch(v) {
+  histQ = v || '';
+  const el = document.getElementById('hist-list');
+  if (el) el.innerHTML = histTxHtml();
+}
 function histTxHtml() {
-  const list = S.txs.filter(t => t.date.slice(0, 7) === S.histYm);
+  const q = (histQ || '').trim().toLowerCase();
+  if (q) {
+    const list = S.txs.filter(t => {
+      const hay = [t.shop, t.memo, catName(t.categoryId), t.paymentMethod, t.date,
+        t.type === 'expense' ? '支出' : '収入', String(t.amount)].join(' ').toLowerCase();
+      return hay.indexOf(q) >= 0;
+    }).sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+    if (list.length === 0) return `<div class="hint">「${esc(histQ)}」に一致する記録はありません。</div>`;
+    const exp = list.filter(t => t.type === 'expense').reduce((a, t) => a + t.amount, 0);
+    const inc = list.filter(t => t.type === 'income').reduce((a, t) => a + t.amount, 0);
+    return `<div class="hint" style="margin-bottom:6px">全期間から検索: <b>${list.length}件</b> ・ 支出 ${fmtYen(exp)} ・ 収入 ${fmtYen(inc)}</div>` + recentTxHtml(list);
+  }
+  const list = S.txs.filter(t => t.date.slice(0, 7) === S.histYm)
+    .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
   if (list.length === 0) return '<div class="hint">この月の記録はありません。</div>';
   return recentTxHtml(list);
+}
+/* --- 記録の詳細モーダル(履歴から) --- */
+function openTxDetail(id) {
+  const t = S.txs.find(x => x.id === id);
+  if (!t) return;
+  const isExp = t.type === 'expense';
+  const wd = ['日', '月', '火', '水', '木', '金', '土'][new Date(t.date + 'T00:00:00').getDay()];
+  openModal(`<h2>${esc(t.date)}(${wd})の記録 <span class="tag">${isExp ? '支出' : '収入'}</span></h2>
+    <div style="display:flex;align-items:baseline;justify-content:flex-end;margin:4px 0 8px">
+      <b style="font-size:26px;color:var(--${isExp ? 'spend' : 'income'})">${isExp ? '' : '+'}${fmtYen(t.amount)}</b>
+    </div>
+    <div class="kv"><span>カテゴリ</span><b>${esc(catName(t.categoryId))}</b></div>
+    ${isExp ? `<div class="kv"><span>店舗名・内容</span><b>${esc(t.shop || '—')}</b></div>
+    <div class="kv"><span>支払方法</span><b>${esc(t.paymentMethod || '—')}</b></div>` : ''}
+    <div class="kv"><span>メモ</span><b>${esc(t.memo || '—')}</b></div>
+    ${t.fixedCostId ? '<div class="kv"><span>区分</span><b>固定費</b></div>' : ''}
+    <div class="row mt"><button class="btn sub" onclick="closeModal()">閉じる</button>
+      <button class="btn primary" onclick="editTx('${t.id}')">編集</button></div>
+    <button class="btn danger block mt" onclick="confirmDeleteTx('${t.id}')">この記録を削除</button>`);
 }
 function histBuyHtml() {
   const a = activeAsset();
