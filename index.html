@@ -1077,7 +1077,7 @@ function renderHelp() {
       <details id="qa-cat-manage"><summary>カテゴリを追加・並べ替えできますか?</summary>
       <div class="a">家計簿タブ →「カテゴリ」で追加・名前変更・削除ができます。行の右端「⋮⋮」をドラッグすると並び替えられ、<b>入力フォームのプルダウンにも反映</b>されます。</div></details>
       <details id="qa-tsv"><summary>TSVは何列で貼ればいいですか?</summary>
-        <div class="a"><b>日付 → カテゴリ → 店舗名 → 金額 → 支払方法 → 商品名 → 備考 → 店舗住所 → 店舗電話番号</b>の9列(タブ区切り)です。空欄があってもタブは省略せず、列をずらさないでください。6列までの旧形式(日付/カテゴリ/店舗名/金額/支払方法/備考)もそのまま取り込めます。</div></details>
+        <div class="a"><b>日付 → カテゴリ → 店舗名 → 金額 → 支払方法 → 商品名 → 備考 → 店舗住所 → 店舗電話番号</b>の9列(タブ区切り)です。空欄があってもタブは省略せず、列をずらさないでください。</div></details>
       <details id="qa-shopinfo"><summary>店舗住所や電話番号は何に使えますか?</summary>
         <div class="a">取り込んだ住所・電話番号は履歴の詳細に表示され、電話番号はタップで発信できます。検索欄でも住所・電話番号で絞り込めます(例: 「渋谷」「03-1234」)。データは端末内にのみ保存されます。</div></details>
       <details id="qa-tsv-cat"><summary>TSVのカテゴリ名が、自分で入れた名前と違うカテゴリになりました</summary>
@@ -1343,7 +1343,7 @@ function confirmDeleteTx(id) {
 /* --- TSV貼り付け登録(他のAIでの読み取り結果を反映) --- */
 function openTsvModal() {
   openModal(`<h2>TSVデータを貼り付けて登録 ${hbtn('qa-tsv')}</h2>
-  <div class="hint">1行 = 1件の支出。タブ区切りで<b>日付 → カテゴリ → 店舗名 → 金額 → 支払方法 → 商品名 → 備考 → 店舗住所 → 店舗電話番号</b>の順に貼り付けてください(6列までの旧形式も取り込めます)。<br>カテゴリ名は表記ゆれを自動で吸収します(例: 食料品→食費、スーパー→食費、外食費→外食)。どれにも寄せられない場合のみ「その他」系に分類します。</div>
+  <div class="hint">1行 = 1件の支出。タブ区切りで<b>日付 → カテゴリ → 店舗名 → 金額 → 支払方法 → 商品名 → 備考 → 店舗住所 → 店舗電話番号</b>の順に貼り付けてください。<br>カテゴリ名は表記ゆれを自動で吸収します(例: 食料品→食費、スーパー→食費、外食費→外食)。どれにも寄せられない場合のみ「その他」系に分類します。</div>
   <textarea id="tsv-in" rows="7" spellcheck="false" style="margin-top:10px;font-family:ui-monospace,Menlo,monospace;font-size:16px" placeholder="日付	カテゴリ	店舗名	金額	支払方法	商品名	備考	店舗住所	店舗電話番号&#10;2026-11-15	食料品	スーパー	1,280	デビットカード	牛乳 1L	食材	東京都渋谷区1-2-3	03-1234-5678"></textarea>
   <div id="tsv-preview"></div>
   <div class="row mt" id="tsv-actions"><button class="btn sub" onclick="closeModal()">キャンセル</button>
@@ -1436,11 +1436,10 @@ function parseTsvLines(raw) {
   return String(raw).split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(line => {
     const cols = (line.includes('\t') ? line.split('\t') : line.split(/\s{2,}/)).map(c => (c || '').trim());
     const [d, cat, shop, amt, pay, c6, c7, c8, c9] = cols;
-    const wide = cols.length >= 7;
-    const item = wide ? (c6 || '') : '';
-    const memo = wide ? (c7 || '') : (c6 || '');
-    let shopAddr = wide ? (c8 || '') : '';
-    let shopTel = wide ? (c9 || '') : '';
+    const item = c6 || '';
+    const memo = c7 || '';
+    let shopAddr = c8 || '';
+    let shopTel = c9 || '';
     const date = normDateStr(d);
     const amount = Math.round(Number(String(amt || '').replace(/[^\d.]/g, '')));
     if (!date || !amount || amount <= 0) return { error: true, raw: line };
