@@ -231,6 +231,12 @@ header.app .hdr-help:active{opacity:.7}
 .kv{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--surface2);font-size:13px}
 .kv span{color:var(--sub);white-space:nowrap}
 .kv b{text-align:right;word-break:break-word}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.chip{border:1px solid var(--line);background:var(--surface);color:var(--sub);border-radius:999px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer}
+.chip.on{background:var(--asset);border-color:var(--asset);color:#fff}
+.chip.reset{margin-left:auto;color:var(--faint)}
+.frow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px}
+.frow select{min-width:0;font-size:12px;padding:8px 6px}
 .srch{margin:2px 0 8px}
 .prow{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid var(--surface2)}
 .lrow.tap:active{background:var(--surface2)}
@@ -1071,8 +1077,10 @@ function ledgerEntryHtml() {
     <label>カテゴリ</label>
     <select id="tx-category">${catOptions('expense')}</select>
     <div id="tx-shopwrap">
-      <label>店舗名・内容</label>
+      <label>店舗名</label>
       <input type="text" id="tx-shop" placeholder="例) スーパー、コンビニ">
+      <label>商品名 <span class="hint" style="display:inline">(任意)</span></label>
+      <input type="text" id="tx-item" placeholder="例) 洗剤 詰替 800g">
     </div>
     <label>メモ</label>
     <input type="text" id="tx-memo" placeholder="任意">
@@ -1094,7 +1102,7 @@ function recentTxHtml(list) {
     return `<div class="lrow tap" onclick="openTxDetail('${t.id}')">
       <div class="ico ${isExp ? 'exp' : 'inc'}">${isExp ? '支' : '収'}</div>
       <div class="mid"><div class="t">${esc(catName(t.categoryId))}${t.shop ? '・' + esc(t.shop) : ''}${t.fixedCostId ? ' <span class="pill fb">固定費</span>' : ''}</div>
-      <div class="d">${esc(t.date)} ${t.paymentMethod ? '・' + esc(t.paymentMethod) : ''}${t.memo ? ' ・ ' + esc(t.memo) : ''}</div></div>
+      <div class="d">${esc(t.date)}${t.item ? ' ・ ' + esc(t.item) : ''}${t.paymentMethod ? '・' + esc(t.paymentMethod) : ''}${t.memo ? ' ・ ' + esc(t.memo) : ''}</div></div>
       <div class="amt ${isExp ? 'spend' : 'income'}">${isExp ? '' : '+'}${fmtYen(t.amount)}</div>
     </div>`;
   }).join('');
@@ -1118,6 +1126,7 @@ async function saveTx(ocrFill = null) {
     id: uid(), type, date, amount, categoryId,
     paymentMethod: type === 'expense' ? document.getElementById('tx-pay').value : '',
     shop: type === 'expense' ? document.getElementById('tx-shop').value.trim() : '',
+    item: type === 'expense' ? ((document.getElementById('tx-item') || {}).value || '').trim() : '',
     memo: document.getElementById('tx-memo').value.trim(),
     createdAt: nowLocalTs(), updatedAt: nowLocalTs()
   };
@@ -1140,7 +1149,8 @@ function editTx(id) {
     <label>金額</label><input type="number" id="m-amount" min="0" step="1" value="${t.amount}">
     <label>カテゴリ</label><select id="m-category">${catOptions(t.type, t.categoryId)}</select>
     ${isExp ? `<label>支払方法</label><select id="m-pay">${PAY_METHODS.map(m => `<option ${m === t.paymentMethod ? 'selected' : ''}>${m}</option>`).join('')}</select>
-    <label>店舗名・内容</label><input type="text" id="m-shop" value="${esc(t.shop || '')}">` : ''}
+    <label>店舗名</label><input type="text" id="m-shop" value="${esc(t.shop || '')}">
+    <label>商品名</label><input type="text" id="m-item" value="${esc(t.item || '')}">` : ''}
     <label>メモ</label><input type="text" id="m-memo" value="${esc(t.memo || '')}">
     <div class="row mt"><button class="btn sub" onclick="closeModal()">キャンセル</button>
     <button class="btn primary" onclick="applyTx('${t.id}')">保存</button></div>
@@ -1155,6 +1165,7 @@ async function applyTx(id) {
   if (t.type === 'expense') {
     t.paymentMethod = document.getElementById('m-pay').value;
     t.shop = document.getElementById('m-shop').value.trim();
+    t.item = ((document.getElementById('m-item') || {}).value || '').trim();
   }
   t.memo = document.getElementById('m-memo').value.trim();
   t.updatedAt = nowLocalTs();
@@ -1846,8 +1857,21 @@ function renderHistory() {
   if (S.histTab === 'tx') body = histTxHtml();
   if (S.histTab === 'buy') body = histBuyHtml();
   if (S.histTab === 'sell') body = histSellHtml();
+  const catOpts = S.categories.map(c => `<option value="${c.id}" ${histF.cat === c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
   const inner = S.histTab === 'tx'
-    ? `<div class="srch"><input id="hist-q" type="search" placeholder="店舗名・商品名・メモで検索(全期間)" value="${esc(histQ)}" oninput="histSearch(this.value)"></div><div id="hist-list">${body}</div>`
+    ? `<div class="srch"><input id="hist-q" type="search" placeholder="店舗名・商品名・メモ・金額で検索" value="${esc(histQ)}" oninput="histSearch(this.value)"></div>
+      <div class="chips">${[['all', '全期間'], ['year', '今年'], ['last', '去年'], ['month', 'この月']].map(([k, l]) =>
+        `<button class="chip ${histF.period === k ? 'on' : ''}" onclick="histSet('period','${k}')">${l}</button>`).join('')}
+        <button class="chip reset" onclick="histReset()">クリア</button></div>
+      <div class="frow">
+        <select onchange="histSet('cat',this.value)"><option value="">カテゴリ: すべて</option>${catOpts}</select>
+        <select onchange="histSet('pay',this.value)"><option value="">支払: すべて</option>${PAY_METHODS.map(m => `<option ${histF.pay === m ? 'selected' : ''}>${m}</option>`).join('')}</select>
+        <select onchange="histSet('sort',this.value)">
+          <option value="new" ${histF.sort === 'new' ? 'selected' : ''}>新しい順</option>
+          <option value="high" ${histF.sort === 'high' ? 'selected' : ''}>金額が高い順</option>
+          <option value="low" ${histF.sort === 'low' ? 'selected' : ''}>金額が安い順</option>
+        </select></div>
+      <div id="hist-list">${body}</div>`
     : body;
   document.getElementById('scr-history').innerHTML = `
     <div class="seg">${tabs.map(([id, l]) => `<button onclick="S.histTab='${id}';renderHistory()" class="${S.histTab === id ? 'on' : ''}">${l}</button>`).join('')}</div>
@@ -1862,32 +1886,46 @@ function navHist(d) {
   const [y, m] = S.histYm.split('-').map(Number);
   const dt = new Date(y, m - 1 + d, 1);
   S.histYm = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0');
-  histQ = '';
   renderHistory();
 }
 let histQ = '';
-function histSearch(v) {
-  histQ = v || '';
-  const el = document.getElementById('hist-list');
-  if (el) el.innerHTML = histTxHtml();
+let histF = { period: 'all', cat: '', pay: '', sort: 'new' };
+function histSearch(v) { histQ = v || ''; histListRefresh(); }
+function histSet(k, v) { histF[k] = v; histListRefresh(); }
+function histReset() { histQ = ''; histF = { period: 'all', cat: '', pay: '', sort: 'new' }; renderHistory(); }
+function histListRefresh() { const el = document.getElementById('hist-list'); if (el) el.innerHTML = histTxHtml(); }
+function histRange() {
+  const y = new Date().getFullYear();
+  if (histF.period === 'year') return [y + '-01-01', y + '-12-31'];
+  if (histF.period === 'last') return [(y - 1) + '-01-01', (y - 1) + '-12-31'];
+  if (histF.period === 'month') return [S.histYm + '-01', S.histYm + '-31'];
+  return null;
 }
 function histTxHtml() {
   const q = (histQ || '').trim().toLowerCase();
-  if (q) {
-    const list = S.txs.filter(t => {
-      const hay = [t.shop, t.memo, catName(t.categoryId), t.paymentMethod, t.date,
+  const filtering = !!q || histF.period !== 'all' || !!histF.cat || !!histF.pay || histF.sort !== 'new';
+  let list = S.txs.slice();
+  if (!filtering) {
+    list = list.filter(t => t.date.slice(0, 7) === S.histYm);
+  } else {
+    const rg = histRange();
+    if (rg) list = list.filter(t => t.date >= rg[0] && t.date <= rg[1]);
+    if (histF.cat) list = list.filter(t => t.categoryId === histF.cat);
+    if (histF.pay) list = list.filter(t => (t.paymentMethod || '') === histF.pay);
+    if (q) list = list.filter(t => {
+      const hay = [t.shop, t.item, t.memo, catName(t.categoryId), t.paymentMethod, t.date,
         t.type === 'expense' ? '支出' : '収入', String(t.amount)].join(' ').toLowerCase();
       return hay.indexOf(q) >= 0;
-    }).sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
-    if (list.length === 0) return `<div class="hint">「${esc(histQ)}」に一致する記録はありません。</div>`;
-    const exp = list.filter(t => t.type === 'expense').reduce((a, t) => a + t.amount, 0);
-    const inc = list.filter(t => t.type === 'income').reduce((a, t) => a + t.amount, 0);
-    return `<div class="hint" style="margin-bottom:6px">全期間から検索: <b>${list.length}件</b> ・ 支出 ${fmtYen(exp)} ・ 収入 ${fmtYen(inc)}</div>` + recentTxHtml(list);
+    });
+    if (histF.sort === 'high') list.sort((a, b) => b.amount - a.amount);
+    else if (histF.sort === 'low') list.sort((a, b) => a.amount - b.amount);
+    else list.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
   }
-  const list = S.txs.filter(t => t.date.slice(0, 7) === S.histYm)
-    .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
-  if (list.length === 0) return '<div class="hint">この月の記録はありません。</div>';
-  return recentTxHtml(list);
+  const exp = list.filter(t => t.type === 'expense').reduce((a, t) => a + t.amount, 0);
+  const inc = list.filter(t => t.type === 'income').reduce((a, t) => a + t.amount, 0);
+  if (list.length === 0) return '<div class="hint">条件に一致する記録はありません。絞り込みを変えてお試しください。</div>';
+  const head = `<div class="hint" style="margin-bottom:6px">${filtering ? '絞り込み結果' : 'この月'} <b>${list.length}件</b> ・ 支出 ${fmtYen(exp)} ・ 収入 ${fmtYen(inc)}</div>`;
+  return head + recentTxHtml(list);
 }
 /* --- 記録の詳細モーダル(履歴から) --- */
 function openTxDetail(id) {
@@ -1900,7 +1938,8 @@ function openTxDetail(id) {
       <b style="font-size:26px;color:var(--${isExp ? 'spend' : 'income'})">${isExp ? '' : '+'}${fmtYen(t.amount)}</b>
     </div>
     <div class="kv"><span>カテゴリ</span><b>${esc(catName(t.categoryId))}</b></div>
-    ${isExp ? `<div class="kv"><span>店舗名・内容</span><b>${esc(t.shop || '—')}</b></div>
+    ${isExp ? `<div class="kv"><span>店舗名</span><b>${esc(t.shop || '—')}</b></div>
+    <div class="kv"><span>商品名</span><b>${esc(t.item || '—')}</b></div>
     <div class="kv"><span>支払方法</span><b>${esc(t.paymentMethod || '—')}</b></div>` : ''}
     <div class="kv"><span>メモ</span><b>${esc(t.memo || '—')}</b></div>
     ${t.fixedCostId ? '<div class="kv"><span>区分</span><b>固定費</b></div>' : ''}
