@@ -256,7 +256,9 @@ header.app .hdr-help:active{opacity:.7}
 .prow{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid var(--surface2)}
 .lrow.tap:active{background:var(--surface2)}
 .qa{display:flex;flex-direction:column;gap:8px}
-.qa details{border:1px solid var(--line2);border-radius:10px;background:var(--surface2);padding:10px 12px}
+.qagroup{margin:16px 0 2px;font-size:11.5px;font-weight:700;letter-spacing:.06em;color:var(--sub);padding-left:2px}
+    .qagroup:first-of-type{margin-top:2px}
+    .qa details{border:1px solid var(--line2);border-radius:10px;background:var(--surface2);padding:10px 12px}
 .qa details[open]{background:var(--surface)}
 .qa summary{cursor:pointer;list-style:none;display:flex;align-items:flex-start;font-weight:700;font-size:13.5px;line-height:1.5}
 .qa summary::-webkit-details-marker{display:none}
@@ -1031,34 +1033,40 @@ function renderHelp() {
   <div class="card">
     <h2>よくある質問 <span class="tag">タップで開く</span></h2>
     <div class="qa">
-      <details><summary>入力したデータはどこに保存されますか?</summary>
-        <div class="a">端末のブラウザ内(IndexedDB)に保存され、外部のサーバーには送信しません。同じ端末・同じブラウザで開けば残りますが、<b>ブラウザのデータ消去や端末の初期化で消えます</b>。設定 →「JSONでバックアップ」で定期的に控えを取ってください。</div></details>
-      <details><summary>機種変更でデータを引き継げますか?</summary>
-        <div class="a">自動同期はありません。<b>旧端末で「JSONでバックアップ」→ 新端末で「JSONから復元」</b>の順で移行してください。復元は上書き前に確認画面が出ます。</div></details>
+
+      <h3 class="qagroup">レシート・カテゴリ</h3>
       <details><summary>レシートの読み取りがうまくいきません</summary>
-        <div class="a">明るい場所で、レシート全体がまっすぐ写るように撮ると精度が上がります。うまく読めないときは、他のAIにレシートを読ませて<b>「TSVを貼り付けて登録」</b>するのが確実です。</div></details>
-      <details><summary>支出を登録したのに「未購入金額」が増えません</summary>
-        <div class="a">設定 →「表示モード」が<b>「家計簿のみ」</b>になっていると積み立ては行いません。「家計 + つみたて」に切り替えると、その時点の支出分から表示されます。支出の修正・削除にも自動で追従します。</div></details>
-      <details><summary>「家計簿のみ」と「家計 + つみたて」の違いは?</summary>
-        <div class="a">「家計 + つみたて」は支出と同額を自動で積み立て、資産(XRP)の購入・売却画面も使えます。「家計簿のみ」は家計簿機能だけに絞った表示です。<b>切り替えてもデータは消えません</b>。</div></details>
-      <details><summary>価格が「---」のまま、または更新されません</summary>
-        <div class="a">価格は公開API(GMOコイン、取得できない場合はbitbank)から約1分ごとに取得します。通信環境を確認し、レートカードの<b>「更新」</b>を押してください。表示は参考値で、手数料は含みません。</div></details>
-      <details><summary>アプリが自動で注文・売却してくれますか?</summary>
-        <div class="a">いいえ。<b>数量や目標価格の計算を補助するだけ</b>で、発注は取引所のアプリで手動で行います。約定したら「購入履歴」「売却履歴」に登録すると、保有数量や損益に反映されます。</div></details>
+      <div class="a">明るい場所で、レシート全体がまっすぐ写るように撮ると精度が上がります。うまく読めないときは、他のAIにレシートを読ませて<b>「TSVを貼り付けて登録」</b>するのが確実です。</div></details>
       <details><summary>カテゴリを追加・並べ替えできますか?</summary>
-        <div class="a">家計簿タブ →「カテゴリ」で追加・名前変更・削除ができます。行の右端「⋮⋮」をドラッグすると並び替えられ、<b>入力フォームのプルダウンにも反映</b>されます。</div></details>
+      <div class="a">家計簿タブ →「カテゴリ」で追加・名前変更・削除ができます。行の右端「⋮⋮」をドラッグすると並び替えられ、<b>入力フォームのプルダウンにも反映</b>されます。</div></details>
       <details><summary>TSVのカテゴリ名が、自分で入れた名前と違うカテゴリになりました</summary>
-        <div class="a">貼り付け時の<b>表記ゆれ吸収</b>が働いたためです。「食料品」「スーパー」→ 食費、「外食費」→ 外食、「電気代」→ 光熱水道 のように、レシートでよく使う言い回しを登録済みカテゴリへ寄せています。変換された行はプレビューに<b>「食料品 → 食費」</b>と表示されるので、登録前に確認できます。意図と違う場合は、その行だけ登録後に「編集」でカテゴリを変更してください。</div></details>
+      <div class="a">貼り付け時の<b>表記ゆれ吸収</b>が働いたためです。「食料品」「スーパー」→ 食費、「外食費」→ 外食、「電気代」→ 光熱水道 のように、レシートでよく使う言い回しを登録済みカテゴリへ寄せています。変換された行はプレビューに<b>「食料品 → 食費」</b>と表示されるので、登録前に確認できます。意図と違う場合は、その行だけ登録後に「編集」でカテゴリを変更してください。</div></details>
       <details><summary>表記ゆれの自動補正を止められますか?</summary>
-        <div class="a">現在はオン/オフの切り替えはなく、常に有効です。ただし<b>確信度が高い場合だけ</b>寄せる設計で、無理に近い名前へは寄せません。誤爆を避けたいときは、Gemini側の出力カテゴリ名をアプリのカテゴリ名と<b>完全一致</b>させてください(一致すれば補正は働きません)。</div></details>
+      <div class="a">現在はオン/オフの切り替えはなく、常に有効です。ただし<b>確信度が高い場合だけ</b>寄せる設計で、無理に近い名前へは寄せません。誤爆を避けたいときは、Gemini側の出力カテゴリ名をアプリのカテゴリ名と<b>完全一致</b>させてください(一致すれば補正は働きません)。</div></details>
       <details><summary>辞書にない店名や言い回しだとどうなりますか?</summary>
-        <div class="a">寄せ先が見つからない行は、従来どおり<b>「その他」系のカテゴリ</b>に分類され、プレビューで「未一致」と黄色表示されます。よく使う言い回しは、その名前のカテゴリを「カテゴリ」タブで追加しておくと、次回からは完全一致で安定します。</div></details>
+      <div class="a">寄せ先が見つからない行は、従来どおり<b>「その他」系のカテゴリ</b>に分類され、プレビューで「未一致」と黄色表示されます。よく使う言い回しは、その名前のカテゴリを「カテゴリ」タブで追加しておくと、次回からは完全一致で安定します。</div></details>
       <details><summary>Gemini用プロンプトのカテゴリ一覧はいつ更新されますか?</summary>
-        <div class="a">プロンプト画面を開いた時点(コピー時)に、<b>そのときのカテゴリ設定から生成</b>されます。カテゴリを追加・改名・削除したら、画面を開き直してコピーし、<b>Gemini側のGemの指示も貼り替え</b>てください。アプリ側だけ変えても、Gemは古い一覧のまま出力します。</div></details>
+      <div class="a">プロンプト画面を開いた時点(コピー時)に、<b>そのときのカテゴリ設定から生成</b>されます。カテゴリを追加・改名・削除したら、画面を開き直してコピーし、<b>Gemini側のGemの指示も貼り替え</b>てください。アプリ側だけ変えても、Gemは古い一覧のまま出力します。</div></details>
       <details><summary>カテゴリを改名・削除すると、過去の記録はどうなりますか?</summary>
-        <div class="a">改名しても過去の記録は<b>新しい名前で表示</b>されます(記録はカテゴリIDで紐づいているため)。削除は使用中の記録があるとできない仕様です。先に該当の記録を別カテゴリへ変更してから削除してください。</div></details>
+      <div class="a">改名しても過去の記録は<b>新しい名前で表示</b>されます(記録はカテゴリIDで紐づいているため)。削除は使用中の記録があるとできない仕様です。先に該当の記録を別カテゴリへ変更してから削除してください。</div></details>
+      <h3 class="qagroup">記録・集計</h3>
       <details><summary>月の途中から使い始めました。過去の分は?</summary>
-        <div class="a">記録タブで日付を過去にして登録すれば、その月の集計に入ります。登録済みの記録も「編集」から日付を変更できます。</div></details>
+      <div class="a">記録タブで日付を過去にして登録すれば、その月の集計に入ります。登録済みの記録も「編集」から日付を変更できます。</div></details>
+      <details><summary>支出を登録したのに「未購入金額」が増えません</summary>
+      <div class="a">設定 →「表示モード」が<b>「家計簿のみ」</b>になっていると積み立ては行いません。「家計 + つみたて」に切り替えると、その時点の支出分から表示されます。支出の修正・削除にも自動で追従します。</div></details>
+      <h3 class="qagroup">つみたて・資産</h3>
+      <details><summary>「家計簿のみ」と「家計 + つみたて」の違いは?</summary>
+      <div class="a">「家計 + つみたて」は支出と同額を自動で積み立て、資産(XRP)の購入・売却画面も使えます。「家計簿のみ」は家計簿機能だけに絞った表示です。<b>切り替えてもデータは消えません</b>。</div></details>
+      <details><summary>価格が「---」のまま、または更新されません</summary>
+      <div class="a">価格は公開API(GMOコイン、取得できない場合はbitbank)から約1分ごとに取得します。通信環境を確認し、レートカードの<b>「更新」</b>を押してください。表示は参考値で、手数料は含みません。</div></details>
+      <details><summary>アプリが自動で注文・売却してくれますか?</summary>
+      <div class="a">いいえ。<b>数量や目標価格の計算を補助するだけ</b>で、発注は取引所のアプリで手動で行います。約定したら「購入履歴」「売却履歴」に登録すると、保有数量や損益に反映されます。</div></details>
+      <h3 class="qagroup">データ・バックアップ</h3>
+      <details><summary>入力したデータはどこに保存されますか?</summary>
+      <div class="a">端末のブラウザ内(IndexedDB)に保存され、外部のサーバーには送信しません。同じ端末・同じブラウザで開けば残りますが、<b>ブラウザのデータ消去や端末の初期化で消えます</b>。設定 →「JSONでバックアップ」で定期的に控えを取ってください。</div></details>
+      <details><summary>機種変更でデータを引き継げますか?</summary>
+      <div class="a">自動同期はありません。<b>旧端末で「JSONでバックアップ」→ 新端末で「JSONから復元」</b>の順で移行してください。復元は上書き前に確認画面が出ます。</div></details>
+
     </div>
   </div>`;
 }
