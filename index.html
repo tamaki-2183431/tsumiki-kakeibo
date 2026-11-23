@@ -256,6 +256,11 @@ header.app .hdr-help:active{opacity:.7}
 .prow{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid var(--surface2)}
 .lrow.tap:active{background:var(--surface2)}
 .qa{display:flex;flex-direction:column;gap:8px}
+.qajump{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 10px}
+.qajbtn{border:1px solid var(--line2);background:var(--surface2);color:var(--ink);border-radius:999px;padding:6px 11px;font-size:11.5px;font-weight:600;font-family:inherit;cursor:pointer}
+.qajbtn:active{background:var(--assetSoft,var(--surface2));transform:scale(.98)}
+.qagroup{scroll-margin-top:64px;transition:color .3s}
+.qagroup.flash{color:var(--asset)}
 .qagroup{margin:16px 0 2px;font-size:11.5px;font-weight:700;letter-spacing:.06em;color:var(--sub);padding-left:2px}
     .qagroup:first-of-type{margin-top:2px}
     .qa details{border:1px solid var(--line2);border-radius:10px;background:var(--surface2);padding:10px 12px}
@@ -1032,9 +1037,15 @@ function renderHelp() {
   </div>
   <div class="card">
     <h2>よくある質問 <span class="tag">タップで開く</span></h2>
+    <div class="qajump">
+      <button class="qajbtn" onclick="qaJump('qa-receipt')">レシート・カテゴリ</button>
+      <button class="qajbtn" onclick="qaJump('qa-log')">記録・集計</button>
+      <button class="qajbtn" onclick="qaJump('qa-asset')">つみたて・資産</button>
+      <button class="qajbtn" onclick="qaJump('qa-data')">データ・バックアップ</button>
+    </div>
     <div class="qa">
 
-      <h3 class="qagroup">レシート・カテゴリ</h3>
+      <h3 class="qagroup" id="qa-receipt">レシート・カテゴリ</h3>
       <details><summary>レシートの読み取りがうまくいきません</summary>
       <div class="a">明るい場所で、レシート全体がまっすぐ写るように撮ると精度が上がります。うまく読めないときは、他のAIにレシートを読ませて<b>「TSVを貼り付けて登録」</b>するのが確実です。</div></details>
       <details><summary>カテゴリを追加・並べ替えできますか?</summary>
@@ -1049,19 +1060,19 @@ function renderHelp() {
       <div class="a">プロンプト画面を開いた時点(コピー時)に、<b>そのときのカテゴリ設定から生成</b>されます。カテゴリを追加・改名・削除したら、画面を開き直してコピーし、<b>Gemini側のGemの指示も貼り替え</b>てください。アプリ側だけ変えても、Gemは古い一覧のまま出力します。</div></details>
       <details><summary>カテゴリを改名・削除すると、過去の記録はどうなりますか?</summary>
       <div class="a">改名しても過去の記録は<b>新しい名前で表示</b>されます(記録はカテゴリIDで紐づいているため)。削除は使用中の記録があるとできない仕様です。先に該当の記録を別カテゴリへ変更してから削除してください。</div></details>
-      <h3 class="qagroup">記録・集計</h3>
+      <h3 class="qagroup" id="qa-log">記録・集計</h3>
       <details><summary>月の途中から使い始めました。過去の分は?</summary>
       <div class="a">記録タブで日付を過去にして登録すれば、その月の集計に入ります。登録済みの記録も「編集」から日付を変更できます。</div></details>
       <details><summary>支出を登録したのに「未購入金額」が増えません</summary>
       <div class="a">設定 →「表示モード」が<b>「家計簿のみ」</b>になっていると積み立ては行いません。「家計 + つみたて」に切り替えると、その時点の支出分から表示されます。支出の修正・削除にも自動で追従します。</div></details>
-      <h3 class="qagroup">つみたて・資産</h3>
+      <h3 class="qagroup" id="qa-asset">つみたて・資産</h3>
       <details><summary>「家計簿のみ」と「家計 + つみたて」の違いは?</summary>
       <div class="a">「家計 + つみたて」は支出と同額を自動で積み立て、資産(XRP)の購入・売却画面も使えます。「家計簿のみ」は家計簿機能だけに絞った表示です。<b>切り替えてもデータは消えません</b>。</div></details>
       <details><summary>価格が「---」のまま、または更新されません</summary>
       <div class="a">価格は公開API(GMOコイン、取得できない場合はbitbank)から約1分ごとに取得します。通信環境を確認し、レートカードの<b>「更新」</b>を押してください。表示は参考値で、手数料は含みません。</div></details>
       <details><summary>アプリが自動で注文・売却してくれますか?</summary>
       <div class="a">いいえ。<b>数量や目標価格の計算を補助するだけ</b>で、発注は取引所のアプリで手動で行います。約定したら「購入履歴」「売却履歴」に登録すると、保有数量や損益に反映されます。</div></details>
-      <h3 class="qagroup">データ・バックアップ</h3>
+      <h3 class="qagroup" id="qa-data">データ・バックアップ</h3>
       <details><summary>入力したデータはどこに保存されますか?</summary>
       <div class="a">端末のブラウザ内(IndexedDB)に保存され、外部のサーバーには送信しません。同じ端末・同じブラウザで開けば残りますが、<b>ブラウザのデータ消去や端末の初期化で消えます</b>。設定 →「JSONでバックアップ」で定期的に控えを取ってください。</div></details>
       <details><summary>機種変更でデータを引き継げますか?</summary>
@@ -1069,6 +1080,13 @@ function renderHelp() {
 
     </div>
   </div>`;
+}
+function qaJump(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  el.classList.add('flash');
+  setTimeout(() => el.classList.remove('flash'), 900);
 }
 function prepForBuy() {
   go('asset');
