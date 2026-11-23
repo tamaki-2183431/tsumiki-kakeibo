@@ -2090,7 +2090,7 @@ function shopListInner() {
   const list = q ? all.filter(r => shopNorm([r.name, r.kana, r.addr, r.tel].join(' ')).indexOf(q) >= 0) : all;
   const spent = all.reduce((a, r) => a + r.total, 0);
   return `<div class="hint" style="margin:6px 0">${q ? '検索結果 <b>' + list.length + '件</b>' : '登録した支出の店舗を<b>50音順</b>に表示'} ・ 支出合計 ${fmtYen(spent)}</div>
-    ${list.length ? list.map(r => `<div class="lrow tap" onclick="openShopDetail('${esc(r.k)}')">
+    ${list.length ? list.map(r => `<div class="lrow tap" data-k="${esc(r.k)}" onclick="openShopDetail(this.dataset.k)">
       <div class="ico exp">店</div>
       <div class="mid"><div class="t">${esc(r.name)}${r.kana ? ' <span class="hint" style="display:inline">' + esc(r.kana) + '</span>' : ''}</div>
       <div class="d">${r.n}回 ・ ${fmtYen(r.total)}${r.last ? ' ・ 最終 ' + esc(r.last) : ''}${r.addr ? ' ・ ' + esc(r.addr) : ''}</div></div>
@@ -2119,28 +2119,30 @@ function openShopDetail(key) {
       <div class="mid"><div class="t">${esc(catName(t.categoryId))}${t.item ? '・' + esc(t.item) : ''}</div><div class="d">${esc(t.date)}</div></div>
       <div class="amt spend">${fmtYen(t.amount)}</div></div>`).join('') : ''}
     <div class="row mt"><button class="btn sub" onclick="closeModal()">閉じる</button>
-    <button class="btn primary" onclick="editShop('${esc(key)}')">店舗情報を編集</button></div>`);
+    <button class="btn primary" data-k="${esc(key)}" onclick="editShop(this.dataset.k)">店舗情報を編集</button></div>`);
 }
 function shopMasterHtml() {
   const list = Object.keys(getShops()).map(k => ({ k, v: getShops()[k] })).sort((a, b) => String(a.v.name || '').localeCompare(String(b.v.name || ''), 'ja'));
   return `<div class="card"><h2>店舗マスタ <span class="tag">${list.length}件</span> ${hbtn('qa-shopmaster')}</h2>
     ${list.length ? list.map(({ k, v }) => `<div class="lrow"><div class="ico exp">店</div>
       <div class="mid"><div class="t">${esc(v.name || k)}</div><div class="d">${esc(v.addr || '住所未登録')}${v.tel ? ' ・ ☎' + esc(v.tel) : ''}</div></div>
-      <div class="ops"><button class="btn sm sub" onclick="editShop('${esc(k)}')">編集</button>
-      <button class="btn sm sub" onclick="delShop('${esc(k)}')">削除</button></div></div>`).join('')
+      <div class="ops"><button class="btn sm sub" data-k="${esc(k)}" onclick="editShop(this.dataset.k)">編集</button>
+      <button class="btn sm sub" data-k="${esc(k)}" onclick="delShop(this.dataset.k)">削除</button></div></div>`).join('')
       : '<div class="hint">まだ登録がありません。支出を登録すると店舗名・住所・電話番号が自動でたまります。</div>'}
     <button class="btn sub block mt" onclick="editShop('')">＋ 店舗を追加</button>
     <div class="notebox">TSV取り込みや手入力で住所・電話番号が入ると、店舗名ごとに自動保存されます。次回から同じ店舗名を入力すると<b>空欄を自動補完</b>します。</div></div>`;
 }
 function editShop(key) {
-  const v = key ? (getShops()[key] || {}) : {};
+  const master = key ? getShops()[key] : null;
+  const row = key ? shopRows().find(x => x.k === key) : null;
+  const v = master || (row ? { name: row.name, addr: row.addr, tel: row.tel } : (key ? { name: key } : {}));
   openModal(`<h2>${key ? '店舗を編集' : '店舗を追加'}</h2>
     <label>店舗名</label><input type="text" id="s-name" value="${esc(v.name || '')}" placeholder="例) スーパーマーケットA">
     <label>住所</label><input type="text" id="s-addr" value="${esc(v.addr || '')}" placeholder="例) 東京都渋谷区1-2-3">
     <label>電話番号</label><input type="tel" id="s-tel" value="${esc(v.tel || '')}" placeholder="例) 03-1234-5678">
     <label>よみがな <span class="hint" style="display:inline">(50音順に使用・任意)</span></label><input type="text" id="s-kana" value="${esc(v.kana || '')}" placeholder="例) すーぱーまーけっとえー">
     <div class="row mt"><button class="btn sub" onclick="closeModal()">キャンセル</button>
-    <button class="btn primary" onclick="saveShop('${esc(key)}')">保存</button></div>`);
+    <button class="btn primary" data-k="${esc(key)}" onclick="saveShop(this.dataset.k)">保存</button></div>`);
 }
 async function saveShop(key) {
   const name = document.getElementById('s-name').value.trim();
