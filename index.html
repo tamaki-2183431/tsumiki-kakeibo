@@ -99,6 +99,11 @@ nav.tabbar button.on{color:var(--asset);font-weight:700}
 .row{display:flex;gap:10px}.row>*{flex:1}
 .inrow{display:flex;gap:8px;align-items:flex-end}
 /* segmented tabs */
+.monthbar{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.monthbar .mb-btn{min-height:38px;padding:7px 14px;border-radius:10px;background:var(--surface);border:1px solid var(--line);color:var(--ink);font-size:12.5px;font-weight:600;display:inline-flex;align-items:center;gap:3px}
+.monthbar .mb-btn:active{transform:scale(.97)}
+.monthbar .mb-cur{flex:1;text-align:center;font-weight:700;font-size:15px;letter-spacing:.01em;display:flex;align-items:center;justify-content:center;gap:8px}
+.monthbar .mb-now{font-size:11px;font-weight:700;color:var(--ok);background:var(--ok-bg,#0000);border:1px solid var(--line);border-radius:999px;padding:2px 9px}
 .seg{display:flex;gap:4px;background:var(--surface2);border:1px solid var(--line2);border-radius:11px;padding:4px;margin-bottom:14px;overflow-x:auto;scrollbar-width:none}
 .seg::-webkit-scrollbar{display:none}
 .seg button{flex:1;white-space:nowrap;padding:8px 10px;border-radius:8px;font-size:13px;color:var(--sub);font-weight:600}
@@ -1062,7 +1067,7 @@ function renderHelp() {
       <details id="qa-history"><summary>記録した支出を探す・直す・消すには?</summary>
         <div class="a">家計簿タブ →「履歴」で一覧できます。検索欄に店舗名・商品名・メモを入れると絞り込め、期間(全期間/今年/先月/今月)・カテゴリ・支払方法・並び順(新しい順/金額の高い順/低い順)も指定できます。行をタップすると詳細が開き、そこから編集・削除ができます。<b>削除直後は9秒間「元に戻す」</b>が出ます。</div></details>
       <details id="qa-summary-tabs"><summary>集計タブの「概要 / カテゴリ / 日別」はどう使い分けますか?</summary>
-        <div class="a">概要は月の収支サマリーと支出の分析(全体像)、カテゴリはカテゴリ別支出と月ごとの推移(どこに使ったか)、日別は日ごとの収支と日付リスト(いつ使ったか)です。月の切り替え(← 前月 / 次月 →)は概要タブにあります。</div></details>
+        <div class="a">概要は月の収支サマリーと支出の分析(全体像)、カテゴリはカテゴリ別支出と月ごとの推移(どこに使ったか)、日別は日ごとの収支と日付リスト(いつ使ったか)です。月の切り替え(← 前月 / 次月 →)はタブのすぐ上にあり、概要・カテゴリ・日別の3つすべてに連動します。過去の月を見ているときは「今月」で戻れます。</div></details>
       <details id="qa-analysis"><summary>「支出の分析」のグラフと「見えてきたこと」は何を見ていますか?</summary>
         <div class="a">積み上げグラフは直近6ヶ月のカテゴリ別支出で、棒の色＝カテゴリです(凡例と同じ色)。「カテゴリ別 前月比」は今月と前月の差、「見えてきたこと」は増減・貯蓄率・新しく登場したカテゴリ・予算超過を自動で拾ったものです。棒や凡例をタップすると、そのカテゴリの6ヶ月推移とお店別の内訳が開きます。</div></details>
       <details id="qa-budget"><summary>カテゴリ予算はどこで設定しますか?</summary>
@@ -1623,17 +1628,17 @@ function ledgerSummaryHtml() {
       `<text x="${x + bw + 2}" y="${H - 8}" text-anchor="middle" font-size="11" fill="var(--sub)">${m.ym.slice(5)}月</text>`;
   });
   return `
+  <div class="monthbar">
+    <button class="mb-btn" onclick="navMonth(-1)" aria-label="前月">← 前月</button>
+    <div class="mb-cur"><span>${esc(sumYm.replace('-', '年'))}月</span>${sumYm === nowYm() ? '' : `<button class="mb-now" onclick="sumYm=nowYm();renderLedger()">今月</button>`}</div>
+    <button class="mb-btn" onclick="navMonth(1)" aria-label="次月">次月 →</button>
+  </div>
   <div class="seg" style="margin-bottom:10px">
     ${[['overview', '概要'], ['cat', 'カテゴリ'], ['day', '日別']].map(([k, l]) =>
       `<button onclick="S.sumTab='${k}';renderLedger()" class="${S.sumTab === k ? 'on' : ''}">${l}</button>`).join('')}
   </div>
   <div class="card sec-ov">
-    <div style="display:flex;align-items:center;justify-content:space-between">
-      <button class="btn sm sub" onclick="navMonth(-1)">← 前月</button>
-      <b>${esc(sumYm.replace('-', '/'))}</b>
-      <button class="btn sm sub" onclick="navMonth(1)">次月 →</button>
-    </div>
-    <div class="statgrid mt">
+    <div class="statgrid">
       <div class="stat"><div class="l">収入合計</div><div class="v income">${fmtYen(sum.income)}</div></div>
       <div class="stat"><div class="l">支出合計</div><div class="v spend">${fmtYen(sum.expense)}</div></div>
       <div class="stat"><div class="l">収支</div><div class="v ${sum.balance >= 0 ? 'plus' : 'minus'}">${fmtSignYen(sum.balance)}</div></div>
