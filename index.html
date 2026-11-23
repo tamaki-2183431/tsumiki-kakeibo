@@ -1318,8 +1318,8 @@ function ledgerSummaryHtml() {
     <div class="legend"><span><span class="sw" style="background:var(--spend)"></span>支出</span>
     <span><span class="sw" style="background:var(--income)"></span>収入</span></div>
   </div>
-  ${ledgerDayCardHtml(days, sumYm)}
-  ${ledgerAnalysisCardHtml(sumYm)}`;
+  ${ledgerAnalysisCardHtml(sumYm)}
+  ${ledgerDayCardHtml(days, sumYm)}`;
 }
 /* --- 日ごとの収支カード --- */
 function ledgerDayCardHtml(days, ym) {
@@ -1449,7 +1449,7 @@ function ledgerAnalysisCardHtml(ym) {
   if (neu) tips.push({ t: `新しいカテゴリ「${catName(neu.id)}」が登場`, d: `今月 ${fmtYen(neu.c)}・${neu.n}件。一時的な出費か、これから続く支出かを来月の数字で見極めましょう。` });
 
   return `
-  <div class="card">
+  <div class="card" id="an-card">
     <h2>支出の分析 <span class="tag">${esc(ym.replace('-', '/'))}</span></h2>
     <div class="statgrid">
       <div class="stat"><div class="l">支出合計</div><div class="v spend">${fmtYen(total)}</div></div>
