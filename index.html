@@ -256,6 +256,9 @@ header.app .hdr-help:active{opacity:.7}
 .prow{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid var(--surface2)}
 .lrow.tap:active{background:var(--surface2)}
 .qa{display:flex;flex-direction:column;gap:8px}
+.hbtn{float:right;width:21px;height:21px;padding:0;margin:2px 0 0 6px;border-radius:50%;border:1px solid var(--line2);background:var(--surface2);color:var(--sub);font:700 11px/19px var(--font,inherit);text-align:center;cursor:pointer}
+.hbtn:active{transform:scale(.94)}
+details.flash summary{color:var(--asset)}
 .qajump{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 10px}
 .qajbtn{border:1px solid var(--line2);background:var(--surface2);color:var(--ink);border-radius:999px;padding:6px 11px;font-size:11.5px;font-weight:600;font-family:inherit;cursor:pointer}
 .qajbtn:active{background:var(--assetSoft,var(--surface2));transform:scale(.98)}
@@ -793,7 +796,7 @@ function renderHome() {
 
   document.getElementById('scr-home').innerHTML = `
   <div class="card">
-    <h2>家計の入力</h2>
+    <h2>家計の入力 ${hbtn('qa-home')}</h2>
     <div class="actgrid">
       <button class="bigact main" onclick="quickOcr()">
         <svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="14" r="3.5"/></svg>
@@ -809,7 +812,7 @@ function renderHome() {
   </div>
 
   <div class="card">
-    <h2>${esc(ym.replace('-', '年'))}月の家計<span class="tag">今月</span></h2>
+    <h2>${esc(ym.replace('-', '年'))}月の家計<span class="tag">今月</span> ${hbtn('qa-home')}</h2>
     <div class="statgrid">
       <div class="stat" style="background:var(--surface2);box-shadow:none"><div class="l">今月の支出</div><div class="v spend">${fmtYen(sum.expense)}</div></div>
       <div class="stat" style="background:var(--surface2);box-shadow:none"><div class="l">今月の収入</div><div class="v income">${fmtYen(sum.income)}</div></div>
@@ -821,7 +824,7 @@ function renderHome() {
   </div>
 
   ${am ? `<div class="card">
-    <h2>つみ立てゲージ <span class="tag">支出ごとに積み上げ</span></h2>
+    <h2>つみ立てゲージ <span class="tag">支出ごとに積み上げ</span> ${hbtn('qa-home')}</h2>
     <div style="display:flex;justify-content:space-between;align-items:baseline">
       <span class="hint">未購入金額(自動積立)</span>
       <span class="bigmoney" style="font-size:28px;color:var(--asset)">${fmtYen(pend)}</span>
@@ -833,7 +836,7 @@ function renderHome() {
   </div>
 
   ${a ? `<div class="card">
-    <h2>資産の状況<span class="tag">${esc(a.code)}</span></h2>
+    <h2>資産の状況<span class="tag">${esc(a.code)}</span> ${hbtn('qa-assets-view')}</h2>
     <div class="statgrid">
       <div class="stat"><div class="l">現在価格</div><div class="v">${price > 0 ? fmtYen(price) : '---'}</div><div class="s" id="home-apistate"></div></div>
       <div class="stat"><div class="l">現在の評価額</div><div class="v asset">${fmtYen(evalJpy)}</div><div class="s">保有 ${fmtQty(st.holdingsQty, a.qtyDecimals)} ${esc(a.code)}</div></div>
@@ -844,7 +847,7 @@ function renderHome() {
     </div>
     <div class="notebox">購入・売却の記録と損益は「資産」タブ、履歴は「履歴」タブで確認できます。</div>
   </div>` : ''}` : `<div class="card">
-    <h2>今月の記録 <span class="tag">直近</span></h2>
+    <h2>今月の記録 <span class="tag">直近</span> ${hbtn('qa-history')}</h2>
     ${recentTxHtml(S.txs.filter(t => t.date.slice(0, 7) === ym).slice(0, 6))}
   </div>`}`;
   updateMiniPrice();
@@ -963,7 +966,7 @@ function copyPromptFallback(done) {
   } catch (e) { toast('コピーできませんでした。テキストを手動で選択してコピーしてください'); }
 }
 function openPromptModal() {
-  openModal(`<h2>Gemini用プロンプトの例</h2>
+  openModal(`<h2>Gemini用プロンプトの例 ${hbtn('qa-gem-sync')}</h2>
   <div class="hint">Gemの指示としてこのプロンプトを保存 → レシート画像をアップロード → 出力の「貼り付け用データ」コードブロック内をコピー → アプリの「TSVを貼り付けて登録」に貼り付け。<br>カテゴリ一覧は、いま開いているアプリのカテゴリ設定から自動生成しています(家計簿タブ →「カテゴリ」の支出カテゴリ)。<b>カテゴリを追加・改名したら、この画面を開き直してコピーし直し、Gem側の指示も貼り替えてください。</b></div>
   <button class="btn primary block mt" onclick="copyPrompt()">プロンプトの例をコピー</button>
   <pre class="promptbox">${esc(gemPrompt())}</pre>
@@ -1038,6 +1041,7 @@ function renderHelp() {
   <div class="card">
     <h2>よくある質問 <span class="tag">タップで開く</span></h2>
     <div class="qajump">
+      <button class="qajbtn" onclick="qaJump('qa-ui')">画面の使い方</button>
       <button class="qajbtn" onclick="qaJump('qa-receipt')">レシート・カテゴリ</button>
       <button class="qajbtn" onclick="qaJump('qa-log')">記録・集計</button>
       <button class="qajbtn" onclick="qaJump('qa-asset')">つみたて・資産</button>
@@ -1046,36 +1050,64 @@ function renderHelp() {
     <div class="qa">
 
       <h3 class="qagroup" id="qa-receipt">レシート・カテゴリ</h3>
-      <details><summary>レシートの読み取りがうまくいきません</summary>
+      <h3 class="qagroup" id="qa-ui">画面の使い方</h3>
+      <details id="qa-home"><summary>ホームの数字はどこを見ればいい?</summary>
+        <div class="a">上から<b>今月の収支(収入−支出)</b>、つみたてモードなら「つみ立てゲージ」と「資産の状況」、最後に直近の記録が並びます。各カード右上の「?」からこの説明に戻れます。詳細は家計簿タブの「集計」で、カテゴリ別・日別に掘り下げられます。</div></details>
+      <details id="qa-entry"><summary>支出と収入はどう切り替えて記録しますか?</summary>
+        <div class="a">記録タブ上部の「支出 / 収入」で切り替えます。日付・カテゴリ・金額は必須で、店舗名・商品名・支払方法・メモは任意です。「続けて入力」をオンにすると、登録後も日付とカテゴリを保ったまま次の入力を続けられます。</div></details>
+      <details id="qa-history"><summary>記録した支出を探す・直す・消すには?</summary>
+        <div class="a">家計簿タブ →「履歴」で一覧できます。検索欄に店舗名・商品名・メモを入れると絞り込め、期間(全期間/今年/先月/今月)・カテゴリ・支払方法・並び順(新しい順/金額の高い順/低い順)も指定できます。行をタップすると詳細が開き、そこから編集・削除ができます。<b>削除直後は9秒間「元に戻す」</b>が出ます。</div></details>
+      <details id="qa-summary-tabs"><summary>集計タブの「概要 / カテゴリ / 日別」はどう使い分けますか?</summary>
+        <div class="a">概要は月の収支サマリーと支出の分析(全体像)、カテゴリはカテゴリ別支出と月ごとの推移(どこに使ったか)、日別は日ごとの収支と日付リスト(いつ使ったか)です。月の切り替え(← 前月 / 次月 →)は概要タブにあります。</div></details>
+      <details id="qa-analysis"><summary>「支出の分析」のグラフと「見えてきたこと」は何を見ていますか?</summary>
+        <div class="a">積み上げグラフは直近6ヶ月のカテゴリ別支出で、棒の色＝カテゴリです(凡例と同じ色)。「カテゴリ別 前月比」は今月と前月の差、「見えてきたこと」は増減・貯蓄率・新しく登場したカテゴリ・予算超過を自動で拾ったものです。棒や凡例をタップすると、そのカテゴリの6ヶ月推移とお店別の内訳が開きます。</div></details>
+      <details id="qa-budget"><summary>カテゴリ予算はどこで設定しますか?</summary>
+        <div class="a">集計 → 概要 →「支出の分析」内の「カテゴリ予算」から設定します(「予算を設定 / 編集」をタップ)。金額は1ヶ月の上限で、空欄は予算なしです。消化率が100%を超えるとバーと％が赤くなり、「見えてきたこと」の先頭に超過アラートが出ます。予算は月ごとに繰り越されません。</div></details>
+      <details id="qa-fixed"><summary>固定費と「まとめて支出登録」の違いは?</summary>
+        <div class="a">固定費は家賃・サブスクなど毎月ほぼ同じ支出の<b>テンプレート</b>で、金額の見通しを出すためのものです。固定費タブの「今月の固定費をまとめて支出登録」を押すと、その月の分が実際の支出として記録されます(登録済みの月は二重登録を防ぐためスキップされます)。</div></details>
+      <details id="qa-pay"><summary>支払方法を増やす・並べ替えるには?</summary>
+        <div class="a">家計簿タブ →「カテゴリ」内の「支払方法」で追加・名前変更・削除ができます。行の右端「⋮⋮」をドラッグすると並び替えられ、記録フォームの選択肢にも反映されます。</div></details>
+
+      <details id="qa-receipt-scan"><summary>レシートの読み取りがうまくいきません</summary>
       <div class="a">明るい場所で、レシート全体がまっすぐ写るように撮ると精度が上がります。うまく読めないときは、他のAIにレシートを読ませて<b>「TSVを貼り付けて登録」</b>するのが確実です。</div></details>
-      <details><summary>カテゴリを追加・並べ替えできますか?</summary>
+      <details id="qa-cat-manage"><summary>カテゴリを追加・並べ替えできますか?</summary>
       <div class="a">家計簿タブ →「カテゴリ」で追加・名前変更・削除ができます。行の右端「⋮⋮」をドラッグすると並び替えられ、<b>入力フォームのプルダウンにも反映</b>されます。</div></details>
-      <details><summary>TSVのカテゴリ名が、自分で入れた名前と違うカテゴリになりました</summary>
+      <details id="qa-tsv-cat"><summary>TSVのカテゴリ名が、自分で入れた名前と違うカテゴリになりました</summary>
       <div class="a">貼り付け時の<b>表記ゆれ吸収</b>が働いたためです。「食料品」「スーパー」→ 食費、「外食費」→ 外食、「電気代」→ 光熱水道 のように、レシートでよく使う言い回しを登録済みカテゴリへ寄せています。変換された行はプレビューに<b>「食料品 → 食費」</b>と表示されるので、登録前に確認できます。意図と違う場合は、その行だけ登録後に「編集」でカテゴリを変更してください。</div></details>
-      <details><summary>表記ゆれの自動補正を止められますか?</summary>
+      <details id="qa-fuzzy-off"><summary>表記ゆれの自動補正を止められますか?</summary>
       <div class="a">現在はオン/オフの切り替えはなく、常に有効です。ただし<b>確信度が高い場合だけ</b>寄せる設計で、無理に近い名前へは寄せません。誤爆を避けたいときは、Gemini側の出力カテゴリ名をアプリのカテゴリ名と<b>完全一致</b>させてください(一致すれば補正は働きません)。</div></details>
-      <details><summary>辞書にない店名や言い回しだとどうなりますか?</summary>
+      <details id="qa-dict-miss"><summary>辞書にない店名や言い回しだとどうなりますか?</summary>
       <div class="a">寄せ先が見つからない行は、従来どおり<b>「その他」系のカテゴリ</b>に分類され、プレビューで「未一致」と黄色表示されます。よく使う言い回しは、その名前のカテゴリを「カテゴリ」タブで追加しておくと、次回からは完全一致で安定します。</div></details>
-      <details><summary>Gemini用プロンプトのカテゴリ一覧はいつ更新されますか?</summary>
+      <details id="qa-gem-sync"><summary>Gemini用プロンプトのカテゴリ一覧はいつ更新されますか?</summary>
       <div class="a">プロンプト画面を開いた時点(コピー時)に、<b>そのときのカテゴリ設定から生成</b>されます。カテゴリを追加・改名・削除したら、画面を開き直してコピーし、<b>Gemini側のGemの指示も貼り替え</b>てください。アプリ側だけ変えても、Gemは古い一覧のまま出力します。</div></details>
-      <details><summary>カテゴリを改名・削除すると、過去の記録はどうなりますか?</summary>
+      <details id="qa-cat-rename"><summary>カテゴリを改名・削除すると、過去の記録はどうなりますか?</summary>
       <div class="a">改名しても過去の記録は<b>新しい名前で表示</b>されます(記録はカテゴリIDで紐づいているため)。削除は使用中の記録があるとできない仕様です。先に該当の記録を別カテゴリへ変更してから削除してください。</div></details>
       <h3 class="qagroup" id="qa-log">記録・集計</h3>
-      <details><summary>月の途中から使い始めました。過去の分は?</summary>
+      <details id="qa-midmonth"><summary>月の途中から使い始めました。過去の分は?</summary>
       <div class="a">記録タブで日付を過去にして登録すれば、その月の集計に入ります。登録済みの記録も「編集」から日付を変更できます。</div></details>
-      <details><summary>支出を登録したのに「未購入金額」が増えません</summary>
+      <details id="qa-unbought"><summary>支出を登録したのに「未購入金額」が増えません</summary>
       <div class="a">設定 →「表示モード」が<b>「家計簿のみ」</b>になっていると積み立ては行いません。「家計 + つみたて」に切り替えると、その時点の支出分から表示されます。支出の修正・削除にも自動で追従します。</div></details>
       <h3 class="qagroup" id="qa-asset">つみたて・資産</h3>
-      <details><summary>「家計簿のみ」と「家計 + つみたて」の違いは?</summary>
+      <details id="qa-assets-view"><summary>資産タブの数字は何を表していますか?</summary>
+        <div class="a">未注文は「家計簿の支出のうち、まだ購入していない金額」、未売却ロットは「買ったまま売っていない数量と取得単価」、完了サイクルは「売却まで終わった分の実現損益」です。価格は参考値で、手数料は含みません。</div></details>
+      <details id="qa-currency"><summary>通貨マスタを増やすと何が変わりますか?</summary>
+        <div class="a">管理する暗号資産を追加でき、価格取得・購入/売却画面・損益計算がその通貨に切り替わります。設定画面で通貨ごとに有効/無効を切り替えられます。</div></details>
+
+      <details id="qa-mode"><summary>「家計簿のみ」と「家計 + つみたて」の違いは?</summary>
       <div class="a">「家計 + つみたて」は支出と同額を自動で積み立て、資産(XRP)の購入・売却画面も使えます。「家計簿のみ」は家計簿機能だけに絞った表示です。<b>切り替えてもデータは消えません</b>。</div></details>
-      <details><summary>価格が「---」のまま、または更新されません</summary>
+      <details id="qa-price"><summary>価格が「---」のまま、または更新されません</summary>
       <div class="a">価格は公開API(GMOコイン、取得できない場合はbitbank)から約1分ごとに取得します。通信環境を確認し、レートカードの<b>「更新」</b>を押してください。表示は参考値で、手数料は含みません。</div></details>
-      <details><summary>アプリが自動で注文・売却してくれますか?</summary>
+      <details id="qa-auto-order"><summary>アプリが自動で注文・売却してくれますか?</summary>
       <div class="a">いいえ。<b>数量や目標価格の計算を補助するだけ</b>で、発注は取引所のアプリで手動で行います。約定したら「購入履歴」「売却履歴」に登録すると、保有数量や損益に反映されます。</div></details>
       <h3 class="qagroup" id="qa-data">データ・バックアップ</h3>
-      <details><summary>入力したデータはどこに保存されますか?</summary>
+      <details id="qa-reset"><summary>全データを削除するとどうなりますか?</summary>
+        <div class="a">取引・カテゴリ・固定費・通貨マスタ・購入/売却履歴・設定・予算がすべて消えます。<b>取り消せません</b>。実行前に「JSONでバックアップ」で控えを取ってください。</div></details>
+      <details id="qa-about"><summary>このアプリは何を外部に送りますか?</summary>
+        <div class="a">家計簿・資産のデータは端末のブラウザ内(IndexedDB)に保存し、外部サーバーには送りません。例外は価格取得(公開APIへの問い合わせ)と、レシート読み取りを許可した場合のOCR処理だけです。</div></details>
+
+      <details id="qa-save"><summary>入力したデータはどこに保存されますか?</summary>
       <div class="a">端末のブラウザ内(IndexedDB)に保存され、外部のサーバーには送信しません。同じ端末・同じブラウザで開けば残りますが、<b>ブラウザのデータ消去や端末の初期化で消えます</b>。設定 →「JSONでバックアップ」で定期的に控えを取ってください。</div></details>
-      <details><summary>機種変更でデータを引き継げますか?</summary>
+      <details id="qa-migrate"><summary>機種変更でデータを引き継げますか?</summary>
       <div class="a">自動同期はありません。<b>旧端末で「JSONでバックアップ」→ 新端末で「JSONから復元」</b>の順で移行してください。復元は上書き前に確認画面が出ます。</div></details>
 
     </div>
@@ -1102,6 +1134,20 @@ function updateMiniPrice() {
 }
 
 /* ================= 家計簿画面 ================= */
+function hbtn(id) {
+  return `<button class="hbtn" onclick="goHelp('${id}')" aria-label="ヘルプ">?</button>`;
+}
+function goHelp(id) {
+  go('help');
+  setTimeout(() => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (el.tagName === 'DETAILS' && !el.open) el.open = true;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.classList.add('flash');
+    setTimeout(() => el.classList.remove('flash'), 1400);
+  }, 80);
+}
 function catOptions(type, sel) {
   return S.categories.filter(c => c.type === type)
     .map(c => `<option value="${c.id}" ${c.id === sel ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
@@ -1131,7 +1177,7 @@ function ledgerEntryHtml() {
   const recent = S.txs.filter(t => t.date.slice(0, 7) === nowYm()).slice(0, 8);
   return `
   <div class="card">
-    <h2>収入・支出を記録</h2>
+    <h2>収入・支出を記録 ${hbtn('qa-entry')}</h2>
     <div class="seg" id="tx-type-seg">
       <button id="seg-exp" class="on" onclick="setTxType('expense')">支出</button>
       <button id="seg-inc" onclick="setTxType('income')">収入</button>
@@ -1162,7 +1208,7 @@ function ledgerEntryHtml() {
     ${assetModeOn() ? '<div class="notebox">支出を登録すると、同額が自動的に資産の「未購入金額」として積み上がります。</div>' : ''}
   </div>
   <div class="card">
-    <h2>今月の記録</h2>
+    <h2>今月の記録 ${hbtn('qa-history')}</h2>
     <div id="recent-tx">${recentTxHtml(recent)}</div>
   </div>`;
 }
@@ -1278,7 +1324,7 @@ function confirmDeleteTx(id) {
 
 /* --- TSV貼り付け登録(他のAIでの読み取り結果を反映) --- */
 function openTsvModal() {
-  openModal(`<h2>TSVデータを貼り付けて登録</h2>
+  openModal(`<h2>TSVデータを貼り付けて登録 ${hbtn('qa-tsv')}</h2>
   <div class="hint">1行 = 1件の支出。タブ区切りで<b>日付 → カテゴリ → 店舗名 → 金額 → 支払方法 → 備考</b>の順に貼り付けてください。<br>カテゴリ名は表記ゆれを自動で吸収します(例: 食料品→食費、スーパー→食費、外食費→外食)。どれにも寄せられない場合のみ「その他」系に分類します。</div>
   <textarea id="tsv-in" rows="7" spellcheck="false" style="margin-top:10px;font-family:ui-monospace,Menlo,monospace;font-size:16px" placeholder="日付	カテゴリ	店舗名	金額	支払方法	備考&#10;2026-11-15	食料品	スーパー	1,280	デビットカード	食材"></textarea>
   <div id="tsv-preview"></div>
@@ -1487,14 +1533,14 @@ function ledgerSummaryHtml() {
   </div>
   <div class="sec-ov" id="an-slot"></div>
   <div class="card sec-cat">
-    <h2>カテゴリ別支出 <span class="tag">${esc(sumYm)}</span></h2>
+    <h2>カテゴリ別支出 <span class="tag">${esc(sumYm)}</span> ${hbtn('qa-summary-tabs')}</h2>
     ${br.length === 0 ? '<div class="hint">この月の支出はまだありません。</div>' : br.map(b => `
       <div class="barslot"><span class="nm">${esc(catName(b.categoryId))}</span>
       <div class="barwrap"><div class="bar" style="width:${(b.amount / brMax * 100).toFixed(1)}%;background:var(--spend)"></div></div>
       <span class="amt">${fmtYen(b.amount)}</span></div>`).join('')}
   </div>
   <div class="card sec-cat">
-    <h2>月ごとの収支(直近6ヶ月)</h2>
+    <h2>月ごとの収支(直近6ヶ月) ${hbtn('qa-summary-tabs')}</h2>
     <svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="月別収支グラフ">
       ${bars}
       <rect x="0" y="0" width="0" height="0"/>
@@ -1524,7 +1570,7 @@ function ledgerDayCardHtml(days, ym) {
   });
   return `
   <div class="card">
-    <h2>日ごとの収支 <span class="tag">${esc(ym.replace('-', '/'))}</span></h2>
+    <h2>日ごとの収支 <span class="tag">${esc(ym.replace('-', '/'))}</span> ${hbtn('qa-summary-tabs')}</h2>
     <svg class="chart" viewBox="0 0 ${DW} ${DH}" role="img" aria-label="日別収支グラフ">${bars}</svg>
     <div class="legend"><span><span class="sw" style="background:var(--spend)"></span>支出</span>
     <span><span class="sw" style="background:var(--income)"></span>収入</span></div>
@@ -1546,7 +1592,7 @@ function anFill() {
   try { slot.innerHTML = ledgerAnalysisCardHtml(sumYm); }
   catch (e) {
     console.error('analysis card error', e);
-    slot.innerHTML = `<div class="card"><h2>支出の分析</h2>
+    slot.innerHTML = `<div class="card"><h2>支出の分析 ${hbtn('qa-analysis')}</h2>
       <div class="hint">分析カードの表示でエラーが発生しました(${esc(String(e && e.message || e))})。記録タブで支出を1件登録すると再計算されます。</div></div>`;
   }
 }
@@ -1598,7 +1644,7 @@ function ledgerAnalysisCardHtml(ym) {
   const cur = anExp(ym), prv = anExp(prev);
   const total = cur.reduce((a, t) => a + t.amount, 0);
   const ptot = prv.reduce((a, t) => a + t.amount, 0);
-  if (!total && !ptot) return `<div class="card"><h2>支出の分析 <span class="tag">${esc(ym.replace('-', '/'))}</span></h2>
+  if (!total && !ptot) return `<div class="card"><h2>支出の分析 <span class="tag">${esc(ym.replace('-', '/'))}</span> ${hbtn('qa-analysis')}</h2>
     <div class="hint">支出の記録が増えると、カテゴリ別の増減や貯蓄率などの分析がここに表示されます。</div></div>`;
   const map = {}, pmap = {};
   cur.forEach(t => { (map[t.categoryId] = map[t.categoryId] || { c: 0, n: 0 }); map[t.categoryId].c += t.amount; map[t.categoryId].n++; });
@@ -1689,7 +1735,7 @@ function ledgerAnalysisCardHtml(ym) {
 
   return `
   <div class="card" id="an-card">
-    <h2>支出の分析 <span class="tag">${esc(ym.replace('-', '/'))}</span></h2>
+    <h2>支出の分析 <span class="tag">${esc(ym.replace('-', '/'))}</span> ${hbtn('qa-analysis')}</h2>
     <div class="statgrid">
       <div class="stat"><div class="l">支出合計</div><div class="v spend">${fmtYen(total)}</div></div>
       <div class="stat"><div class="l">前月比</div><div class="v ${diff >= 0 ? 'minus' : 'plus'}">${diff >= 0 ? '+' : '-'}${fmtYen(Math.abs(diff))}<small>${pct === null ? '前月なし' : (pct >= 0 ? '+' : '') + pct + '%'}</small></div></div>
@@ -1711,7 +1757,7 @@ function ledgerAnalysisCardHtml(ym) {
         <div class="dlt" style="color:var(--${r.d > 0 ? 'spend' : r.d < 0 ? 'ok' : 'sub'})">${r.p === 0 ? '新規' : (r.d > 0 ? '+' : '') + fmtYen(r.d)}<div class="dltp">${p2 === null ? '' : (p2 >= 0 ? '+' : '') + p2 + '%'}</div></div>
       </div>`;
     }).join('')}
-    <b class="seclab">カテゴリ予算 <small>タップで編集</small></b>
+    <b class="seclab">カテゴリ予算 <small>タップで編集</small>${hbtn('qa-budget')}</b>
     ${bRows.length === 0
       ? `<div class="hint" style="margin-bottom:8px">カテゴリごとの月予算を決めると、消化率と超過アラートがここに出ます。</div>
          <button class="btn sm sub" onclick="openBudgetModal()">予算を設定</button>`
@@ -1816,12 +1862,12 @@ function fixedCostHtml() {
   const sum = S.fixedCosts.filter(f => f.active !== false).reduce((s, f) => s + f.amount, 0);
   return `
   <div class="card">
-    <h2>固定費 <span class="tag">月${fmtYen(sum)}</span></h2>
+    <h2>固定費 <span class="tag">月${fmtYen(sum)}</span> ${hbtn('qa-fixed')}</h2>
     ${rows || '<div class="hint">固定費が未登録です。家賃・通信費などを登録すると毎月の支出入力が楽になります。</div>'}
     <button class="btn sub block mt" onclick="editFixed(null)">＋ 固定費を追加</button>
   </div>
   <div class="card">
-    <h2>今月の固定費をまとめて支出登録</h2>
+    <h2>今月の固定費をまとめて支出登録 ${hbtn('qa-fixed')}</h2>
     <div class="hint">有効な固定費を、今月の支出として一括登録します(登録済みの固定費はスキップ)。</div>
     <button class="btn primary block mt" onclick="applyFixedMonth()">今月分をまとめて登録する</button>
   </div>`;
@@ -1888,10 +1934,10 @@ function categoryHtml() {
       <div class="drag" onpointerdown="catDragStart(event)" onpointermove="catDragMove(event)" onpointerup="catDragEnd()" onpointercancel="catDragEnd()" aria-label="ドラッグで並び替え">⋮⋮</div></div>`;
   }).join('');
   return `
-  <div class="card"><h2>支出カテゴリ <span class="tag">右端のつまみで並び替え</span></h2>${mk('expense')}
+  <div class="card"><h2>支出カテゴリ <span class="tag">右端のつまみで並び替え</span> ${hbtn('qa-cat-manage')}</h2>${mk('expense')}
     <button class="btn sub block mt" onclick="addCat('expense')">＋ 支出カテゴリを追加</button>
     <div class="notebox">行の右端の「⋮⋮」をドラッグ&ドロップして並び替えできます。この並び順は、入力フォームのカテゴリ選択肢(プルダウン)にもそのまま反映されます。</div></div>
-  <div class="card"><h2>収入カテゴリ</h2>${mk('income')}
+  <div class="card"><h2>収入カテゴリ ${hbtn('qa-cat-manage')}</h2>${mk('income')}
     <button class="btn sub block mt" onclick="addCat('income')">＋ 収入カテゴリを追加</button></div>
   ${payMethodHtml()}`;
 }
@@ -1982,7 +2028,7 @@ function payMethodHtml() {
     <div class="ops"><button class="btn sm sub" onclick="editPay(${i})">編集</button>
     <button class="btn sm sub" onclick="delPay(${i})">削除</button></div>
     <div class="drag" onpointerdown="catDragStart(event)" onpointermove="catDragMove(event)" onpointerup="catDragEnd()" onpointercancel="catDragEnd()" aria-label="ドラッグで並び替え">⋮⋮</div></div>`).join('');
-  return `<div class="card"><h2>支払方法 <span class="tag">右端のつまみで並び替え</span></h2>${rows}
+  return `<div class="card"><h2>支払方法 <span class="tag">右端のつまみで並び替え</span> ${hbtn('qa-pay')}</h2>${rows}
     <button class="btn sub block mt" onclick="editPay(null)">＋ 支払方法を追加</button>
     <div class="notebox">行の右端の「⋮⋮」をドラッグ&ドロップして並び替えできます(支出入力のプルダウンにも反映)。名前を変更すると、すでに登録済みの支出の支払方法もまとめて更新されます。削除は、記録で使われている場合や最低1件しかない場合はできません。</div></div>`;
 }
@@ -2238,7 +2284,7 @@ function xrpPendingHtml(a) {
       <div class="amt">${fmtYen(r.amount)}</div></div>`;
   }).join('');
   return `<div class="card">
-    <h2>未注文 <span class="tag">家計簿の支出(合計 ${fmtYen(total)})</span></h2>
+    <h2>未注文 <span class="tag">家計簿の支出(合計 ${fmtYen(total)})</span> ${hbtn('qa-assets-view')}</h2>
     ${list.length === 0 ? '<div class="hint">家計簿に支出を登録すると、ここに「まだXRPを買っていないお金」として表示されます。選んで買い注文を出してください。</div>' : rows}
     ${list.length ? `<div class="row mt">
       <button class="btn sub" onclick="xrpSel=new Set();renderAsset()">選択解除</button>
@@ -2578,11 +2624,11 @@ function renderXrpHist() {
     </div>
     <div class="notebox">実現損益は手数料を差し引いた円額。累計獲得コインは、売却で増えた${esc(a.code)}の累計です。</div>
   </div>
-  ${st.lots.length ? `<div class="card"><h2>未売却ロット(古い順)</h2>
+  ${st.lots.length ? `<div class="card"><h2>未売却ロット(古い順) ${hbtn('qa-assets-view')}</h2>
     <div style="overflow-x:auto"><table class="tbl"><tr><th>購入日時</th><th class="r">残数量(${esc(a.code)})</th><th class="r">取得価格</th><th class="r">元本</th></tr>
     ${st.lots.map(l => `<tr><td>${fmtDateTime(l.datetime)}</td><td class="r">${fmtQty(l.qty, a.qtyDecimals)}</td><td class="r">${fmtYen(Core.round(l.rate, 2))}</td><td class="r">${fmtYen(l.amountJPY)}</td></tr>`).join('')}
     </table></div></div>` : ''}
-  <div class="card"><h2>完了サイクル <span class="tag">新しい順</span></h2>
+  <div class="card"><h2>完了サイクル <span class="tag">新しい順</span> ${hbtn('qa-assets-view')}</h2>
     ${cycles.length === 0 ? '<div class="hint">「売り注文 → 完了にする」まで済んだ取引がここに並びます。</div>' : cycleRows}
     ${legacyRows}
   </div>`;
@@ -2712,7 +2758,7 @@ function renderSettings() {
   const curs = S.currencies;
   document.getElementById('scr-settings').innerHTML = `
   <div class="card">
-    <h2>表示モード <span class="tag">家計簿のみ / つみたて</span></h2>
+    <h2>表示モード <span class="tag">家計簿のみ / つみたて</span> ${hbtn('qa-mode')}</h2>
     <div class="row">
       <button class="btn ${assetModeOn() ? 'sub' : 'primary'}" onclick="setAssetMode(false)">家計簿のみ</button>
       <button class="btn ${assetModeOn() ? 'primary' : 'sub'}" onclick="setAssetMode(true)">家計 + つみたて</button>
@@ -2721,14 +2767,14 @@ function renderSettings() {
     <button class="btn sub block mt" onclick="go('help')">アプリの使い方を見る</button>
   </div>
   ${assetModeOn() ? `<div class="card">
-    <h2>通貨マスタ <span class="tag">暗号資産の管理</span></h2>
+    <h2>通貨マスタ <span class="tag">暗号資産の管理</span> ${hbtn('qa-currency')}</h2>
     ${curs.map(c => `<div class="lrow"><div class="ico ${c.enabled ? 'buy' : ''}" style="${c.enabled ? '' : 'background:var(--line2);color:var(--sub)'}">${esc(c.code.slice(0, 3))}</div>
       <div class="mid"><div class="t">${esc(c.name)}(${esc(c.code)})</div><div class="d">${esc(c.exchange)} ・ ${c.enabled ? '有効' : '無効(将来追加用)'}</div></div>
       <div class="ops">${c.enabled ? `<button class="btn sm sub" onclick="editCurrency('${c.id}')">編集</button>` : ''}</div></div>`).join('')}
     <div class="notebox">通貨ごとに「取引所・価格API・桁数・最小注文数量・刻み幅」を独立管理しています。新しい通貨の追加はここから行えます(BTC・ETHは仕様を登録済み。初期はXRPのみ有効)。</div>
   </div>` : ''}
   <div class="card">
-    <h2>バックアップ・復元 <span class="tag">JSON</span></h2>
+    <h2>バックアップ・復元 <span class="tag">JSON</span> ${hbtn('qa-save')}</h2>
     <div class="hint">家計簿データ・カテゴリ・固定費・取引履歴・通貨マスタ・購入/売却履歴・設定をすべてJSONファイルに出力します。</div>
     <button class="btn primary block mt" onclick="exportBackup()">⬇ JSONでバックアップ</button>
     <label style="margin-top:16px">復元(JSONファイルを選択)</label>
@@ -2736,18 +2782,18 @@ function renderSettings() {
     <div class="dangerbox">復元は現在の全データを<b>上書き</b>します。実行前に確認画面を表示します。</div>
   </div>
   <div class="card">
-    <h2>レシート読み取り(OCR)の設定</h2>
+    <h2>レシート読み取り(OCR)の設定 ${hbtn('qa-receipt-scan')}</h2>
     <div class="hint">OCRは端末内で処理され、レシート画像が外部に送信されることはありません。初回利用時にOCRエンジン(Tesseract.js)をCDNからダウンロードします(許可時のみ)。</div>
     <div class="kv mt"><span class="k">利用許可</span><span class="v">${S.settings.ocrConsent && S.settings.ocrConsent.value ? '許可済み' : '未許可'}</span></div>
     <button class="btn sub block mt" onclick="resetOcrConsent()">許可設定をリセット</button>
   </div>
   <div class="card">
-    <h2>データ初期化</h2>
+    <h2>データ初期化 ${hbtn('qa-reset')}</h2>
     <div class="dangerbox">すべての家計簿・資産データを削除します。元に戻せません。</div>
     <button class="btn danger block mt" onclick="confirmWipe()">全データを削除</button>
   </div>
   <div class="card">
-    <h2>このアプリについて</h2>
+    <h2>このアプリについて ${hbtn('qa-about')}</h2>
     <div class="small">
       <p class="kv"><span class="k">保存先</span><span class="v">端末内IndexedDB</span></p>
       <p class="kv"><span class="k">外部通信</span><span class="v">価格API・OCRエンジン取得のみ</span></p>
