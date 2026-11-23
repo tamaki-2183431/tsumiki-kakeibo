@@ -1271,6 +1271,11 @@ async function saveTx(ocrFill = null) {
     memo: document.getElementById('tx-memo').value.trim(),
     createdAt: nowLocalTs(), updatedAt: nowLocalTs()
   };
+  if (!window._dupForce) {
+    const dups = findDupTx(tx);
+    if (dups.length) { dupConfirm(tx, dups); return; }
+  }
+  window._dupForce = false;
   await idbPut('txs', tx);
   if (type === 'expense') {
     await upsertShop(tx.shop, tx.shopAddr, tx.shopTel);
@@ -1382,13 +1387,25 @@ function normDateStr(s) {
 function shopKey(name) { return String(name || '').normalize('NFKC').toLowerCase().replace(/[\s\u3000]/g, ''); }
 function getShops() { return ((S.settings || {}).shops || {}).value || {}; }
 function getShop(name) { if (!name) return null; return getShops()[shopKey(name)] || null; }
+function txDupKey(t) { return [t.date, Math.round(t.amount), shopKey(t.shop || '')].join('|'); }
+function findDupTx(tx, excludeId) {
+  const k = txDupKey(tx);
+  return (S.txs || []).filter(t => t.type === tx.type && t.id !== excludeId && txDupKey(t) === k);
+}
+function dupConfirm(tx, dups) {
+  const d = dups[0];
+  confirmModal('重複の可能性', '同じ日付・金額・店舗の記録が既にあります。<br><b>' + esc(d.date) + ' ・ ' + esc(d.shop || '(店舗名なし)') + ' ・ ' + fmtYen(d.amount) + '</b><br>二重登録でなければ「登録する」を押してください。', '登録する', async () => {
+    window._dupForce = true;
+    await saveTx();
+  });
+}
 async function upsertShop(name, addr, tel) {
   const k = shopKey(name);
-  if (!k || (!addr && !tel)) return;
+  if (!k) return;
   const map = getShops();
   const cur = map[k] || {};
-  const next = { name: String(name).trim().slice(0, 40), addr: (addr || cur.addr || '').slice(0, 120), tel: (tel || cur.tel || '').slice(0, 20), updatedAt: nowLocalTs() };
-  if (cur.addr === next.addr && cur.tel === next.tel) return;
+  const next = { name: String(name).trim().slice(0, 40), addr: (addr || cur.addr || '').slice(0, 120), tel: (tel || cur.tel || '').slice(0, 20), kana: cur.kana || '', updatedAt: nowLocalTs() };
+  if (cur.name === next.name && cur.addr === next.addr && cur.tel === next.tel && cur.kana === next.kana) return;
   map[k] = next;
   await idbPut('settings', { id: 'shops', key: 'shops', value: map });
   S.settings.shops = { id: 'shops', key: 'shops', value: map };
@@ -1503,7 +1520,7 @@ function parseTsvLines(raw) {
     map = tsvHeaderMap(first);
     if (map) { tsvHeaderUsed = true; lines.shift(); }
   }
-  return lines.map(line => {
+  const out = lines.map(line => {
     const cols = (line.includes('\t') ? line.split('\t') : line.split(/\s{2,}/)).map(c => (c || '').trim());
     const pick = f => { const idx = map ? map[f] : POS[f]; return idx === undefined ? '' : (cols[idx] || ''); };
     const date = normDateStr(pick('date'));
@@ -1543,6 +1560,9 @@ function parseTsvLines(raw) {
       shop: (shop || '').slice(0, 40), item: item.slice(0, 60), amount, pay: pm || '現金',
       memo: memo.slice(0, 120), shopAddr: shopAddr.slice(0, 120), shopTel: shopTel.slice(0, 20), fromMaster };
   });
+  const seen = new Set((S.txs || []).filter(t => t.type === 'expense').map(txDupKey));
+  out.forEach(r => { if (r.error) return; const k = txDupKey(r); if (seen.has(k)) r.dup = true; else seen.add(k); });
+  return out;
 }
 function tsvReflect() {
   const preview = document.getElementById('tsv-preview');
@@ -1569,24 +1589,27 @@ function tsvReflect() {
       if (document.getElementById('tx-tel')) document.getElementById('tx-tel').value = r.shopTel || '';
     document.getElementById('tx-memo').value = r.memo;
     const area = document.getElementById('ocr-area');
-    if (area) area.innerHTML = `<div class="okbox">TSVの内容をフォームに反映しました。確認して「登録する」を押してください。${r.fallback ? '<br>カテゴリ「' + esc(r.rawCat || '空欄') + '」は既存と一致しなかったため、' + esc(r.catLabel) + ' に分類しました。' : (r.match === 'fuzzy' ? '<br>カテゴリ「' + esc(r.rawCat) + '」を「' + esc(r.catLabel) + '」に寄せました(表記ゆれを吸収)。' : '')}</div>`;
+    if (area) area.innerHTML = `<div class="okbox">TSVの内容をフォームに反映しました。確認して「登録する」を押してください。${r.fallback ? '<br>カテゴリ「' + esc(r.rawCat || '空欄') + '」は既存と一致しなかったため、' + esc(r.catLabel) + ' に分類しました。' : (r.match === 'fuzzy' ? '<br>カテゴリ「' + esc(r.rawCat) + '」を「' + esc(r.catLabel) + '」に寄せました(表記ゆれを吸収)。' : '')}${r.dup ? '<br><b>既存の記録と重複している可能性があります。</b>' : ''}</div>`;
     toast('フォームに反映しました');
     return;
   }
-  window._tsvRows = ok;
+  const dupOk = ok.filter(r => r.dup);
+  window._tsvRows = ok.filter(r => !r.dup);
+  window._tsvDupRows = dupOk;
   preview.innerHTML = `
-  <div class="okbox mt">${ok.length}件の支出を読み取りました。内容を確認して登録してください。</div>
+  <div class="okbox mt">${ok.length - dupOk.length}件の支出を読み取りました。${dupOk.length ? `<br><b>${dupOk.length}件は既存の記録と重複</b>するため除外しています。` : ''}</div>
   <div style="margin-top:6px">${ok.map(r => `
     <div class="tsvrow${r.fallback ? ' fx' : ''}">
-      <div style="flex:1;min-width:0"><div class="t">${esc(r.date)} ・ ${esc(r.shop || '(店舗名なし)')}</div>
+      <div style="flex:1;min-width:0"><div class="t">${esc(r.date)} ・ ${esc(r.shop || '(店舗名なし)')} ${r.dup ? '<span class="pill">重複</span>' : ''}</div>
       <div class="d">${r.match === 'fuzzy' ? esc(r.rawCat) + ' → <b>' + esc(r.catLabel) + '</b> <span class="pill">表記ゆれ</span>' : esc(r.catLabel)}${r.fallback ? '(未一致 → ' + esc(r.catLabel) + ' に分類)' : ''}${r.item ? ' ・ ' + esc(r.item) : ''} ・ ${esc(r.pay)}${r.memo ? ' ・ ' + esc(r.memo) : ''}${r.shopAddr ? ' ・ ' + esc(r.shopAddr) : ''}${r.shopTel ? ' ・ ☎' + esc(r.shopTel) : ''}</div></div>
       <div class="amt">${fmtYen(r.amount)}</div>
     </div>`).join('')}
   ${bad.length ? bad.map(b => `<div class="tsvrow fx"><div style="flex:1"><div class="d">読み飛ばし(日付か金額が不正): ${esc(b.raw)}</div></div></div>`).join('') : ''}</div>
-  <button class="btn primary block mt" onclick="tsvSaveAll()">${ok.length}件を一括登録する</button>`;
+  <button class="btn primary block mt" onclick="tsvSaveAll()">${ok.length - dupOk.length}件を一括登録する</button>
+  ${dupOk.length ? `<button class="btn sub block mt" onclick="tsvSaveAll(true)">重複${dupOk.length}件も含めて登録する</button>` : ''}`;
 }
-async function tsvSaveAll() {
-  const rows = window._tsvRows || [];
+async function tsvSaveAll(includeDup) {
+  const rows = includeDup ? [...(window._tsvRows || []), ...(window._tsvDupRows || [])] : (window._tsvRows || []);
   if (!rows.length) return;
   const a = activeAsset();
   for (const r of rows) {
