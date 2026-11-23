@@ -223,6 +223,7 @@ header.app .hdr-help:active{opacity:.7}
 .tip{background:var(--surface2);border-radius:10px;padding:10px 12px;margin-bottom:8px}
 .tip .t{font-size:13px;font-weight:700}
 .tip .d{font-size:12px;color:var(--sub);margin-top:3px;line-height:1.55}
+.lgdwrap{flex-wrap:wrap;gap:6px 14px;font-size:11px}
 .prow{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid var(--surface2)}
 .lrow.tap:active{background:var(--surface2)}
 .qa{display:flex;flex-direction:column;gap:8px}
@@ -1381,21 +1382,43 @@ function ledgerAnalysisCardHtml(ym) {
   const diff = total - ptot;
   const pct = anPct(diff, ptot);
 
-  // 6ヶ月の支出推移
+  // 6ヶ月の支出推移(カテゴリ別の積み上げ)
+  const PAL = ['#d9695a', '#e2a03f', '#5b9f7d', '#4c8bbf', '#8a7bc8', '#c2699a', '#7c8a95', '#a9b04f'];
   const months = [];
-  for (let i = 5; i >= 0; i--) { const y2 = anYmShift(ym, -i); months.push({ ym: y2, v: anTotal(y2) }); }
+  for (let i = 5; i >= 0; i--) {
+    const y2 = anYmShift(ym, -i), byC = {};
+    S.txs.filter(t => t.type === 'expense' && t.date.slice(0, 7) === y2)
+      .forEach(t => { byC[t.categoryId] = (byC[t.categoryId] || 0) + t.amount; });
+    months.push({ ym: y2, v: Object.keys(byC).reduce((a, k) => a + byC[k], 0), byC });
+  }
+  const catTotals = {};
+  months.forEach(m => Object.keys(m.byC).forEach(k => { catTotals[k] = (catTotals[k] || 0) + m.byC[k]; }));
+  const cats = Object.keys(catTotals).sort((a, b) => catTotals[b] - catTotals[a]).slice(0, 8);
+  const colorOf = id => PAL[Math.max(0, cats.indexOf(id)) % PAL.length];
   const mMax = Math.max(1, ...months.map(m => m.v));
-  const SW = 560, SH = 150, pad = 26, ph = SH - 46;
+  const SW = 560, SH = 300, pad = 34, ph = SH - 62;
   const stp = (SW - pad - 8) / months.length;
   let svg = '';
-  months.forEach((m, i) => {
-    const h = Math.round(m.v / mMax * ph);
-    const bw2 = Math.min(38, stp * 0.56);
-    const x = pad + i * stp + (stp - bw2) / 2;
-    if (h > 0) svg += `<rect x="${x.toFixed(1)}" y="${SH - 30 - h}" width="${bw2.toFixed(1)}" height="${h}" rx="3" fill="${m.ym === ym ? 'var(--spend)' : 'var(--surface2)'}"/>`;
-    svg += `<text x="${(x + bw2 / 2).toFixed(1)}" y="${(SH - 34 - h).toFixed(1)}" text-anchor="middle" font-size="10" fill="var(--sub)">${m.v ? Math.round(m.v / 1000) + 'k' : ''}</text>`;
-    svg += `<text x="${(x + bw2 / 2).toFixed(1)}" y="${SH - 12}" text-anchor="middle" font-size="10" fill="var(--sub)">${Number(m.ym.slice(5))}月</text>`;
+  [0.5, 1].forEach(g => {
+    const y = (SH - 34 - g * ph).toFixed(1);
+    svg += `<line x1="${pad}" y1="${y}" x2="${SW - 8}" y2="${y}" stroke="var(--surface2)" stroke-width="1"/>`;
   });
+  months.forEach((m, i) => {
+    const bw2 = Math.min(46, stp * 0.6);
+    const x = pad + i * stp + (stp - bw2) / 2;
+    let acc = 0;
+    cats.forEach(id => {
+      const v2 = m.byC[id] || 0;
+      if (!v2) return;
+      const h = v2 / mMax * ph;
+      const y = SH - 34 - (acc + h);
+      svg += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw2.toFixed(1)}" height="${Math.max(1.5, h).toFixed(1)}" fill="${colorOf(id)}"><title>${esc(catName(id))} ${fmtYen(v2)}</title></rect>`;
+      acc += h;
+    });
+    if (m.v) svg += `<text x="${(x + bw2 / 2).toFixed(1)}" y="${(SH - 41 - acc).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="600" fill="var(--sub)">${Math.round(m.v / 1000)}k</text>`;
+    svg += `<text x="${(x + bw2 / 2).toFixed(1)}" y="${SH - 15}" text-anchor="middle" font-size="11" fill="var(--sub)">${Number(m.ym.slice(5))}月</text>`;
+  });
+  const legend = cats.map(id => `<span><span class="sw" style="background:${colorOf(id)}"></span>${esc(catName(id))}</span>`).join('');
 
   // 見えてきたこと
   const tips = [];
@@ -1431,7 +1454,8 @@ function ledgerAnalysisCardHtml(ym) {
       <div class="stat"><div class="l">記録日数</div><div class="v">${days}<small>日</small></div></div>
     </div>
     <b class="seclab">直近6ヶ月の支出</b>
-    <svg class="chart" viewBox="0 0 ${SW} ${SH}" role="img" aria-label="直近6ヶ月の支出推移">${svg}</svg>
+    <svg class="chart" viewBox="0 0 ${SW} ${SH}" role="img" aria-label="直近6ヶ月の支出(カテゴリ別積み上げ)">${svg}</svg>
+    <div class="legend lgdwrap">${legend}</div>
     <b class="seclab">カテゴリ別 前月比 <small>タップで詳細</small></b>
     ${rowsC.length === 0 ? '<div class="hint">今月の支出はまだありません。</div>' : rowsC.map(r => {
       const p2 = anPct(r.d, r.p);
