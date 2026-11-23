@@ -1076,8 +1076,10 @@ function renderHelp() {
       <div class="a">明るい場所で、レシート全体がまっすぐ写るように撮ると精度が上がります。うまく読めないときは、他のAIにレシートを読ませて<b>「TSVを貼り付けて登録」</b>するのが確実です。</div></details>
       <details id="qa-cat-manage"><summary>カテゴリを追加・並べ替えできますか?</summary>
       <div class="a">家計簿タブ →「カテゴリ」で追加・名前変更・削除ができます。行の右端「⋮⋮」をドラッグすると並び替えられ、<b>入力フォームのプルダウンにも反映</b>されます。</div></details>
+      <details id="qa-shoplist"><summary>店舗一覧はどこで見られますか?</summary>
+        <div class="a">家計簿タブ →「店舗」タブです。支出に登録した店舗名が自動で集計され、<b>50音順</b>に並びます。上部の検索欄で店舗名・よみがな・住所・電話番号から絞り込めます。行をタップすると店舗情報と直近の支出5件、回数・合計・最終利用日が見られます。漢字の店名は「編集」で<b>よみがな</b>を入れると並び順が正確になります。</div></details>
       <details id="qa-shopmaster"><summary>店舗マスタとは何ですか?</summary>
-        <div class="a">店舗名ごとに住所・電話番号を覚えておく仕組みです。TSV取り込みや手入力で住所・電話が入ると自動で保存され、次回同じ店舗名を入力したときに<b>空欄を自動補完</b>します。「カテゴリ」タブの店舗マスタから手動で追加・編集・削除もできます(削除しても過去の記録は消えません)。</div></details>
+        <div class="a">店舗名ごとに住所・電話番号を覚えておく仕組みです。TSV取り込みや手入力で住所・電話が入ると自動で保存され、次回同じ店舗名を入力したときに<b>空欄を自動補完</b>します。「店舗」タブの一覧から手動で追加・編集・削除もできます(削除しても過去の記録は消えません)。</div></details>
       <details id="qa-tsv"><summary>TSVは何列で貼ればいいですか?</summary>
         <div class="a"><b>日付 → カテゴリ → 店舗名 → 金額 → 支払方法 → 商品名 → 備考 → 店舗住所 → 店舗電話番号</b>の9列(タブ区切り)です。空欄があってもタブは省略せず、列をずらさないでください。1行目に<b>「日付・カテゴリ・店舗名…」のヘッダー</b>を付けた場合は、列名を見て自動で対応付けます(列順が違ってもOK)。</div></details>
       <details id="qa-shopinfo"><summary>店舗住所や電話番号は何に使えますか?</summary>
@@ -1167,7 +1169,7 @@ let PAY_METHODS = DEFAULT_PAY_METHODS.slice();
 
 function renderLedger() {
   const el = document.getElementById('scr-ledger');
-  const tabs = [['entry', '記録'], ['summary', '集計'], ['fixed', '固定費'], ['cats', 'カテゴリ']];
+  const tabs = [['entry', '記録'], ['summary', '集計'], ['fixed', '固定費'], ['cats', 'カテゴリ'], ['shops', '店舗']];
   el.innerHTML = `<div class="seg" id="ledger-seg">${tabs.map(([id, l]) =>
     `<button onclick="S.ledgerTab='${id}';renderLedger()" class="${S.ledgerTab === id ? 'on' : ''}">${l}</button>`).join('')}</div>
   <div id="ledger-body"></div>`;
@@ -1180,6 +1182,7 @@ function renderLedger() {
   }
   if (S.ledgerTab === 'fixed') body.innerHTML = fixedCostHtml();
   if (S.ledgerTab === 'cats') body.innerHTML = categoryHtml();
+  if (S.ledgerTab === 'shops') body.innerHTML = shopsHtml();
 }
 
 /* --- 記録タブ --- */
@@ -2044,8 +2047,67 @@ function categoryHtml() {
     <div class="notebox">行の右端の「⋮⋮」をドラッグ&ドロップして並び替えできます。この並び順は、入力フォームのカテゴリ選択肢(プルダウン)にもそのまま反映されます。</div></div>
   <div class="card"><h2>収入カテゴリ ${hbtn('qa-cat-manage')}</h2>${mk('income')}
     <button class="btn sub block mt" onclick="addCat('income')">＋ 収入カテゴリを追加</button></div>
-  ${payMethodHtml()}
-  ${shopMasterHtml()}`;
+  ${payMethodHtml()}`;
+}
+let shopQ = '';
+function shopRows() {
+  const map = {};
+  const master = getShops();
+  Object.keys(master).forEach(k => {
+    const v = master[k];
+    map[k] = { k, name: v.name || k, addr: v.addr || '', tel: v.tel || '', kana: v.kana || '', n: 0, total: 0, last: '' };
+  });
+  S.txs.filter(t => t.type === 'expense' && t.shop).forEach(t => {
+    const k = shopKey(t.shop);
+    if (!map[k]) map[k] = { k, name: t.shop.trim(), addr: '', tel: '', kana: '', n: 0, total: 0, last: '' };
+    const r = map[k];
+    if (!r.name) r.name = t.shop.trim();
+    r.n++; r.total += t.amount;
+    if (t.date > r.last) r.last = t.date;
+    if (!r.addr && t.shopAddr) r.addr = t.shopAddr;
+    if (!r.tel && t.shopTel) r.tel = t.shopTel;
+  });
+  return Object.keys(map).map(k => map[k]).sort((a, b) => String(a.kana || a.name).localeCompare(String(b.kana || b.name), 'ja'));
+}
+function setShopQ() {
+  const el = document.getElementById('shop-q');
+  shopQ = el ? el.value : '';
+  const pos = el ? el.selectionStart : 0;
+  renderLedger();
+  setTimeout(() => { const n = document.getElementById('shop-q'); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) {} } }, 0);
+}
+function shopsHtml() {
+  const all = shopRows();
+  const q = (shopQ || '').trim().toLowerCase();
+  const list = q ? all.filter(r => [r.name, r.kana, r.addr, r.tel].join(' ').toLowerCase().indexOf(q) >= 0) : all;
+  const spent = all.reduce((a, r) => a + r.total, 0);
+  return `<div class="card"><h2>店舗 <span class="tag">${all.length}件</span> ${hbtn('qa-shoplist')}</h2>
+    <input type="search" id="shop-q" value="${esc(shopQ || '')}" placeholder="店舗名・よみがな・住所・電話番号で検索" oninput="setShopQ()">
+    <div class="hint" style="margin:6px 0">${q ? '検索結果 <b>' + list.length + '件</b>' : '登録した支出の店舗を<b>50音順</b>に表示'} ・ 支出合計 ${fmtYen(spent)}</div>
+    ${list.length ? list.map(r => `<div class="lrow tap" onclick="openShopDetail('${esc(r.k)}')">
+      <div class="ico exp">店</div>
+      <div class="mid"><div class="t">${esc(r.name)}${r.kana ? ' <span class="hint" style="display:inline">' + esc(r.kana) + '</span>' : ''}</div>
+      <div class="d">${r.n}回 ・ ${fmtYen(r.total)}${r.last ? ' ・ 最終 ' + esc(r.last) : ''}${r.addr ? ' ・ ' + esc(r.addr) : ''}</div></div>
+      <div class="amt">${r.n}回</div></div>`).join('')
+      : '<div class="hint">該当する店舗がありません。検索語を変えるか、支出を登録すると自動で追加されます。</div>'}
+    <button class="btn sub block mt" onclick="editShop('')">＋ 店舗を追加</button>
+    <div class="notebox">店舗名は支出の登録・TSV取り込みから自動でたまります。漢字の店名は「編集」で<b>よみがな</b>を入れると50音順が正確になります。タップすると店舗の詳細と直近の支出が見られます。</div></div>`;
+}
+function openShopDetail(key) {
+  const r = shopRows().find(x => x.k === key) || { k: key, name: key, addr: '', tel: '', n: 0, total: 0 };
+  const m = getShops()[key] || {};
+  const recent = S.txs.filter(t => t.type === 'expense' && shopKey(t.shop) === key).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
+  openModal(`<h2>${esc(r.name)} ${hbtn('qa-shoplist')}</h2>
+    <div class="kv"><span>よみがな</span><b>${esc(m.kana || '—')}</b></div>
+    <div class="kv"><span>住所</span><b>${esc(r.addr || '—')}</b></div>
+    <div class="kv"><span>電話番号</span><b>${r.tel ? `<a href="tel:${esc(r.tel.replace(/[^0-9+]/g, ''))}">${esc(r.tel)}</a>` : '—'}</b></div>
+    <div class="kv"><span>支出</span><b>${r.n}回 ・ ${fmtYen(r.total)}</b></div>
+    <div class="kv"><span>最終利用</span><b>${esc(r.last || '—')}</b></div>
+    ${recent.length ? `<b class="seclab">直近の支出</b>` + recent.map(t => `<div class="lrow"><div class="ico exp">支</div>
+      <div class="mid"><div class="t">${esc(catName(t.categoryId))}${t.item ? '・' + esc(t.item) : ''}</div><div class="d">${esc(t.date)}</div></div>
+      <div class="amt spend">${fmtYen(t.amount)}</div></div>`).join('') : ''}
+    <div class="row mt"><button class="btn sub" onclick="closeModal()">閉じる</button>
+    <button class="btn primary" onclick="editShop('${esc(key)}')">店舗情報を編集</button></div>`);
 }
 function shopMasterHtml() {
   const list = Object.keys(getShops()).map(k => ({ k, v: getShops()[k] })).sort((a, b) => String(a.v.name || '').localeCompare(String(b.v.name || ''), 'ja'));
@@ -2064,6 +2126,7 @@ function editShop(key) {
     <label>店舗名</label><input type="text" id="s-name" value="${esc(v.name || '')}" placeholder="例) スーパーマーケットA">
     <label>住所</label><input type="text" id="s-addr" value="${esc(v.addr || '')}" placeholder="例) 東京都渋谷区1-2-3">
     <label>電話番号</label><input type="tel" id="s-tel" value="${esc(v.tel || '')}" placeholder="例) 03-1234-5678">
+    <label>よみがな <span class="hint" style="display:inline">(50音順に使用・任意)</span></label><input type="text" id="s-kana" value="${esc(v.kana || '')}" placeholder="例) すーぱーまーけっとえー">
     <div class="row mt"><button class="btn sub" onclick="closeModal()">キャンセル</button>
     <button class="btn primary" onclick="saveShop('${esc(key)}')">保存</button></div>`);
 }
@@ -2071,10 +2134,11 @@ async function saveShop(key) {
   const name = document.getElementById('s-name').value.trim();
   const addr = document.getElementById('s-addr').value.trim();
   const tel = document.getElementById('s-tel').value.trim();
+  const kana = ((document.getElementById('s-kana') || {}).value || '').trim();
   if (!name) { toast('店舗名を入力してください'); return; }
   const map = getShops();
   if (key && key !== shopKey(name)) delete map[key];
-  map[shopKey(name)] = { name, addr, tel, updatedAt: nowLocalTs() };
+  map[shopKey(name)] = { name, addr, tel, kana, updatedAt: nowLocalTs() };
   await idbPut('settings', { id: 'shops', key: 'shops', value: map });
   await loadAll(); closeModal(); renderLedger(); toast('店舗を保存しました');
 }
