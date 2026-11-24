@@ -3003,7 +3003,7 @@ function markTouchedOrders() {
   let n = 0;
   S.purchaseOrders.forEach(o => {
     if ((o.status || 'open') !== 'open' || o.touchedAt) return;
-    if (orderLowRef(o, a) <= Number(o.rate) * 1.000001) { o.touchedAt = nowLocalTs(); idbPut('purchaseOrders', o); n++; }
+    if (orderTouched(o, a)) { o.touchedAt = nowLocalTs(); idbPut('purchaseOrders', o); n++; }
   });
   return n;
 }
