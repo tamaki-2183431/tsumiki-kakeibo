@@ -77,6 +77,9 @@ nav.tabbar button.on{color:var(--asset);font-weight:700}
 .pvchk{display:flex;align-items:center;gap:7px;width:auto;height:auto;border:0;border-radius:0;font-size:12.5px;color:var(--ink);margin:7px 0;background:none}
 .pvchk input{width:16px;height:16px;accent-color:var(--asset);flex-shrink:0}
 .pvchkrow{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center;margin:10px 0 4px}
+.mapbtn{display:inline-flex;align-items:center;gap:3px;vertical-align:-2px;color:var(--asset);text-decoration:none;margin-left:5px}
+.mapbtn svg{width:14px;height:14px;flex-shrink:0}
+.mapbtn span{font-size:11px;font-weight:700}
 .chartbox{margin-top:10px;border-top:1px solid var(--line2);padding-top:9px}
 .chhead{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:3px}
 .chhead b{font-size:12px}
@@ -1271,6 +1274,16 @@ function ledgerEntryHtml() {
     <div id="recent-tx">${recentTxHtml(recent)}</div>
   </div>`;
 }
+const MAP_PIN = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>';
+function mapHref(addr) {
+  const s = String(addr || '').trim();
+  return s ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(s) : '';
+}
+function mapBtn(addr, label) {
+  const h = mapHref(addr);
+  if (!h) return '';
+  return `<a class="mapbtn" href="${h}" target="_blank" rel="noopener" onclick="event.stopPropagation()" aria-label="Googleマップで開く" title="Googleマップで開く">${MAP_PIN}${label ? `<span>${esc(label)}</span>` : ''}</a>`;
+}
 function recentTxHtml(list) {
   if (list.length === 0) return '<div class="hint">まだ記録はありません。上のフォームから登録できます。</div>';
   return list.map(t => {
@@ -1278,7 +1291,7 @@ function recentTxHtml(list) {
     return `<div class="lrow tap" onclick="openTxDetail('${t.id}')">
       <div class="ico ${isExp ? 'exp' : 'inc'}">${isExp ? '支' : '収'}</div>
       <div class="mid"><div class="t">${esc(catName(t.categoryId))}${t.shop ? '・' + esc(t.shop) : ''}${t.fixedCostId ? ' <span class="pill fb">固定費</span>' : ''}</div>
-      <div class="d">${esc(t.date)}${t.item ? ' ・ ' + esc(t.item) : ''}${t.paymentMethod ? '・' + esc(t.paymentMethod) : ''}${t.memo ? ' ・ ' + esc(t.memo) : ''}</div></div>
+      <div class="d">${esc(t.date)}${t.item ? ' ・ ' + esc(t.item) : ''}${t.paymentMethod ? '・' + esc(t.paymentMethod) : ''}${t.memo ? ' ・ ' + esc(t.memo) : ''}${t.shopAddr ? ' ・ ' + esc(t.shopAddr.length > 16 ? t.shopAddr.slice(0, 16) + '…' : t.shopAddr) + mapBtn(t.shopAddr) : ''}</div></div>
       <div class="amt ${isExp ? 'spend' : 'income'}">${isExp ? '' : '+'}${fmtYen(t.amount)}</div>
     </div>`;
   }).join('');
@@ -2226,7 +2239,7 @@ function shopListInner() {
     ${list.length ? list.map(r => `<div class="lrow tap" data-k="${esc(r.k)}" onclick="openShopDetail(this.dataset.k)">
       <div class="ico exp">店</div>
       <div class="mid"><div class="t">${esc(r.name)}${r.kana ? ' <span class="hint" style="display:inline">' + esc(r.kana) + '</span>' : ''}</div>
-      <div class="d">${r.n}回 ・ ${fmtYen(r.total)}${r.last ? ' ・ 最終 ' + esc(r.last) : ''}${r.addr ? ' ・ ' + esc(r.addr) : ''}</div></div>
+      <div class="d">${r.n}回 ・ ${fmtYen(r.total)}${r.last ? ' ・ 最終 ' + esc(r.last) : ''}${r.addr ? ' ・ ' + esc(r.addr) + mapBtn(r.addr) : ''}</div></div>
       <div class="amt">${r.n}回</div></div>`).join('')
       : '<div class="hint">該当する店舗がありません。検索語を変えるか、支出を登録すると自動で追加されます。</div>'}`;
 }
@@ -2244,7 +2257,7 @@ function openShopDetail(key) {
   const recent = S.txs.filter(t => t.type === 'expense' && shopKey(t.shop) === key).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
   openModal(`<h2>${esc(r.name)} ${hbtn('qa-shoplist')}</h2>
     <div class="kv"><span>よみがな</span><b>${esc(m.kana || '—')}</b></div>
-    <div class="kv"><span>住所</span><b>${esc(r.addr || '—')}</b></div>
+    <div class="kv"><span>住所</span><b>${esc(r.addr || '—')}${r.addr ? mapBtn(r.addr, 'マップ') : ''}</b></div>
     <div class="kv"><span>電話番号</span><b>${r.tel ? `<a href="tel:${esc(r.tel.replace(/[^0-9+]/g, ''))}">${esc(r.tel)}</a>` : '—'}</b></div>
     <div class="kv"><span>支出</span><b>${r.n}回 ・ ${fmtYen(r.total)}</b></div>
     <div class="kv"><span>最終利用</span><b>${esc(r.last || '—')}</b></div>
@@ -2724,7 +2737,7 @@ function openTxDetail(id) {
     <div class="kv"><span>カテゴリ</span><b>${esc(catName(t.categoryId))}</b></div>
     ${isExp ? `<div class="kv"><span>店舗名</span><b>${esc(t.shop || '—')}</b></div>
     <div class="kv"><span>商品名</span><b>${esc(t.item || '—')}</b></div>
-    <div class="kv"><span>店舗住所</span><b>${esc(t.shopAddr || '—')}</b></div>
+    <div class="kv"><span>店舗住所</span><b>${esc(t.shopAddr || '—')}${t.shopAddr ? mapBtn(t.shopAddr, 'マップ') : ''}</b></div>
     <div class="kv"><span>電話番号</span><b>${t.shopTel ? `<a href="tel:${esc(t.shopTel.replace(/[^0-9+]/g, ''))}">${esc(t.shopTel)}</a>` : '—'}</b></div>
     <div class="kv"><span>支払方法</span><b>${esc(t.paymentMethod || '—')}</b></div>` : ''}
     <div class="kv"><span>メモ</span><b>${esc(t.memo || '—')}</b></div>
