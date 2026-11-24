@@ -3261,7 +3261,7 @@ function soCalc() {
   const minQ = Number(a.minOrderQty) || 1;
   const note = document.getElementById('so-diffnote');
   if (note) note.innerHTML = rate
-    ? `<div class="hint">${fmtQty(diff, a.qtyDecimals)} ${esc(a.code)}・¥${fmtYen(profit)}相当${(diff > 0 && diff < minQ) ? '<br>売却で受け取るのは円です。1 ' + esc(a.code) + '未満の端数はそのままでは買い足せないため、次回以降の買い注文と合算してください。' : ''}</div>`
+    ? `<div class="hint">${fmtQty(diff, a.qtyDecimals)} ${esc(a.code)}・${fmtYen(profit)}相当${(diff > 0 && diff < minQ) ? '<br>売却で受け取るのは円です。1 ' + esc(a.code) + '未満の端数はそのままでは買い足せないため、次回以降の買い注文と合算してください。' : ''}</div>`
     : '';
   document.getElementById('so-c-qty').textContent = rate ? String(p.actualQty) : '---';
   document.getElementById('so-c-rate').textContent = rate ? rate.toFixed(a.priceDecimals) : '---';
