@@ -69,8 +69,12 @@ nav.tabbar button.on{color:var(--asset);font-weight:700}
 .bkrem{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;color:var(--sub);background:var(--surface2);border:1px solid var(--line2);border-radius:10px;padding:9px 12px;margin:0 0 10px}
 .bkrem b{color:var(--ink);font-size:12px;white-space:nowrap}
 .tabbar button .navdot{position:absolute;top:7px;right:calc(50% - 18px);width:7px;height:7px;border-radius:50%;background:var(--warn);box-shadow:0 0 0 2px var(--surface)}
+.dupnotice{display:flex;gap:10px;align-items:center;justify-content:space-between;margin:10px 0;padding:9px 11px;border:1px solid var(--line2);border-radius:10px;background:rgba(180,120,20,.06)}
+.dupnotice div{display:flex;flex-direction:column;gap:2px;font-size:11.5px;color:var(--sub)}
+.dupnotice b{font-size:12.5px;color:var(--warn)}
+.lrow.dupr{background:rgba(180,120,20,.07);border-radius:8px;padding-left:8px;padding-right:8px;border-bottom-color:transparent}
 .hrow{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-.duprow{display:flex;gap:6px;align-items:center;margin-top:8px}
+.duprow{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:10px 0 14px}
 .dupgrp{border:1px solid var(--line2);border-radius:10px;padding:8px 10px;margin-bottom:8px;background:var(--surface2)}
 .duphd{font-size:11px;font-weight:700;color:var(--sub);margin-bottom:4px;font-variant-numeric:tabular-nums}
 .catchip{display:inline-flex;align-items:center;gap:8px;margin-top:6px;font-size:11.5px;font-weight:700;color:var(--asset-ink);background:var(--asset-soft);border:1px solid var(--line2);border-radius:999px;padding:5px 12px}
@@ -1441,6 +1445,7 @@ function getShop(name) { if (!name) return null; return getShops()[shopKey(name)
 function txDupKey(t) { return [t.date, Math.round(t.amount), shopKey(t.shop || '')].join('|'); }
 function findDupTx(tx, excludeId) {
   const k = txDupKey(tx);
+  if (isDupIgnored((tx.type || 'expense') + '|' + k)) return [];
   return (S.txs || []).filter(t => t.type === tx.type && t.id !== excludeId && txDupKey(t) === k);
 }
 function dupConfirm(tx, dups) {
@@ -2414,7 +2419,7 @@ function renderHistory() {
   const inner = S.histTab === 'tx'
     ? `${periodSeg}${histF.period === 'month' ? monthNav : histF.period === 'year' ? yearNav : ''}
       <div class="srch"><input id="hist-q" type="search" placeholder="店舗名・商品名・メモ・金額で検索" value="${esc(histQ)}" oninput="histSearch(this.value,event)" oncompositionend="histSearch(this.value)"></div>
-      <div class="duprow"><button class="chip ${histF.dup ? 'on' : ''}" onclick="histSet('dup','${histF.dup ? 'false' : 'true'}')">重複の疑い${dupCount() ? '(' + dupCount() + ')' : ''}</button>${(histQ || histF.cat || histF.pay || histF.period !== 'month') ? `<button class="chip reset" onclick="histReset()">クリア</button>` : ''}</div>
+      <div class="duprow">${(dupCount() || histF.dup) ? `<button class="chip ${histF.dup ? 'on' : ''}" onclick="histSet('dup','${histF.dup ? 'false' : 'true'}')">重複の疑い${dupCount() ? '(' + dupCount() + ')' : ''}</button>` : ''}${(histQ || histF.cat || histF.pay || histF.period !== 'month') ? `<button class="chip reset" onclick="histReset()">クリア</button>` : ''}</div>
       <div class="frow">
         <select onchange="histSet('cat',this.value)"><option value="">カテゴリ: すべて</option>${catOpts}</select>
         <select onchange="histSet('pay',this.value)"><option value="">支払: すべて</option>${PAY_METHODS.map(m => `<option ${histF.pay === m ? 'selected' : ''}>${m}</option>`).join('')}</select>
@@ -2449,14 +2454,27 @@ function histRange() {
   return null;
 }
 function navHistYear(d) { histF.year = Number(histF.year || new Date().getFullYear()) + d; histF.period = 'year'; renderHistory(); }
+function dupKeyOf(t) { return (t.type || 'expense') + '|' + txDupKey(t); }
+function dupIgnores() { return ((S.settings || {}).dupIgnore || {}).value || {}; }
+function isDupIgnored(k) { return !!dupIgnores()[k]; }
+async function ignoreDupGroup(k) {
+  const m = dupIgnores(); m[k] = nowLocalTs();
+  await idbPut('settings', { id: 'dupIgnore', key: 'dupIgnore', value: m });
+  S.settings.dupIgnore = { id: 'dupIgnore', key: 'dupIgnore', value: m };
+}
+async function markNotDup(k) {
+  await ignoreDupGroup(k);
+  closeModal(); renderHistory();
+  toast('「重複の疑い」から外しました');
+}
 function dupGroups() {
   const map = new Map();
   (S.txs || []).forEach(t => {
-    const k = t.type + '|' + txDupKey(t);
+    const k = dupKeyOf(t);
     if (!map.has(k)) map.set(k, []);
     map.get(k).push(t);
   });
-  return [...map.values()].filter(g => g.length > 1);
+  return [...map.values()].filter(g => g.length > 1 && !isDupIgnored(dupKeyOf(g[0])));
 }
 function dupCount() { return dupGroups().reduce((s, g) => s + g.length, 0); }
 function histDupHtml() {
@@ -2466,7 +2484,7 @@ function histDupHtml() {
   return `<div class="hint" style="margin-bottom:8px"><b>${groups.length}組 ${n}件</b> ・ 同じ日付・金額・店舗の記録です。行をタップすると詳細から削除できます。</div>` +
     groups.map(g => `<div class="dupgrp">
       <div class="duphd">${esc(g[0].date)} ・ ${esc(g[0].shop || '(店舗名なし)')} ・ ${fmtYen(g[0].amount)} ・ ${g.length}件</div>
-      ${g.slice().sort((a, b) => String(a.createdAt || '').localeCompare(String(b.createdAt || ''))).map(t => `<div class="lrow tap" onclick="openTxDetail('${t.id}')">
+      ${g.slice().sort((a, b) => String(a.createdAt || '').localeCompare(String(b.createdAt || ''))).map(t => `<div class="lrow tap dupr" onclick="openTxDetail('${t.id}')">
         <div class="ico ${t.type === 'expense' ? 'exp' : 'inc'}">${t.type === 'expense' ? '支' : '収'}</div>
         <div class="mid"><div class="t">${esc(catName(t.categoryId))}${t.item ? '・' + esc(t.item) : ''}</div>
         <div class="d">${esc(t.date)}${t.paymentMethod ? ' ・ ' + esc(t.paymentMethod) : ''}${t.createdAt ? ' ・ 登録 ' + esc(String(t.createdAt).slice(11, 16)) : ''}</div></div>
@@ -2518,6 +2536,7 @@ function openTxDetail(id) {
     <div class="kv"><span>支払方法</span><b>${esc(t.paymentMethod || '—')}</b></div>` : ''}
     <div class="kv"><span>メモ</span><b>${esc(t.memo || '—')}</b></div>
     ${t.fixedCostId ? '<div class="kv"><span>区分</span><b>固定費</b></div>' : ''}
+    ${(() => { const k = dupKeyOf(t); const g = dupGroups().find(x => dupKeyOf(x[0]) === k); return g ? `<div class="dupnotice"><div><b>重複の疑いがあります</b><span>同じ日付・金額・店舗の記録が ${g.length}件あります。二重登録でなければ外せます。</span></div><button class="btn sm sub" onclick="markNotDup('${esc(k)}')">重複ではありません</button></div>` : ''; })()}
     <div class="row mt"><button class="btn sub" onclick="closeModal()">閉じる</button>
       <button class="btn primary" onclick="editTx('${t.id}')">編集</button></div>
     <button class="btn danger block mt" onclick="confirmDeleteTx('${t.id}')">この記録を削除</button>`);
