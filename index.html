@@ -2812,7 +2812,7 @@ function xrpChartHtml(a) {
     <div id="xrp-chart">${c ? (c.candles.length ? chartSvg(a, c.candles) : '<div class="hint">日足を取得できませんでした</div>') : '<div class="hint">日足を読み込み中…</div>'}</div></div>`;
 }
 function chartSvg(a, candles) {
-  const W = 320, H = 122, L = 4, R = 48, T = 10, B = 16;
+  const W = 320, H = 122, L = 4, R = 54, T = 10, B = 16;
   const dec = Number(a && a.priceDecimals) >= 0 ? Number(a.priceDecimals) : 2;
   const orders = (S.purchaseOrders || []).filter(o => (o.status || 'open') === 'open').map(o => Number(o.rate) || 0).filter(Boolean).sort((x, y) => y - x);
   const vals = [];
@@ -2831,19 +2831,23 @@ function chartSvg(a, candles) {
     return `<line x1="${x}" x2="${x}" y1="${Y(k.h).toFixed(1)}" y2="${Y(k.l).toFixed(1)}" stroke="${col}" stroke-width="1"/>` +
       `<rect x="${(X(i) - bw / 2).toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${hgt.toFixed(1)}" fill="${col}" rx=".5"/>`;
   }).join('');
-  // 注文ライン: 線は実価格、ラベルは近接時に縦へずらして重なりを避ける
-  const ys = orders.map(r => Y(r));
-  const labels = orders.map((r, i) => ({ y: ys[i], txt: '買 ' + Number(r).toFixed(dec) }))
-    .filter(o => o.y >= T - 1 && o.y <= H - B + 1).sort((x, y) => x.y - y.y);
+  // 同額の注文は1本にまとめる
+  const cnt = new Map();
+  orders.forEach(r => cnt.set(r, (cnt.get(r) || 0) + 1));
+  const uniq = [...cnt.entries()].map(e => ({ r: Number(e[0]), n: e[1] })).sort((x, y) => y.r - x.r);
+  const lines = uniq.map(o => ({ y: Y(o.r), txt: '買 ' + o.r.toFixed(dec) + (o.n > 1 ? ' ×' + o.n : '') }))
+    .filter(o => o.y >= T - 1 && o.y <= H - B + 1);
+  // 近接時はラベルを縦にずらし、実価格の線とラベルを細い縦線で結ぶ
   let prev = -99;
-  labels.forEach(o => { o.ly = Math.max(o.y + 3, prev + 9.5); prev = o.ly; });
-  const over = labels.length ? labels[labels.length - 1].ly - (H - B + 2) : 0;
-  if (over > 0) labels.forEach(o => { o.ly -= over; });
-  const oLines = orders.map((r, i) => {
-    const yy = ys[i];
-    if (yy < T - 1 || yy > H - B + 1) return '';
-    return `<line x1="${L}" x2="${W - R}" y1="${yy.toFixed(1)}" y2="${yy.toFixed(1)}" stroke="var(--spend)" stroke-width="1" stroke-dasharray="4 3"/>`;
-  }).join('') + labels.map(o => `<text x="${W - 2}" y="${o.ly.toFixed(1)}" font-size="8.5" text-anchor="end" fill="var(--spend)">${o.txt}</text>`).join('');
+  lines.forEach(o => { o.ly = Math.max(o.y + 3, prev + 9.5); prev = o.ly; });
+  const over = lines.length ? lines[lines.length - 1].ly - (H - B + 2) : 0;
+  if (over > 0) lines.forEach(o => { o.ly -= over; });
+  const oLines = lines.map(o =>
+    `<line x1="${L}" x2="${W - R}" y1="${o.y.toFixed(1)}" y2="${o.y.toFixed(1)}" stroke="var(--spend)" stroke-width="1" stroke-dasharray="4 3"/>`
+  ).join('') + lines.map(o =>
+    (Math.abs(o.ly - (o.y + 3)) > 0.8 ? `<line x1="${W - R + 2}" x2="${W - R + 2}" y1="${o.y.toFixed(1)}" y2="${(o.ly - 2.5).toFixed(1)}" stroke="var(--spend)" stroke-width=".8" opacity=".75"/>` : '') +
+    `<text x="${W - 1}" y="${o.ly.toFixed(1)}" font-size="8.5" text-anchor="end" fill="var(--spend)">${o.txt}</text>`
+  ).join('');
   const fmtD = ms => { const d = new Date(ms); return (d.getMonth() + 1) + '/' + d.getDate(); };
   return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="XRP日足ローソク足チャート">
     ${bars}
