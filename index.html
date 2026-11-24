@@ -77,6 +77,11 @@ nav.tabbar button.on{color:var(--asset);font-weight:700}
 .pvchk{display:flex;align-items:center;gap:7px;width:auto;height:auto;border:0;border-radius:0;font-size:12.5px;color:var(--ink);margin:7px 0;background:none}
 .pvchk input{width:16px;height:16px;accent-color:var(--asset);flex-shrink:0}
 .pvchkrow{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center;margin:10px 0 4px}
+.qwrap{position:relative;display:block;flex:1;min-width:0}
+.qwrap input{width:100%;padding-right:36px;box-sizing:border-box}
+.qclear{position:absolute;right:7px;top:50%;transform:translateY(-50%);width:24px;height:24px;border-radius:50%;border:1px solid var(--line2);background:var(--card);color:var(--sub);font-size:13px;line-height:1;display:none;align-items:center;justify-content:center;padding:0;cursor:pointer}
+.qclear.on{display:flex}
+input[type=search]::-webkit-search-cancel-button{-webkit-appearance:none;display:none}
 .pvchklab{font-size:11px;font-weight:700;color:var(--sub)}
 .exprow{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}
 .duprow{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:10px 0 14px}
@@ -2170,9 +2175,25 @@ function shopRows() {
   });
   return Object.keys(map).map(k => map[k]).sort((a, b) => String(a.kana || a.name).localeCompare(String(b.kana || b.name), 'ja'));
 }
+function updateQClear(el) {
+  if (!el || !el.parentNode) return;
+  const b = el.parentNode.querySelector('.qclear');
+  if (b) b.classList.toggle('on', !!el.value);
+}
+function histClear() {
+  const el = document.getElementById('hist-q'); if (!el) return;
+  el.value = ''; histQ = ''; updateQClear(el); histListRefresh(); el.focus();
+}
+function shopClear() {
+  const el = document.getElementById('shop-q'); if (!el) return;
+  el.value = ''; shopQ = ''; updateQClear(el);
+  const box = document.getElementById('shop-list'); if (box) box.innerHTML = shopListInner();
+  el.focus();
+}
 function setShopQ(src, ev) {
   const el = src || document.getElementById('shop-q');
   shopQ = el ? el.value : '';
+  updateQClear(el);
   const box = document.getElementById('shop-list');
   if (box) box.innerHTML = shopListInner();
 }
@@ -2208,7 +2229,7 @@ function shopListInner() {
 function shopsHtml() {
   const all = shopRows();
   return `<div class="card"><h2>店舗 <span class="tag">${all.length}件</span> ${hbtn('qa-shoplist')}</h2>
-    <input type="search" id="shop-q" value="${esc(shopQ || '')}" placeholder="店舗名・よみがな・住所・電話番号で検索" oninput="setShopQ(this,event)" oncompositionend="setShopQ(this)">
+    <div class="qwrap"><input type="search" id="shop-q" value="${esc(shopQ || '')}" placeholder="店舗名・よみがな・住所・電話番号で検索" oninput="setShopQ(this,event)" oncompositionend="setShopQ(this)"><button type="button" class="qclear${shopQ ? ' on' : ''}" onclick="shopClear()" aria-label="検索語を消す">×</button></div>
     <div id="shop-list">${shopListInner()}</div>
     <button class="btn sub block mt" onclick="editShop('')">＋ 店舗を追加</button>
     <div class="notebox">店舗名は支出の登録・TSV取り込みから自動でたまります。漢字の店名は「編集」で<b>よみがな</b>を入れると50音順が正確になります。タップすると店舗の詳細と直近の支出が見られます。</div></div>`;
@@ -2436,7 +2457,7 @@ function renderHistory() {
   const yearNav = `<div class="hrow"><button class="btn sm sub" onclick="navHistYear(-1)" aria-label="前年">←</button><b>${histF.year}年</b><button class="btn sm sub" onclick="navHistYear(1)" aria-label="翌年">→</button></div>`;
   const inner = S.histTab === 'tx'
     ? `${periodSeg}${histF.period === 'month' ? monthNav : histF.period === 'year' ? yearNav : ''}
-      <div class="srch"><input id="hist-q" type="search" placeholder="店舗名・商品名・メモ・金額で検索" value="${esc(histQ)}" oninput="histSearch(this.value,event)" oncompositionend="histSearch(this.value)"></div>
+      <div class="srch"><div class="qwrap"><input id="hist-q" type="search" placeholder="店舗名・商品名・メモ・金額で検索" value="${esc(histQ)}" oninput="histSearch(this.value,event)" oncompositionend="histSearch(this.value)"><button type="button" class="qclear${histQ ? ' on' : ''}" onclick="histClear()" aria-label="検索語を消す">×</button></div></div>
       <div class="duprow">${(dupCount() || histF.dup) ? `<button class="chip ${histF.dup ? 'on' : ''}" onclick="histSet('dup','${histF.dup ? 'false' : 'true'}')">重複の疑い${dupCount() ? '(' + dupCount() + ')' : ''}</button>` : ''}${(histQ || histF.cat || histF.pay || histF.period !== 'month') ? `<button class="chip reset" onclick="histReset()">クリア</button>` : ''}</div>
       <div class="frow">
         <select onchange="histSet('cat',this.value)"><option value="">カテゴリ: すべて</option>${catOpts}</select>
@@ -2462,7 +2483,7 @@ function navHist(d) {
 }
 let histQ = '';
 let histF = { period: 'month', year: new Date().getFullYear(), cat: '', pay: '', sort: 'new', dup: false };
-function histSearch(q) { histQ = q || ''; histListRefresh(); }
+function histSearch(q) { histQ = q || ''; updateQClear(document.getElementById('hist-q')); histListRefresh(); }
 function histSet(k, v) { histF[k] = v === 'true' ? true : v === 'false' ? false : v; renderHistory(); }
 function histReset() { histQ = ''; histF = { period: 'month', year: new Date().getFullYear(), cat: '', pay: '', sort: 'new', dup: false }; renderHistory(); }
 function histListRefresh() { const el = document.getElementById('hist-list'); if (el) el.innerHTML = histTxHtml(); }
