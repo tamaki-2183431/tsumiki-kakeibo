@@ -69,6 +69,8 @@ nav.tabbar button.on{color:var(--asset);font-weight:700}
 .bkrem{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;color:var(--sub);background:var(--surface2);border:1px solid var(--line2);border-radius:10px;padding:9px 12px;margin:0 0 10px}
 .bkrem b{color:var(--ink);font-size:12px;white-space:nowrap}
 .tabbar button .navdot{position:absolute;top:7px;right:calc(50% - 18px);width:7px;height:7px;border-radius:50%;background:var(--warn);box-shadow:0 0 0 2px var(--surface)}
+.catchip{display:inline-flex;align-items:center;gap:8px;margin-top:6px;font-size:11.5px;font-weight:700;color:var(--asset-ink);background:var(--asset-soft);border:1px solid var(--line2);border-radius:999px;padding:5px 12px}
+.catchip span{font-weight:600;color:var(--sub);font-size:10.5px}
 .notebox{background:var(--surface2);border:1px solid var(--line2);border-radius:var(--r-s);padding:10px 12px;font-size:12px;color:var(--sub);margin-top:10px}
 .errbox{background:var(--danger-soft);border:1px solid #e7c4bf;border-radius:var(--r-s);padding:10px 12px;font-size:12.5px;color:var(--danger);margin:8px 0}
 .okbox{background:var(--asset-soft);border:1px solid #cfe2d9;border-radius:var(--r-s);padding:10px 12px;font-size:12.5px;color:var(--asset-ink);margin:8px 0}
@@ -1222,12 +1224,13 @@ function ledgerEntryHtml() {
     <label>金額 <span class="req">*必須</span></label>
     <input type="number" id="tx-amount" class="num" inputmode="numeric" min="0" step="1" placeholder="例) 1200" style="font-size:19px;font-weight:700">
     <label>カテゴリ</label>
-    <select id="tx-category">${catOptions('expense')}</select>
+    <select id="tx-category" onchange="updateCatSuggest()">${catOptions('expense')}</select>
+    <div id="cat-suggest"></div>
     <div id="tx-shopwrap">
       <label>店舗名</label>
       <input type="text" id="tx-shop" placeholder="例) スーパー、コンビニ" oninput="shopAutofill(this,event)" oncompositionend="shopAutofill(this)">
       <label>商品名 <span class="hint" style="display:inline">(任意)</span></label>
-      <input type="text" id="tx-item" placeholder="例) 洗剤 詰替 800g">
+      <input type="text" id="tx-item" placeholder="例) 洗剤 詰替 800g" oninput="updateCatSuggest()" oncompositionend="updateCatSuggest()">
       <label>店舗住所 <span class="hint" style="display:inline">(任意)</span></label>
       <input type="text" id="tx-addr" placeholder="例) 東京都渋谷区1-2-3">
       <label>店舗電話番号 <span class="hint" style="display:inline">(任意)</span></label>
@@ -1396,6 +1399,38 @@ function normDateStr(s) {
   return isNaN(new Date(d)) ? null : d;
 }
 /* --- 店舗マスタ --- */
+function itemNorm(x) { return String(x || '').normalize('NFKC').toLowerCase().replace(/[\s\u3000]/g, ''); }
+function itemCatSuggest(item) {
+  const n = itemNorm(item);
+  if (n.length < 2) return null;
+  const counts = new Map();
+  (S.txs || []).forEach(t => {
+    if (t.type !== 'expense' || !t.item || !t.categoryId) return;
+    if (itemNorm(t.item) !== n) return;
+    counts.set(t.categoryId, (counts.get(t.categoryId) || 0) + 1);
+  });
+  let best = null;
+  counts.forEach((c, id) => { if (!best || c > best.count) best = { categoryId: id, count: c }; });
+  if (!best || best.count < 2) return null;
+  const cat = (S.categories || []).find(c => c.id === best.categoryId);
+  return cat ? { categoryId: cat.id, name: cat.name, count: best.count } : null;
+}
+function updateCatSuggest() {
+  const box = document.getElementById('cat-suggest');
+  if (!box) return;
+  const inp = document.getElementById('tx-item');
+  const s = itemCatSuggest(inp ? inp.value : '');
+  const sel = document.getElementById('tx-category');
+  if (!s || (sel && sel.value === s.categoryId)) { box.innerHTML = ''; return; }
+  box.innerHTML = `<button type="button" class="catchip" onclick="applyCatSuggest('${s.categoryId}')">商品名から推定: ${esc(s.name)}<span>前回${s.count}回</span></button>`;
+}
+function applyCatSuggest(id) {
+  const sel = document.getElementById('tx-category');
+  if (sel) sel.value = id;
+  const box = document.getElementById('cat-suggest');
+  if (box) box.innerHTML = '';
+  toast('カテゴリを「' + catName(id) + '」にしました');
+}
 function shopKey(name) { return String(name || '').normalize('NFKC').toLowerCase().replace(/[\s\u3000]/g, ''); }
 function getShops() { return ((S.settings || {}).shops || {}).value || {}; }
 function getShop(name) { if (!name) return null; return getShops()[shopKey(name)] || null; }
@@ -1499,6 +1534,7 @@ function resolveCat(raw) {
 }
 let tsvHeaderUsed = false;
 let tsvMasterFilled = 0;
+let tsvItemFilled = 0;
 const TSV_COLMAP = [
   [/^(店舗住所|住所|address|addr)/, 'addr'],
   [/^(店舗電話|電話|tel|phone)/, 'tel'],
@@ -1524,6 +1560,7 @@ function tsvHeaderMap(cells) {
 function parseTsvLines(raw) {
   const other = S.categories.find(c => c.type === 'expense' && /その他/.test(c.name)) || S.categories.find(c => c.type === 'expense');
   const POS = { date: 0, cat: 1, shop: 2, amount: 3, pay: 4, item: 5, memo: 6, addr: 7, tel: 8 };
+  tsvItemFilled = 0;
   const lines = String(raw).split(/\r?\n/).map(l => l.trim()).filter(Boolean);
   tsvHeaderUsed = false; tsvMasterFilled = 0;
   let map = null;
@@ -1554,6 +1591,12 @@ function parseTsvLines(raw) {
       else pm = 'その他';
     }
     const item = pick('item');
+    let fromItem = false;
+    if (item && fallback) {
+      const sg = itemCatSuggest(item);
+      const sc = sg ? S.categories.find(x => x.id === sg.categoryId) : null;
+      if (sc) { c = sc; fromItem = true; }
+    }
     const memo = pick('memo');
     let shopAddr = pick('addr');
     let shopTel = pick('tel');
@@ -1568,7 +1611,8 @@ function parseTsvLines(raw) {
       if (!shopTel && mst.tel) { shopTel = mst.tel; fromMaster = true; }
       if (fromMaster) tsvMasterFilled++;
     }
-    return { date, categoryId: c.id, catLabel: c.name, fallback, rawCat: (cat || ''), match: hit.match, score: hit.score,
+    if (fromItem) tsvItemFilled++;
+    return { date, categoryId: c.id, catLabel: c.name, fallback: fromItem ? false : fallback, fromItem, rawCat: (cat || ''), match: hit.match, score: hit.score,
       shop: (shop || '').slice(0, 40), item: item.slice(0, 60), amount, pay: pm || '現金',
       memo: memo.slice(0, 120), shopAddr: shopAddr.slice(0, 120), shopTel: shopTel.slice(0, 20), fromMaster };
   });
@@ -1581,7 +1625,8 @@ function tsvReflect() {
   const rows = parseTsvLines(document.getElementById('tsv-in').value);
   const ok = rows.filter(r => !r.error), bad = rows.filter(r => r.error);
   const note = document.getElementById('tsv-note');
-  if (note) note.innerHTML = [tsvHeaderUsed ? '<b>ヘッダー行を検出</b>し、列名で取り込みました。' : '', tsvMasterFilled ? '<b>店舗マスタ</b>から住所・電話番号を' + tsvMasterFilled + '件補完しました。' : ''].filter(Boolean).join(' ');
+  if (note) note.innerHTML = [tsvHeaderUsed ? '<b>ヘッダー行を検出</b>し、列名で取り込みました。' : '', tsvMasterFilled ? '<b>店舗マスタ</b>から住所・電話番号を' + tsvMasterFilled + '件補完しました。' : '',
+      tsvItemFilled ? '<b>商品名からカテゴリ</b>を' + tsvItemFilled + '件推定しました。' : ''].filter(Boolean).join(' ');
   if (ok.length === 0) {
     preview.innerHTML = '<div class="errbox">読み取れる行がありませんでした。日付・金額がタブ区切りで入っているか確認してください。</div>';
     return;
@@ -1600,6 +1645,7 @@ function tsvReflect() {
       if (document.getElementById('tx-addr')) document.getElementById('tx-addr').value = r.shopAddr || '';
       if (document.getElementById('tx-tel')) document.getElementById('tx-tel').value = r.shopTel || '';
     document.getElementById('tx-memo').value = r.memo;
+    if (typeof updateCatSuggest === 'function') updateCatSuggest();
     const area = document.getElementById('ocr-area');
     if (area) area.innerHTML = `<div class="okbox">TSVの内容をフォームに反映しました。確認して「登録する」を押してください。${r.fallback ? '<br>カテゴリ「' + esc(r.rawCat || '空欄') + '」は既存と一致しなかったため、' + esc(r.catLabel) + ' に分類しました。' : (r.match === 'fuzzy' ? '<br>カテゴリ「' + esc(r.rawCat) + '」を「' + esc(r.catLabel) + '」に寄せました(表記ゆれを吸収)。' : '')}${r.dup ? '<br><b>既存の記録と重複している可能性があります。</b>' : ''}</div>`;
     toast('フォームに反映しました');
@@ -1613,7 +1659,7 @@ function tsvReflect() {
   <div style="margin-top:6px">${ok.map(r => `
     <div class="tsvrow${r.fallback ? ' fx' : ''}">
       <div style="flex:1;min-width:0"><div class="t">${esc(r.date)} ・ ${esc(r.shop || '(店舗名なし)')} ${r.dup ? '<span class="pill">重複</span>' : ''}</div>
-      <div class="d">${r.match === 'fuzzy' ? esc(r.rawCat) + ' → <b>' + esc(r.catLabel) + '</b> <span class="pill">表記ゆれ</span>' : esc(r.catLabel)}${r.fallback ? '(未一致 → ' + esc(r.catLabel) + ' に分類)' : ''}${r.item ? ' ・ ' + esc(r.item) : ''} ・ ${esc(r.pay)}${r.memo ? ' ・ ' + esc(r.memo) : ''}${r.shopAddr ? ' ・ ' + esc(r.shopAddr) : ''}${r.shopTel ? ' ・ ☎' + esc(r.shopTel) : ''}</div></div>
+      <div class="d">${r.match === 'fuzzy' ? esc(r.rawCat) + ' → <b>' + esc(r.catLabel) + '</b> <span class="pill">表記ゆれ</span>' : esc(r.catLabel)}${r.fallback ? '(未一致 → ' + esc(r.catLabel) + ' に分類)' : ''}${r.item ? ' ・ ' + esc(r.item) : ''}${r.fromItem ? ' <span class="pill">商品名から推定</span>' : ''} ・ ${esc(r.pay)}${r.memo ? ' ・ ' + esc(r.memo) : ''}${r.shopAddr ? ' ・ ' + esc(r.shopAddr) : ''}${r.shopTel ? ' ・ ☎' + esc(r.shopTel) : ''}</div></div>
       <div class="amt">${fmtYen(r.amount)}</div>
     </div>`).join('')}
   ${bad.length ? bad.map(b => `<div class="tsvrow fx"><div style="flex:1"><div class="d">読み飛ばし(日付か金額が不正): ${esc(b.raw)}</div></div></div>`).join('') : ''}</div>
