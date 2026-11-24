@@ -77,6 +77,7 @@ nav.tabbar button.on{color:var(--asset);font-weight:700}
 .pvchk{display:flex;align-items:center;gap:7px;width:auto;height:auto;border:0;border-radius:0;font-size:12.5px;color:var(--ink);margin:7px 0;background:none}
 .pvchk input{width:16px;height:16px;accent-color:var(--asset);flex-shrink:0}
 .pvchkrow{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center;margin:10px 0 4px}
+.after .left.gap{font-weight:700;color:var(--warn)}
 .mapbtn{display:inline-flex;align-items:center;gap:3px;vertical-align:-2px;color:var(--asset);text-decoration:none;margin-left:5px}
 .mapbtn svg{width:14px;height:14px;flex-shrink:0}
 .mapbtn span{font-size:11px;font-weight:700}
@@ -3026,7 +3027,7 @@ function xrpBuyOrdersHtml(a) {
       <div class="head"><span class="name">${names.length ? esc(names.slice(0, 2).join('・')) + (names.length > 2 ? ` ほか${names.length - 2}件` : '') : '買い注文'}</span>
         <span class="amt">${fmtYen(o.amount)}</span></div>
       <div class="pair"><span>注文 <b>${fmtYen3(o.rate)}</b> → <b>${fmtQty(o.qty, 3)} ${esc(a.code)}</b></span></div>
-      ${filled ? `<div class="after"><span class="left">価格が指値に触れました。<b>まだ確定していません</b> — GMOコインで約定を確認し、下のボタンで確定してください。</span></div>` : `<div class="after"><span class="left">${price > 0 ? (price > rate ? 'あと ' + fmtYen3(price - rate) + ' 下がれば注文価格' : '現在値は指値以下です(到達の取り消し済み)') : '価格を取得できていません'}</span></div>`}
+      ${filled ? `<div class="after"><span class="left">価格が指値に触れました。<b>まだ確定していません</b> — GMOコインで約定を確認し、下のボタンで確定してください。</span></div>` : `<div class="after"><span class="left">${price > 0 ? (price > rate ? `<span class="gap" style="color:${'var(--warn)'}">あと -` + fmtYen3(price - rate) + '円で約定</span>' : '現在値は指値以下です(到達の取り消し済み)') : '価格を取得できていません'}</span></div>`}
       ${filled
         ? `<button class="btn primary block" onclick="fillBuyOrder('${o.id}')">約定を確定して売り注文へ →</button>
            <button class="btn sm sub block mt" onclick="clearOrderTouch('${o.id}')">GMOで約定していない → 注文中に戻す</button>`
@@ -3093,10 +3094,10 @@ function xrpSellOrdersHtml(a) {
       <div class="pair"><span>買 <b>${fmtYen3(buyRate)}</b> → 目標 <b>${Math.round((so.gainRate || 0) * 100)}%</b> 指値 <b>${fmtYen3(rate)}</b></span></div>
       ${filled
         ? `<div class="after"><span class="left">価格が指値に触れました。<b>まだ確定していません</b> — GMOコインで約定を確認し、下のボタンで確定してください。</span></div>`
-        : `<div class="after"><span class="left">${price > 0 ? (price < rate ? 'あと ' + fmtYen3(rate - price) + ' 上がれば指値' : '現在値は指値以上です') : '価格を取得できていません'}</span><span class="diff">売れたら ${coinGainText(diff, rate, a.code)}</span></div>`}
+        : `<div class="after"><span class="left">${price > 0 ? (price < rate ? `<span class="gap" style="color:${'var(--asset)'}">あと +` + fmtYen3(rate - price) + '円で約定</span>' : '現在値は指値以上です') : '価格を取得できていません'}</span><span class="diff">売れたら ${coinGainText(diff, rate, a.code)}</span></div>`}
       ${filled
         ? `<button class="btn primary block" onclick="completeSell('${so.id}')">約定を確定して完了にする →</button>`
-        : `<div class="ops"><button class="btn sm sub" onclick="openSellOrderModal('${so.purchaseId}', '${so.id}')">編集</button></div>`}
+        : ''}
     </div>`;
   }).join('');
 }
