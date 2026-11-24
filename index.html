@@ -3071,24 +3071,32 @@ function xrpFilledLotsHtml(a) {
 }
 /* --- 売り注文(売り注文中) --- */
 function xrpSellOrdersHtml(a) {
-  const orders = S.sellOrders.filter(so => so.status === 'open');
-  if (!orders.length) return '';
   const pc = S.priceCache[a.id] || {};
   const price = Number(pc.last || 0);
+  const NEAR_GAP = 0.02;
+  const gapOf = so => { const r = Number(so.rate) || 0; return price > 0 && r > 0 ? Math.abs(price - r) / r : Infinity; };
+  const orders = S.sellOrders.filter(so => so.status === 'open')
+    .sort((x, y) => (gapOf(x) - gapOf(y)) || String(y.createdAt || '').localeCompare(String(x.createdAt || '')));
+  if (!orders.length) return '';
   return orders.map(so => {
     const p = S.purchases.find(x => x.id === so.purchaseId) || {};
     const buyRate = Number(p.actualRate || 0);
-    const filled = price > 0 && price >= Number(so.rate);
-    const prog = so.rate > buyRate ? Math.max(0, Math.min(100, (price - buyRate) / (so.rate - buyRate) * 100)) : 0;
+    const rate = Number(so.rate) || 0;
+    const filled = price > 0 && price >= rate;
+    const near = !filled && price > 0 && rate > 0 && (rate - price) / rate <= NEAR_GAP;
     const diff = so.coinGain != null ? so.coinGain : (p.amountJPY ? so.qty - p.amountJPY / so.rate : 0);
+    const names = (p.reserveAlloc || []).map(l => { const r = S.reserves.find(x => x.id === l.reserveId); return r ? xrpTxLabel(r) : null; }).filter(Boolean);
     return `<div class="card cyc">
-      <div class="head"><span class="badge ${filled ? 'b-warn' : 'b-sell'}">${filled ? '指値到達(要確定)' : '売り注文中'}</span><span class="name">${esc(xrpTxLabel({ txId: p.id })) === '支出' ? '売り注文' : ''}${(p.reserveAlloc || []).length ? esc((p.reserveAlloc || []).map(l => { const r = S.reserves.find(x => x.id === l.reserveId); return r ? xrpTxLabel(r) : null; }).filter(Boolean).slice(0, 2).join('・')) : '売り注文'}</span><span class="amt">${fmtQty(so.qty, a.qtyDecimals)} ${esc(a.code)}</span></div>
-      <div class="pair"><span>買 <b>${fmtYen3(buyRate)}</b> → 目標 <b>${Math.round((so.gainRate || 0) * 100)}%</b> 指値 <b>${fmtYen3(so.rate)}</b></span></div>
-      ${filled ? '' : `<div class="progressbar"><i style="width:${prog}%"></i></div>
-      <div class="after"><span class="left">指値まで あと ${fmtYen(Math.max(0, Math.round(so.rate - price)))}</span><span class="diff">売れたら +${fmtQty(diff, a.qtyDecimals)} ${esc(a.code)} 🪙</span></div>`}
+      <div class="badgeline"><span class="badge ${filled ? 'b-warn' : 'b-sell'}">${filled ? '指値到達(要確定)' : '売り注文中'}</span>${near ? '<span class="soonpill">まもなく</span>' : ''}${filled ? '' : `<button class="xbtn" aria-label="売り注文を取り消す" onclick="deleteSellOrder('${so.id}')">×</button>`}</div>
+      <div class="head"><span class="name">${names.length ? esc(names.slice(0, 2).join('・')) + (names.length > 2 ? ` ほか${names.length - 2}件` : '') : '売り注文'}</span>
+        <span class="amt">${fmtQty(so.qty, a.qtyDecimals)} ${esc(a.code)}</span></div>
+      <div class="pair"><span>買 <b>${fmtYen3(buyRate)}</b> → 目標 <b>${Math.round((so.gainRate || 0) * 100)}%</b> 指値 <b>${fmtYen3(rate)}</b></span></div>
+      ${filled
+        ? `<div class="after"><span class="left">価格が指値に触れました。<b>まだ確定していません</b> — GMOコインで約定を確認し、下のボタンで確定してください。</span></div>`
+        : `<div class="after"><span class="left">${price > 0 ? (price < rate ? 'あと ' + fmtYen3(rate - price) + ' 上がれば指値' : '現在値は指値以上です') : '価格を取得できていません'}</span><span class="diff">売れたら ${coinGainText(diff, rate, a.code)}</span></div>`}
       ${filled
         ? `<button class="btn primary block" onclick="completeSell('${so.id}')">約定を確定して完了にする →</button>`
-        : `<div class="ops"><button onclick="deleteSellOrder('${so.id}')">取り消し</button><button class="main" onclick="openSellOrderModal('${so.purchaseId}', '${so.id}')">編集</button></div>`}
+        : `<div class="ops"><button class="btn sm sub" onclick="openSellOrderModal('${so.purchaseId}', '${so.id}')">編集</button></div>`}
     </div>`;
   }).join('');
 }
