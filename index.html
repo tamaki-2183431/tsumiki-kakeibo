@@ -74,6 +74,7 @@ nav.tabbar button.on{color:var(--asset);font-weight:700}
 .dupnotice b{font-size:12.5px;color:var(--warn)}
 .lrow.dupr{background:rgba(180,120,20,.07);border-radius:8px;padding-left:8px;padding-right:8px;border-bottom-color:transparent}
 .hrow{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.exprow{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}
 .duprow{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:10px 0 14px}
 .dupgrp{border:1px solid var(--line2);border-radius:10px;padding:8px 10px;margin-bottom:8px;background:var(--surface2)}
 .duphd{font-size:11px;font-weight:700;color:var(--sub);margin-bottom:4px;font-variant-numeric:tabular-nums}
@@ -2428,6 +2429,7 @@ function renderHistory() {
           <option value="high" ${histF.sort === 'high' ? 'selected' : ''}>金額が高い順</option>
           <option value="low" ${histF.sort === 'low' ? 'selected' : ''}>金額が安い順</option>
         </select></div>
+      <div class="exprow"><button class="btn sm sub" onclick="histCsv()">CSVで書き出す</button><button class="btn sm sub" onclick="openAiShare()">AIに共有</button></div>
       <div id="hist-list">${body}</div>`
     : `${monthNav}${body}`;
   document.getElementById('scr-history').innerHTML = `
@@ -2491,8 +2493,14 @@ function histDupHtml() {
         <div class="amt spend">${fmtYen(t.amount)}</div></div>`).join('')}
     </div>`).join('');
 }
-function histTxHtml() {
-  if (histF.dup) return histDupHtml();
+function histRangeLabel() {
+  if (histF.dup) return '重複の疑い';
+  if (histF.period === 'month') return S.histYm.replace('-', '/');
+  if (histF.period === 'year') return histF.year + '年';
+  return '全期間';
+}
+function histFilteredList() {
+  if (histF.dup) return dupGroups().flat();
   const q = (histQ || '').trim().toLowerCase();
   let list = S.txs.slice();
   const rg = histRange();
@@ -2507,9 +2515,15 @@ function histTxHtml() {
   if (histF.sort === 'high') list.sort((a, b) => b.amount - a.amount);
   else if (histF.sort === 'low') list.sort((a, b) => a.amount - b.amount);
   else list.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+  return list;
+}
+function histTxHtml() {
+  if (histF.dup) return histDupHtml();
+  const q = (histQ || '').trim().toLowerCase();
+  const list = histFilteredList();
   const exp = list.filter(t => t.type === 'expense').reduce((a, t) => a + t.amount, 0);
   const inc = list.filter(t => t.type === 'income').reduce((a, t) => a + t.amount, 0);
-  const label = histF.period === 'month' ? S.histYm.replace('-', '/') + ' の記録' : histF.period === 'year' ? histF.year + ' 年の記録' : '全期間の記録';
+  const label = histRangeLabel() + ' の記録';
   if (list.length === 0) {
     const cond = [histF.cat ? 'カテゴリ' : '', histF.pay ? '支払方法' : '', q ? '検索語' : ''].filter(Boolean).join('・');
     return `<div class="hint">${label}はありません。${cond ? cond + 'の条件も含みます。' : ''}</div>` +
@@ -2517,6 +2531,91 @@ function histTxHtml() {
   }
   const head = `<div class="hint" style="margin-bottom:6px">${label} <b>${list.length}件</b> ・ 支出 ${fmtYen(exp)} ・ 収入 ${fmtYen(inc)}</div>`;
   return head + recentTxHtml(list);
+}
+/* --- CSV書き出し・AI共有 --- */
+function csvCell(v) { const s = String(v == null ? '' : v); return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+function histCsvText() {
+  const list = histFilteredList();
+  if (!list.length) return '';
+  const head = ['日付', '種別', 'カテゴリ', '店舗名', '商品名', '金額', '支払方法', 'メモ', '店舗住所', '店舗電話番号'];
+  const rows = list.map(t => [t.date, t.type === 'expense' ? '支出' : '収入', catName(t.categoryId), t.shop || '', t.item || '',
+    t.amount, t.paymentMethod || '', t.memo || '', t.shopAddr || '', t.shopTel || '']);
+  return '\ufeff' + [head, ...rows].map(r => r.map(csvCell).join(',')).join('\r\n');
+}
+function histCsv() {
+  const csv = histCsvText();
+  if (!csv) { toast('対象の記録がありません'); return; }
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const el = document.createElement('a');
+  el.href = url;
+  el.download = 'tsumiki-meisai-' + histRangeLabel().replace(/[\/\s]/g, '') + '-' + todayStr().replace(/-/g, '') + '.csv';
+  document.body.appendChild(el); el.click(); el.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 3000);
+  toast(histFilteredList().length + '件をCSVで書き出しました');
+}
+const AI_PROMPTS = {
+  total: 'この家計データを分析してください。1) 支出の構成比が大きいカテゴリ上位3つとその金額・割合 2) 目立つ支出や偏り 3) 改善余地の大きい点を3つ、根拠の数字とあわせて。推測は断定せず「可能性」として書いてください。最後に表形式で要点をまとめてください。',
+  saving: 'この家計データから節約の余地を探してください。1) 削減しやすい支出(コンビニ・外食・重複購入・少額の積み重ねなど)を具体的に 2) それぞれ月あたりの削減見込み額 3) 実行しやすい順に3つ提案。金額は円で、根拠となる行を示してください。',
+  budget: 'この家計データをもとに、来月のカテゴリ別予算案を作ってください。今月の実績を基準に、無理のない範囲で各カテゴリの上限額を提案し、表(カテゴリ/今月実績/来月案/理由)にまとめてください。特別なイベント予定は考慮しなくて構いません。'
+};
+function aiText(kind) {
+  const list = histFilteredList();
+  const kindKey = AI_PROMPTS[kind] ? kind : 'total';
+  const exp = list.filter(t => t.type === 'expense').reduce((a, t) => a + t.amount, 0);
+  const inc = list.filter(t => t.type === 'income').reduce((a, t) => a + t.amount, 0);
+  const catMap = {};
+  list.filter(t => t.type === 'expense').forEach(t => { const n = catName(t.categoryId); catMap[n] = (catMap[n] || 0) + t.amount; });
+  const cats = Object.keys(catMap).sort((x, y) => catMap[y] - catMap[x])
+    .map(n => n + ' ' + catMap[n].toLocaleString('ja-JP') + '円(' + (exp ? Math.round(catMap[n] / exp * 100) : 0) + '%)').join(' / ');
+  const dates = list.map(t => t.date).sort();
+  const LIMIT = 120;
+  const rows = list.slice(0, LIMIT).map(t => [t.date, catName(t.categoryId), t.shop || '', t.item || '', t.amount, t.paymentMethod || ''].join(','));
+  return `【家計簿データ】${histRangeLabel()} の記録 ${list.length}件` +
+    (dates.length ? `(${dates[0]}〜${dates[dates.length - 1]})` : '') + '\n' +
+    `支出合計 ${exp.toLocaleString('ja-JP')}円 / 収入合計 ${inc.toLocaleString('ja-JP')}円\n` +
+    (cats ? `カテゴリ別: ${cats}\n` : '') +
+    '---\n日付,カテゴリ,店舗,商品,金額,支払\n' + rows.join('\n') +
+    (list.length > LIMIT ? `\n…ほか${list.length - LIMIT}件` : '') + '\n---\n' + AI_PROMPTS[kindKey];
+}
+function openAiShare() {
+  const list = histFilteredList();
+  if (!list.length) { toast('対象の記録がありません'); return; }
+  window._aiKind = window._aiKind || 'total';
+  openModal(`<h2>AIに共有 <span class="tag">${esc(histRangeLabel())}</span></h2>
+    <label>依頼の種類</label>
+    <select id="ai-kind" onchange="aiPreview()">
+      <option value="total" ${window._aiKind === 'total' ? 'selected' : ''}>総合分析</option>
+      <option value="saving" ${window._aiKind === 'saving' ? 'selected' : ''}>節約の提案</option>
+      <option value="budget" ${window._aiKind === 'budget' ? 'selected' : ''}>来月の予算案</option>
+    </select>
+    <label>送る内容(編集できます)</label>
+    <textarea id="ai-text" rows="11" style="font-size:11.5px;line-height:1.5">${esc(aiText(window._aiKind))}</textarea>
+    <div class="row mt"><button class="btn sub" onclick="closeModal()">閉じる</button>
+      <button class="btn primary" onclick="aiShare()">共有する</button></div>
+    <button class="btn sub block mt" onclick="aiCopy()">テキストをコピー</button>
+    <div class="hint mt">共有先でChatGPTやGeminiを選ぶと、そのまま分析を依頼できます。店舗名・金額を含むため、共有先の扱いはご確認ください。</div>`);
+}
+function aiPreview() {
+  const k = (document.getElementById('ai-kind') || {}).value || 'total';
+  window._aiKind = k;
+  const ta = document.getElementById('ai-text');
+  if (ta) ta.value = aiText(k);
+}
+async function aiShare() {
+  const ta = document.getElementById('ai-text');
+  const text = ta ? ta.value : aiText(window._aiKind || 'total');
+  if (navigator.share) {
+    try { await navigator.share({ title: '家計簿の分析依頼', text }); return; }
+    catch (e) { if (e && e.name === 'AbortError') return; }
+  }
+  try { await navigator.clipboard.writeText(text); toast('共有が使えないためコピーしました'); }
+  catch (e) { toast('コピーできませんでした'); }
+}
+async function aiCopy() {
+  const ta = document.getElementById('ai-text');
+  try { await navigator.clipboard.writeText(ta ? ta.value : ''); toast('コピーしました'); }
+  catch (e) { toast('コピーできませんでした'); }
 }
 /* --- 記録の詳細モーダル(履歴から) --- */
 function openTxDetail(id) {
