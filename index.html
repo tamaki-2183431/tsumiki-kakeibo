@@ -1277,6 +1277,14 @@ function ledgerEntryHtml() {
   </div>`;
 }
 const MAP_PIN = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>';
+function coinGainText(gain, rate, code) {
+  const g = Math.max(0, Number(gain) || 0), r = Number(rate) || 0;
+  const whole = Math.floor(g + 1e-9), frac = g - whole;
+  const parts = [];
+  if (whole > 0) parts.push('+' + whole + (code ? ' ' + code : ''));
+  if (frac > 1e-9 && r > 0) parts.push('+' + fmtYen(Math.round(frac * r)));
+  return parts.length ? parts.join(' ') : '+0';
+}
 function mapHref(addr) {
   const s = String(addr || '').trim();
   return s ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(s) : '';
@@ -2973,7 +2981,23 @@ function orderLowRef(o, a) {
   });
   return lo;
 }
-function orderTouched(o, a) { return !!o.touchedAt || orderLowRef(o, a) <= Number(o.rate) * 1.000001; }
+function orderTouched(o, a) {
+  if (o.touchedAt) return true;
+  const lo = orderLowRef(o, a);
+  if (!(lo <= Number(o.rate) * 1.000001)) return false;
+  // 取り消し済みは、その時点より安い値段を付けたときだけ再検知する
+  if (o.lowBaseline != null && lo >= Number(o.lowBaseline)) return false;
+  return true;
+}
+async function clearOrderTouch(id) {
+  const a = activeAsset(); if (!a) return;
+  const o = S.purchaseOrders.find(x => x.id === id); if (!o) return;
+  delete o.touchedAt;
+  o.lowBaseline = orderLowRef(o, a);
+  await idbPut('purchaseOrders', o);
+  renderAsset();
+  toast('買い注文を「注文中」に戻しました');
+}
 function markTouchedOrders() {
   const a = activeAsset(); if (!a) return 0;
   let n = 0;
@@ -3002,9 +3026,10 @@ function xrpBuyOrdersHtml(a) {
       <div class="head"><span class="name">${names.length ? esc(names.slice(0, 2).join('・')) + (names.length > 2 ? ` ほか${names.length - 2}件` : '') : '買い注文'}</span>
         <span class="amt">${fmtYen(o.amount)}</span></div>
       <div class="pair"><span>注文 <b>${fmtYen3(o.rate)}</b> → <b>${fmtQty(o.qty, 3)} ${esc(a.code)}</b></span></div>
-      ${filled ? `<div class="after"><span class="left">価格が指値に触れました。<b>まだ確定していません</b> — GMOコインで約定を確認し、下のボタンで確定してください。</span></div>` : `<div class="after"><span class="left">${price > 0 ? 'あと ' + fmtYen3(price - rate) + ' 下がれば注文価格' : '価格を取得できていません'}</span></div>`}
+      ${filled ? `<div class="after"><span class="left">価格が指値に触れました。<b>まだ確定していません</b> — GMOコインで約定を確認し、下のボタンで確定してください。</span></div>` : `<div class="after"><span class="left">${price > 0 ? (price > rate ? 'あと ' + fmtYen3(price - rate) + ' 下がれば注文価格' : '現在値は指値以下です(到達の取り消し済み)') : '価格を取得できていません'}</span></div>`}
       ${filled
-        ? `<button class="btn primary block" onclick="fillBuyOrder('${o.id}')">約定を確定して売り注文へ →</button>`
+        ? `<button class="btn primary block" onclick="fillBuyOrder('${o.id}')">約定を確定して売り注文へ →</button>
+           <button class="btn sm sub block mt" onclick="clearOrderTouch('${o.id}')">GMOで約定していない → 注文中に戻す</button>`
         : ''}
     </div>`;
   }).join('');
@@ -3212,7 +3237,7 @@ function soCalc() {
   const diff = rate ? Math.max(0, p.actualQty - p.amountJPY / rate) : 0;
   const profit = rate ? Math.max(0, Math.round(p.actualQty * rate - p.amountJPY)) : 0;
   document.getElementById('so-diff').innerHTML = rate
-    ? `+${fmtYen(profit)}<span class="hint" style="margin:0;display:inline"> (${esc(a.code)} +${fmtQty(diff, a.qtyDecimals)}相当)</span>`
+    ? `${coinGainText(diff, rate, esc(a.code))}<span class="hint" style="margin:0;display:inline"> (${fmtQty(diff, a.qtyDecimals)} ${esc(a.code)}・¥${profit}相当)</span>`
     : '---';
   const minQ = Number(a.minOrderQty) || 1;
   const note = document.getElementById('so-diffnote');
@@ -3298,7 +3323,7 @@ function renderXrpHist() {
     const names = (p.reserveAlloc || []).map(l => { const r = S.reserves.find(x => x.id === l.reserveId); return r ? xrpTxLabel(r) : null; }).filter(Boolean);
     return `<div class="cyc lrow" style="display:block">
       <div class="head"><span class="badge b-done">完了</span><span class="name">${names.length ? esc(names.slice(0, 2).join('・')) : esc(p.memo || '購入')}</span>
-      <span class="diff" style="margin-left:auto;color:var(--asset);font-weight:700">+${fmtYen(Math.max(0, Math.round((so.qty || 0) * (so.rate || 0) - (p.amountJPY || 0))))} ・ +${fmtQty(so.coinGain || 0, a.qtyDecimals)} ${esc(a.code)}相当</span></div>
+      <span class="diff" style="margin-left:auto;color:var(--asset);font-weight:700">${coinGainText(so.coinGain || 0, so.rate, esc(a.code))}</span></div>
       <div class="pair" style="margin-top:4px"><span>${fmtDateTime(so.filledAt || so.createdAt)}</span><span>買 <b>${fmtYen(p.actualRate)}</b> / 売 <b>${fmtYen(so.rate)}</b>(+${Math.round((so.gainRate || 0) * 100)}%)</span><span>元本 <b>${fmtYen(p.amountJPY)}</b></span></div>
     </div>`;
   }).join('');
