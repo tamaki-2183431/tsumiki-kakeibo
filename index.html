@@ -2764,7 +2764,7 @@ function histBuyHtml() {
   return list.map(p => `<div class="lrow">
     <div class="ico buy">買</div>
     <div class="mid"><div class="t">${esc(a.code)} 購入 ${fmtQty(p.actualQty, a.qtyDecimals)}</div>
-    <div class="d">${fmtDateTime(p.datetime)} ・ 約定 ${fmtYen(p.actualRate)}${p.fee ? ' ・ 手数料 ' + fmtYen(p.fee) : ''}${p.memo ? ' ・ ' + esc(p.memo) : ''}</div></div>
+    <div class="d">${fmtDateTime(p.datetime)} ・ 約定 ${fmtYen3(p.actualRate)}${p.fee ? ' ・ 手数料 ' + fmtYen(p.fee) : ''}${p.memo ? ' ・ ' + esc(p.memo) : ''}</div></div>
     <div class="amt">${fmtYen(p.amountJPY)}</div>
     <div class="ops"><button class="btn sm sub" onclick="editPurchase('${p.id}')">編集</button></div></div>`).join('');
 }
@@ -3034,6 +3034,26 @@ function xrpBuyOrdersHtml(a) {
     </div>`;
   }).join('');
 }
+async function revertBuyFill(purchaseId) {
+  const a = activeAsset();
+  const p = S.purchases.find(x => x.id === purchaseId);
+  if (!p) return;
+  const o = S.purchaseOrders.find(x => (x.status || 'open') === 'filled'
+    && Number(x.rate) === Number(p.orderRate != null ? p.orderRate : p.actualRate)
+    && Number(x.qty) === Number(p.orderQty != null ? p.orderQty : p.actualQty));
+  await idbDel('purchases', p.id);
+  for (const l of (p.reserveAlloc || [])) {
+    const r = S.reserves.find(x => x.id === l.reserveId);
+    if (!r) continue;
+    r.status = 'pending'; delete r.purchaseId; await idbPut('reserves', r);
+  }
+  if (o) { o.status = 'open'; delete o.touchedAt; o.lowBaseline = orderLowRef(o, a); await idbPut('purchaseOrders', o); }
+  await loadAll(); renderAsset();
+  toast('買い約定を取り消しました(買い注文中に戻しました)');
+}
+function confirmRevertFill(id) {
+  confirmModal('買い約定の取り消し', 'この買い約定を取り消して、買い注文(注文中)に戻します。GMOコインでまだ約定していない場合に使ってください。', '注文中に戻す', () => revertBuyFill(id));
+}
 /* --- 買い約定済み(売り注文がまだ) --- */
 function xrpFilledLotsHtml(a) {
   const soMap = new Set(S.sellOrders.map(so => so.purchaseId));
@@ -3043,8 +3063,9 @@ function xrpFilledLotsHtml(a) {
     const names = (p.reserveAlloc || []).map(l => { const r = S.reserves.find(x => x.id === l.reserveId); return r ? xrpTxLabel(r) : null; }).filter(Boolean);
     return `<div class="card cyc">
       <div class="head"><span class="badge b-ok">買い約定済み</span><span class="name">${names.length ? esc(names.slice(0, 2).join('・')) : esc(p.memo || '購入')}</span><span class="amt">${fmtYen(p.amountJPY)}</span></div>
-      <div class="pair"><span>約定 <b>${fmtYen(p.actualRate)}</b> → <b>${fmtQty(p.actualQty, a.qtyDecimals)} ${esc(a.code)}</b></span></div>
+      <div class="pair"><span>約定 <b>${fmtYen3(p.actualRate)}</b> → <b>${fmtQty(p.actualQty, a.qtyDecimals)} ${esc(a.code)}</b></span></div>
       <button class="btn primary block" onclick="openSellOrderModal('${p.id}')">売り注文を作成 →</button>
+      <button class="btn sm sub block mt" onclick="confirmRevertFill('${p.id}')">GMOで未約定だった → 取り消して注文中に戻す</button>
     </div>`;
   }).join('');
 }
@@ -3062,7 +3083,7 @@ function xrpSellOrdersHtml(a) {
     const diff = so.coinGain != null ? so.coinGain : (p.amountJPY ? so.qty - p.amountJPY / so.rate : 0);
     return `<div class="card cyc">
       <div class="head"><span class="badge ${filled ? 'b-warn' : 'b-sell'}">${filled ? '指値到達(要確定)' : '売り注文中'}</span><span class="name">${esc(xrpTxLabel({ txId: p.id })) === '支出' ? '売り注文' : ''}${(p.reserveAlloc || []).length ? esc((p.reserveAlloc || []).map(l => { const r = S.reserves.find(x => x.id === l.reserveId); return r ? xrpTxLabel(r) : null; }).filter(Boolean).slice(0, 2).join('・')) : '売り注文'}</span><span class="amt">${fmtQty(so.qty, a.qtyDecimals)} ${esc(a.code)}</span></div>
-      <div class="pair"><span>買 <b>${fmtYen(buyRate)}</b> → 目標 <b>${Math.round((so.gainRate || 0) * 100)}%</b> 指値 <b>${fmtYen(so.rate)}</b></span></div>
+      <div class="pair"><span>買 <b>${fmtYen3(buyRate)}</b> → 目標 <b>${Math.round((so.gainRate || 0) * 100)}%</b> 指値 <b>${fmtYen3(so.rate)}</b></span></div>
       ${filled ? '' : `<div class="progressbar"><i style="width:${prog}%"></i></div>
       <div class="after"><span class="left">指値まで あと ${fmtYen(Math.max(0, Math.round(so.rate - price)))}</span><span class="diff">売れたら +${fmtQty(diff, a.qtyDecimals)} ${esc(a.code)} 🪙</span></div>`}
       ${filled
@@ -3206,7 +3227,7 @@ function openSellOrderModal(purchaseId, editId = null) {
   const editOrder = editId ? S.sellOrders.find(x => x.id === editId) : null;
   const gain = editOrder ? Math.round((editOrder.gainRate || 0.10) * 100) : 10;
   openModal(`<h2>売り注文の作成</h2>
-    <div class="hint">買い約定した <b>${fmtQty(p.actualQty, a.qtyDecimals)} ${esc(a.code)}</b>(@ ${fmtYen(p.actualRate)})を、何%上がったら売るか決めます。</div>
+    <div class="hint">買い約定した <b>${fmtQty(p.actualQty, a.qtyDecimals)} ${esc(a.code)}</b>(@ ${fmtYen3(p.actualRate)})を、何%上がったら売るか決めます。</div>
     <label>目標上昇率</label>
     <select id="so-gain" onchange="soCalc()">${[5, 6, 8, 10, 12, 15, 20, 25, 30, 40].map(v => `<option value="${v}"${v === gain ? ' selected' : ''}>${v}%</option>`).join('')}</select>
     <div class="kv"><span class="k">売り注文レート(円/${esc(a.code)})</span><span class="v" id="so-rate" style="font-weight:700">---</span></div>
@@ -3324,7 +3345,7 @@ function renderXrpHist() {
     return `<div class="cyc lrow" style="display:block">
       <div class="head"><span class="badge b-done">完了</span><span class="name">${names.length ? esc(names.slice(0, 2).join('・')) : esc(p.memo || '購入')}</span>
       <span class="diff" style="margin-left:auto;color:var(--asset);font-weight:700">${coinGainText(so.coinGain || 0, so.rate, esc(a.code))}</span></div>
-      <div class="pair" style="margin-top:4px"><span>${fmtDateTime(so.filledAt || so.createdAt)}</span><span>買 <b>${fmtYen(p.actualRate)}</b> / 売 <b>${fmtYen(so.rate)}</b>(+${Math.round((so.gainRate || 0) * 100)}%)</span><span>元本 <b>${fmtYen(p.amountJPY)}</b></span></div>
+      <div class="pair" style="margin-top:4px"><span>${fmtDateTime(so.filledAt || so.createdAt)}</span><span>買 <b>${fmtYen3(p.actualRate)}</b> / 売 <b>${fmtYen3(so.rate)}</b>(+${Math.round((so.gainRate || 0) * 100)}%)</span><span>元本 <b>${fmtYen(p.amountJPY)}</b></span></div>
     </div>`;
   }).join('');
   const legacyRows = legacy.length ? `<h2 style="margin-top:10px">以前の売却履歴(ルーティン外)</h2>` + legacy.map(s => `
@@ -3348,7 +3369,7 @@ function renderXrpHist() {
   </div>
   ${st.lots.length ? `<div class="card"><h2>未売却ロット(古い順) ${hbtn('qa-assets-view')}</h2>
     <div style="overflow-x:auto"><table class="tbl"><tr><th>購入日時</th><th class="r">残数量(${esc(a.code)})</th><th class="r">取得価格</th><th class="r">元本</th></tr>
-    ${st.lots.map(l => `<tr><td>${fmtDateTime(l.datetime)}</td><td class="r">${fmtQty(l.qty, a.qtyDecimals)}</td><td class="r">${fmtYen(Core.round(l.rate, 2))}</td><td class="r">${fmtYen(l.amountJPY)}</td></tr>`).join('')}
+    ${st.lots.map(l => `<tr><td>${fmtDateTime(l.datetime)}</td><td class="r">${fmtQty(l.qty, a.qtyDecimals)}</td><td class="r">${fmtYen3(l.rate)}</td><td class="r">${fmtYen(l.amountJPY)}</td></tr>`).join('')}
     </table></div></div>` : ''}
   <div class="card"><h2>完了サイクル <span class="tag">新しい順</span> ${hbtn('qa-assets-view')}</h2>
     ${cycles.length === 0 ? '<div class="hint">「売り注文 → 完了にする」まで済んだ取引がここに並びます。</div>' : cycleRows}
