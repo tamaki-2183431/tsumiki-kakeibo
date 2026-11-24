@@ -66,6 +66,8 @@ nav.tabbar button.on{color:var(--asset);font-weight:700}
 .hint{font-size:11.5px;color:var(--sub)}
 .warnbox{background:var(--warn-soft);border:1px solid #e6d5b8;border-radius:var(--r-s);padding:10px 12px;font-size:12px;color:var(--warn);margin-top:10px}
 .dangerbox{background:var(--danger-soft);border:1px solid #e7c4bf;border-radius:var(--r-s);padding:10px 12px;font-size:12px;color:var(--danger);margin-top:10px}
+.bkrem{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;color:var(--sub);background:var(--surface2);border:1px solid var(--line2);border-radius:10px;padding:9px 12px;margin:0 0 10px}
+.bkrem b{color:var(--ink);font-size:12px;white-space:nowrap}
 .notebox{background:var(--surface2);border:1px solid var(--line2);border-radius:var(--r-s);padding:10px 12px;font-size:12px;color:var(--sub);margin-top:10px}
 .errbox{background:var(--danger-soft);border:1px solid #e7c4bf;border-radius:var(--r-s);padding:10px 12px;font-size:12.5px;color:var(--danger);margin:8px 0}
 .okbox{background:var(--asset-soft);border:1px solid #cfe2d9;border-radius:var(--r-s);padding:10px 12px;font-size:12.5px;color:var(--asset-ink);margin:8px 0}
@@ -806,6 +808,7 @@ function renderHome() {
   if (pend === 0) bricks = '<div class="empty">まだ積み立てはありません</div>';
 
   document.getElementById('scr-home').innerHTML = `
+  ${bkBannerHtml()}
   <div class="card">
     <h2>家計の入力 ${hbtn('qa-home')}</h2>
     <div class="actgrid">
@@ -3035,6 +3038,7 @@ function renderSettings() {
     <h2>バックアップ・復元 <span class="tag">JSON</span> ${hbtn('qa-save')}</h2>
     <div class="hint">家計簿データ・カテゴリ・固定費・取引履歴・通貨マスタ・購入/売却履歴・設定をすべてJSONファイルに出力します。</div>
     <button class="btn primary block mt" onclick="exportBackup()">⬇ JSONでバックアップ</button>
+    <div class="hint mt" id="bk-last">${bkStatusHtml()}</div>
     <label style="margin-top:16px">復元(JSONファイルを選択)</label>
     <input type="file" id="import-file" accept="application/json,.json" onchange="importBackup(this)">
     <div class="dangerbox">復元は現在の全データを<b>上書き</b>します。実行前に確認画面を表示します。</div>
@@ -3089,6 +3093,16 @@ async function applyCurrency(id) {
 }
 
 /* --- バックアップ・復元 --- */
+function lastBackupAt() { const b = ((S.settings || {}).backup || {}).value; return (b && b.at) || ''; }
+function backupDays() { const at = lastBackupAt(); if (!at) return Infinity; const d = new Date(at).getTime(); return isNaN(d) ? Infinity : Math.max(0, Math.floor((Date.now() - d) / 86400000)); }
+function bkStatusHtml() { const at = lastBackupAt(); return at ? '最終バックアップ: <b>' + esc(fmtDateTime(at)) + '</b>' : '<b>まだバックアップを取っていません</b>'; }
+function bkBannerHtml() {
+  if (!(S.txs || []).length) return '';
+  const d = backupDays();
+  if (d < 7) return '';
+  const at = lastBackupAt();
+  return `<div class="bkrem" onclick="go('settings')"><span>${at ? `最終バックアップから ${d} 日` : 'まだバックアップを取っていません'}</span><b>控えを取る →</b></div>`;
+}
 async function exportBackup() {
   const data = { app: 'tsumiki', schemaVersion: 1, exportedAt: new Date().toISOString(), data: {} };
   for (const s of STORES) data.data[s] = await idbAll(s);
@@ -3099,6 +3113,10 @@ async function exportBackup() {
   aEl.download = 'tsumiki-backup-' + todayStr().replace(/-/g, '') + '.json';
   document.body.appendChild(aEl); aEl.click(); aEl.remove();
   setTimeout(() => URL.revokeObjectURL(url), 3000);
+  await idbPut('settings', { id: 'backup', key: 'backup', value: { at: nowLocalTs() } });
+  await loadAll();
+  renderHome();
+  if (currentTab === 'settings') renderSettings();
   toast('バックアップをダウンロードしました');
 }
 function importBackup(input) {
