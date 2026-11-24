@@ -69,6 +69,8 @@ nav.tabbar button.on{color:var(--asset);font-weight:700}
 .bkrem{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;color:var(--sub);background:var(--surface2);border:1px solid var(--line2);border-radius:10px;padding:9px 12px;margin:0 0 10px}
 .bkrem b{color:var(--ink);font-size:12px;white-space:nowrap}
 .tabbar button .navdot{position:absolute;top:7px;right:calc(50% - 18px);width:7px;height:7px;border-radius:50%;background:var(--warn);box-shadow:0 0 0 2px var(--surface)}
+.hrow{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.duprow{display:flex;gap:6px;align-items:center;margin-top:8px}
 .dupgrp{border:1px solid var(--line2);border-radius:10px;padding:8px 10px;margin-bottom:8px;background:var(--surface2)}
 .duphd{font-size:11px;font-weight:700;color:var(--sub);margin-bottom:4px;font-variant-numeric:tabular-nums}
 .catchip{display:inline-flex;align-items:center;gap:8px;margin-top:6px;font-size:11.5px;font-weight:700;color:var(--asset-ink);background:var(--asset-soft);border:1px solid var(--line2);border-radius:999px;padding:5px 12px}
@@ -2405,12 +2407,14 @@ function renderHistory() {
   if (S.histTab === 'buy') body = histBuyHtml();
   if (S.histTab === 'sell') body = histSellHtml();
   const catOpts = S.categories.map(c => `<option value="${c.id}" ${histF.cat === c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
+  const periodSeg = `<div class="seg" style="margin-bottom:8px">${[['month', '月'], ['year', '年'], ['all', 'すべて']].map(([k, l]) =>
+    `<button onclick="histSet('period','${k}')" class="${histF.period === k ? 'on' : ''}">${l}</button>`).join('')}</div>`;
+  const monthNav = `<div class="hrow"><button class="btn sm sub" onclick="navHist(-1)" aria-label="前月">←</button><b>${esc(S.histYm.replace('-', '/'))}</b><button class="btn sm sub" onclick="navHist(1)" aria-label="翌月">→</button></div>`;
+  const yearNav = `<div class="hrow"><button class="btn sm sub" onclick="navHistYear(-1)" aria-label="前年">←</button><b>${histF.year}年</b><button class="btn sm sub" onclick="navHistYear(1)" aria-label="翌年">→</button></div>`;
   const inner = S.histTab === 'tx'
-    ? `<div class="srch"><input id="hist-q" type="search" placeholder="店舗名・商品名・メモ・金額で検索" value="${esc(histQ)}" oninput="histSearch(this.value,event)" oncompositionend="histSearch(this.value)"></div>
-      <div class="chips">${[['all', '全期間'], ['year', '今年'], ['last', '去年'], ['month', 'この月']].map(([k, l]) =>
-        `<button class="chip ${histF.period === k ? 'on' : ''}" onclick="histSet('period','${k}')">${l}</button>`).join('')}
-        <button class="chip ${histF.dup ? 'on' : ''}" onclick="histSet('dup','${histF.dup ? 'false' : 'true'}')">重複の疑い${dupCount() ? '(' + dupCount() + ')' : ''}</button>
-        <button class="chip reset" onclick="histReset()">クリア</button></div>
+    ? `${periodSeg}${histF.period === 'month' ? monthNav : histF.period === 'year' ? yearNav : ''}
+      <div class="srch"><input id="hist-q" type="search" placeholder="店舗名・商品名・メモ・金額で検索" value="${esc(histQ)}" oninput="histSearch(this.value,event)" oncompositionend="histSearch(this.value)"></div>
+      <div class="duprow"><button class="chip ${histF.dup ? 'on' : ''}" onclick="histSet('dup','${histF.dup ? 'false' : 'true'}')">重複の疑い${dupCount() ? '(' + dupCount() + ')' : ''}</button>${(histQ || histF.cat || histF.pay || histF.period !== 'month') ? `<button class="chip reset" onclick="histReset()">クリア</button>` : ''}</div>
       <div class="frow">
         <select onchange="histSet('cat',this.value)"><option value="">カテゴリ: すべて</option>${catOpts}</select>
         <select onchange="histSet('pay',this.value)"><option value="">支払: すべて</option>${PAY_METHODS.map(m => `<option ${histF.pay === m ? 'selected' : ''}>${m}</option>`).join('')}</select>
@@ -2420,36 +2424,31 @@ function renderHistory() {
           <option value="low" ${histF.sort === 'low' ? 'selected' : ''}>金額が安い順</option>
         </select></div>
       <div id="hist-list">${body}</div>`
-    : body;
+    : `${monthNav}${body}`;
   document.getElementById('scr-history').innerHTML = `
     <div class="seg">${tabs.map(([id, l]) => `<button onclick="S.histTab='${id}';renderHistory()" class="${S.histTab === id ? 'on' : ''}">${l}</button>`).join('')}</div>
-    <div class="card" style="padding:12px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-        <button class="btn sm sub" onclick="navHist(-1)">←</button>
-        <b>${esc(S.histYm.replace('-', '/'))}</b>
-        <button class="btn sm sub" onclick="navHist(1)">→</button>
-      </div>${inner}</div>`;
+    <div class="card" style="padding:12px">${inner}</div>`;
 }
 function navHist(d) {
   const [y, m] = S.histYm.split('-').map(Number);
   const dt = new Date(y, m - 1 + d, 1);
   S.histYm = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0');
+  histF.period = 'month';
   renderHistory();
 }
 let histQ = '';
-let histF = { period: 'all', cat: '', pay: '', sort: 'new', dup: false };
+let histF = { period: 'month', year: new Date().getFullYear(), cat: '', pay: '', sort: 'new', dup: false };
 function histSearch(q, ev) {
   if (ev && ev.isComposing) return; histQ = v || ''; histListRefresh(); }
 function histSet(k, v) { histF[k] = v === 'true' ? true : v === 'false' ? false : v; histListRefresh(); }
-function histReset() { histQ = ''; histF = { period: 'all', cat: '', pay: '', sort: 'new', dup: false }; renderHistory(); }
+function histReset() { histQ = ''; histF = { period: 'month', year: new Date().getFullYear(), cat: '', pay: '', sort: 'new', dup: false }; renderHistory(); }
 function histListRefresh() { const el = document.getElementById('hist-list'); if (el) el.innerHTML = histTxHtml(); }
 function histRange() {
-  const y = new Date().getFullYear();
-  if (histF.period === 'year') return [y + '-01-01', y + '-12-31'];
-  if (histF.period === 'last') return [(y - 1) + '-01-01', (y - 1) + '-12-31'];
   if (histF.period === 'month') return [S.histYm + '-01', S.histYm + '-31'];
+  if (histF.period === 'year') return [histF.year + '-01-01', histF.year + '-12-31'];
   return null;
 }
+function navHistYear(d) { histF.year = Number(histF.year || new Date().getFullYear()) + d; histF.period = 'year'; renderHistory(); }
 function dupGroups() {
   const map = new Map();
   (S.txs || []).forEach(t => {
@@ -2477,28 +2476,28 @@ function histDupHtml() {
 function histTxHtml() {
   if (histF.dup) return histDupHtml();
   const q = (histQ || '').trim().toLowerCase();
-  const filtering = !!q || histF.period !== 'all' || !!histF.cat || !!histF.pay || histF.sort !== 'new';
   let list = S.txs.slice();
-  if (!filtering) {
-    list = list.filter(t => t.date.slice(0, 7) === S.histYm);
-  } else {
-    const rg = histRange();
-    if (rg) list = list.filter(t => t.date >= rg[0] && t.date <= rg[1]);
-    if (histF.cat) list = list.filter(t => t.categoryId === histF.cat);
-    if (histF.pay) list = list.filter(t => (t.paymentMethod || '') === histF.pay);
-    if (q) list = list.filter(t => {
-      const hay = [t.shop, t.item, t.memo, t.shopAddr, t.shopTel, catName(t.categoryId), t.paymentMethod, t.date,
-        t.type === 'expense' ? '支出' : '収入', String(t.amount)].join(' ').toLowerCase();
-      return hay.indexOf(q) >= 0;
-    });
-    if (histF.sort === 'high') list.sort((a, b) => b.amount - a.amount);
-    else if (histF.sort === 'low') list.sort((a, b) => a.amount - b.amount);
-    else list.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
-  }
+  const rg = histRange();
+  if (rg) list = list.filter(t => t.date >= rg[0] && t.date <= rg[1]);
+  if (histF.cat) list = list.filter(t => t.categoryId === histF.cat);
+  if (histF.pay) list = list.filter(t => (t.paymentMethod || '') === histF.pay);
+  if (q) list = list.filter(t => {
+    const hay = [t.shop, t.item, t.memo, t.shopAddr, t.shopTel, catName(t.categoryId), t.paymentMethod, t.date,
+      t.type === 'expense' ? '支出' : '収入', String(t.amount)].join(' ').toLowerCase();
+    return hay.indexOf(q) >= 0;
+  });
+  if (histF.sort === 'high') list.sort((a, b) => b.amount - a.amount);
+  else if (histF.sort === 'low') list.sort((a, b) => a.amount - b.amount);
+  else list.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
   const exp = list.filter(t => t.type === 'expense').reduce((a, t) => a + t.amount, 0);
   const inc = list.filter(t => t.type === 'income').reduce((a, t) => a + t.amount, 0);
-  if (list.length === 0) return '<div class="hint">条件に一致する記録はありません。絞り込みを変えてお試しください。</div>';
-  const head = `<div class="hint" style="margin-bottom:6px">${filtering ? '絞り込み結果' : 'この月'} <b>${list.length}件</b> ・ 支出 ${fmtYen(exp)} ・ 収入 ${fmtYen(inc)}</div>`;
+  const label = histF.period === 'month' ? S.histYm.replace('-', '/') + ' の記録' : histF.period === 'year' ? histF.year + ' 年の記録' : '全期間の記録';
+  if (list.length === 0) {
+    const cond = [histF.cat ? 'カテゴリ' : '', histF.pay ? '支払方法' : '', q ? '検索語' : ''].filter(Boolean).join('・');
+    return `<div class="hint">${label}はありません。${cond ? cond + 'の条件も含みます。' : ''}</div>` +
+      (histF.period !== 'all' ? `<button class="btn sm sub mt" onclick="histSet('period','all')">すべての期間を見る</button>` : '');
+  }
+  const head = `<div class="hint" style="margin-bottom:6px">${label} <b>${list.length}件</b> ・ 支出 ${fmtYen(exp)} ・ 収入 ${fmtYen(inc)}</div>`;
   return head + recentTxHtml(list);
 }
 /* --- 記録の詳細モーダル(履歴から) --- */
