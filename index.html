@@ -52,7 +52,7 @@ nav.tabbar{
   padding-bottom:env(safe-area-inset-bottom,0px);
   background:var(--surface);border-top:1px solid var(--line);display:flex;
 }
-nav.tabbar button{
+nav.tabbar button{position:relative
   flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
   font-size:10.5px;color:var(--sub);padding-top:7px;
 }
@@ -68,6 +68,7 @@ nav.tabbar button.on{color:var(--asset);font-weight:700}
 .dangerbox{background:var(--danger-soft);border:1px solid #e7c4bf;border-radius:var(--r-s);padding:10px 12px;font-size:12px;color:var(--danger);margin-top:10px}
 .bkrem{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;color:var(--sub);background:var(--surface2);border:1px solid var(--line2);border-radius:10px;padding:9px 12px;margin:0 0 10px}
 .bkrem b{color:var(--ink);font-size:12px;white-space:nowrap}
+.tabbar button .navdot{position:absolute;top:7px;right:calc(50% - 18px);width:7px;height:7px;border-radius:50%;background:var(--warn);box-shadow:0 0 0 2px var(--surface)}
 .notebox{background:var(--surface2);border:1px solid var(--line2);border-radius:var(--r-s);padding:10px 12px;font-size:12px;color:var(--sub);margin-top:10px}
 .errbox{background:var(--danger-soft);border:1px solid #e7c4bf;border-radius:var(--r-s);padding:10px 12px;font-size:12.5px;color:var(--danger);margin:8px 0}
 .okbox{background:var(--asset-soft);border:1px solid #cfe2d9;border-radius:var(--r-s);padding:10px 12px;font-size:12.5px;color:var(--asset-ink);margin:8px 0}
@@ -756,6 +757,7 @@ function renderTab(tab) {
   if (tab === 'help') renderHelp();
   if (tab === 'xrphist') renderXrpHist();
   updateMiniPrice();
+  updateNavDot();
 }
 function buildTabbar() {
   const nav = document.getElementById('tabbar');
@@ -809,6 +811,7 @@ function renderHome() {
 
   document.getElementById('scr-home').innerHTML = `
   ${bkBannerHtml()}
+  ${orderAlertHtml()}
   <div class="card">
     <h2>家計の入力 ${hbtn('qa-home')}</h2>
     <div class="actgrid">
@@ -3092,6 +3095,48 @@ async function applyCurrency(id) {
   await loadAll(); closeModal(); toast('通貨設定を保存しました'); renderSettings();
 }
 
+/* --- 注文アラート(まもなく/到達) --- */
+function orderAlerts() {
+  const res = { hit: [], near: [] };
+  if (!assetModeOn()) return res;
+  const a = activeAsset();
+  if (!a) return res;
+  const price = Number((S.priceCache[a.id] || {}).last || 0);
+  if (!(price > 0)) return res;
+  S.purchaseOrders.filter(o => (o.status || 'open') === 'open').forEach(o => {
+    const rate = Number(o.rate) || 0;
+    if (!(rate > 0)) return;
+    if (price <= rate) res.hit.push(o);
+    else if ((price - rate) / rate <= 0.02) res.near.push(o);
+  });
+  return res;
+}
+function orderAlertHtml() {
+  const al = orderAlerts();
+  const n = al.hit.length + al.near.length;
+  if (!n) return '';
+  const a = activeAsset();
+  const price = Number(((S.priceCache[a.id] || {}).last) || 0);
+  const items = [...al.hit.map(o => ({ o, hit: true })), ...al.near.map(o => ({ o, hit: false }))].slice(0, 4);
+  return `<div class="card">
+    <h2>注文の確認 <span class="tag">${n}件</span> ${hbtn('qa-assets-view')}</h2>
+    ${items.map(({ o, hit }) => `<div class="lrow tap" onclick="go('asset')">
+      <div class="ico ${hit ? 'buy' : 'exp'}">${hit ? '約' : '近'}</div>
+      <div class="mid"><div class="t">${hit ? '約定(価格到達)' : 'まもなく'} ・ 注文 ${fmtYen3(o.rate)}</div>
+      <div class="d">現在 ${fmtYen3(price)}${hit ? ' ・ 確定待ち' : ' ・ あと ' + fmtYen3(price - Number(o.rate))}</div></div>
+      <div class="amt">${fmtQty(o.qty, 3)} ${esc(a.code)}</div></div>`).join('')}
+    <div class="hint mt">XRPタブで注文の確定・取り消しができます。</div>
+  </div>`;
+}
+function updateNavDot() {
+  const btn = document.querySelector('nav.tabbar button[data-tab="asset"]');
+  if (!btn) return;
+  const al = orderAlerts();
+  const n = al.hit.length + al.near.length;
+  let dot = btn.querySelector('.navdot');
+  if (n > 0) { if (!dot) { dot = document.createElement('i'); dot.className = 'navdot'; btn.appendChild(dot); } }
+  else if (dot) dot.remove();
+}
 /* --- バックアップ・復元 --- */
 function lastBackupAt() { const b = ((S.settings || {}).backup || {}).value; return (b && b.at) || ''; }
 function backupDays() { const at = lastBackupAt(); if (!at) return Infinity; const d = new Date(at).getTime(); return isNaN(d) ? Infinity : Math.max(0, Math.floor((Date.now() - d) / 86400000)); }
