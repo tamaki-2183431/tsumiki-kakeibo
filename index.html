@@ -2179,12 +2179,25 @@ function setShopQ(src, ev) {
 function shopNorm(x) {
   return String(x || '').normalize('NFKC').toLowerCase().replace(/[\u30a1-\u30f6]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0x60));
 }
+function queryVariants(q) {
+  const base = shopNorm(String(q || '').trim());
+  const out = [];
+  if (base) out.push(base);
+  const t = base.replace(/[a-z]+$/, '');
+  if (t && t !== base) out.push(t);
+  return out;
+}
+function queryHit(hay, variants) {
+  if (!variants.length) return true;
+  const h = shopNorm(hay);
+  return variants.some(v => h.indexOf(v) >= 0);
+}
 function shopListInner() {
   const all = shopRows();
-  const q = shopNorm((shopQ || '').trim());
-  const list = q ? all.filter(r => shopNorm([r.name, r.kana, r.addr, r.tel].join(' ')).indexOf(q) >= 0) : all;
+  const qs = queryVariants(shopQ);
+  const list = qs.length ? all.filter(r => queryHit([r.name, r.kana, r.addr, r.tel].join(' '), qs)) : all;
   const spent = all.reduce((a, r) => a + r.total, 0);
-  return `<div class="hint" style="margin:6px 0">${q ? '検索結果 <b>' + list.length + '件</b>' : '登録した支出の店舗を<b>50音順</b>に表示'} ・ 支出合計 ${fmtYen(spent)}</div>
+  return `<div class="hint" style="margin:6px 0">${qs.length ? '検索結果 <b>' + list.length + '件</b>' : '登録した支出の店舗を<b>50音順</b>に表示'} ・ 支出合計 ${fmtYen(spent)}</div>
     ${list.length ? list.map(r => `<div class="lrow tap" data-k="${esc(r.k)}" onclick="openShopDetail(this.dataset.k)">
       <div class="ico exp">店</div>
       <div class="mid"><div class="t">${esc(r.name)}${r.kana ? ' <span class="hint" style="display:inline">' + esc(r.kana) + '</span>' : ''}</div>
@@ -2449,8 +2462,7 @@ function navHist(d) {
 }
 let histQ = '';
 let histF = { period: 'month', year: new Date().getFullYear(), cat: '', pay: '', sort: 'new', dup: false };
-function histSearch(q, ev) {
-  if (ev && ev.isComposing) return; histQ = q || ''; histListRefresh(); }
+function histSearch(q) { histQ = q || ''; histListRefresh(); }
 function histSet(k, v) { histF[k] = v === 'true' ? true : v === 'false' ? false : v; renderHistory(); }
 function histReset() { histQ = ''; histF = { period: 'month', year: new Date().getFullYear(), cat: '', pay: '', sort: 'new', dup: false }; renderHistory(); }
 function histListRefresh() { const el = document.getElementById('hist-list'); if (el) el.innerHTML = histTxHtml(); }
@@ -2505,17 +2517,14 @@ function histRangeLabel() {
 }
 function histFilteredList() {
   if (histF.dup) return dupGroups().flat();
-  const q = (histQ || '').trim().toLowerCase();
+  const qs = queryVariants(histQ);
   let list = S.txs.slice();
   const rg = histRange();
   if (rg) list = list.filter(t => t.date >= rg[0] && t.date <= rg[1]);
   if (histF.cat) list = list.filter(t => t.categoryId === histF.cat);
   if (histF.pay) list = list.filter(t => (t.paymentMethod || '') === histF.pay);
-  if (q) list = list.filter(t => {
-    const hay = [t.shop, t.item, t.memo, t.shopAddr, t.shopTel, catName(t.categoryId), t.paymentMethod, t.date,
-      t.type === 'expense' ? '支出' : '収入', String(t.amount)].join(' ').toLowerCase();
-    return hay.indexOf(q) >= 0;
-  });
+  if (qs.length) list = list.filter(t => queryHit([t.shop, t.item, t.memo, t.shopAddr, t.shopTel, catName(t.categoryId), t.paymentMethod, t.date,
+      t.type === 'expense' ? '支出' : '収入', String(t.amount)].join(' '), qs));
   if (histF.sort === 'high') list.sort((a, b) => b.amount - a.amount);
   else if (histF.sort === 'low') list.sort((a, b) => a.amount - b.amount);
   else list.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
@@ -2523,7 +2532,7 @@ function histFilteredList() {
 }
 function histTxHtml() {
   if (histF.dup) return histDupHtml();
-  const q = (histQ || '').trim().toLowerCase();
+  const q = (histQ || '').trim();
   const list = histFilteredList();
   const exp = list.filter(t => t.type === 'expense').reduce((a, t) => a + t.amount, 0);
   const inc = list.filter(t => t.type === 'income').reduce((a, t) => a + t.amount, 0);
