@@ -3257,12 +3257,12 @@ function soCalc() {
   document.getElementById('so-rate').textContent = rate ? fmtYen(rate) : '---';
   const diff = rate ? Math.max(0, p.actualQty - p.amountJPY / rate) : 0;
   const profit = rate ? Math.max(0, Math.round(p.actualQty * rate - p.amountJPY)) : 0;
-  document.getElementById('so-diff').innerHTML = rate
-    ? `${coinGainText(diff, rate, esc(a.code))}<span class="hint" style="margin:0;display:inline"> (${fmtQty(diff, a.qtyDecimals)} ${esc(a.code)}・¥${profit}相当)</span>`
-    : '---';
+  document.getElementById('so-diff').textContent = rate ? coinGainText(diff, rate, a.code) : '---';
   const minQ = Number(a.minOrderQty) || 1;
   const note = document.getElementById('so-diffnote');
-  if (note) note.innerHTML = (rate && diff > 0 && diff < minQ) ? `<div class="hint">売却で受け取るのは<b>円</b>です。${esc(a.code)}の差額 ${fmtQty(diff, a.qtyDecimals)}枚は最小注文数量 ${fmtQty(minQ, a.qtyDecimals)}枚に満たないため、そのままでは買い足せません(次回以降の買い注文と合算してください)。</div>` : '';
+  if (note) note.innerHTML = rate
+    ? `<div class="hint">${fmtQty(diff, a.qtyDecimals)} ${esc(a.code)}・¥${fmtYen(profit)}相当${(diff > 0 && diff < minQ) ? '<br>売却で受け取るのは円です。1 ' + esc(a.code) + '未満の端数はそのままでは買い足せないため、次回以降の買い注文と合算してください。' : ''}</div>`
+    : '';
   document.getElementById('so-c-qty').textContent = rate ? String(p.actualQty) : '---';
   document.getElementById('so-c-rate').textContent = rate ? rate.toFixed(a.priceDecimals) : '---';
 }
