@@ -2802,7 +2802,7 @@ function xrpPriceHtml(a) {
   </div>`;
 }
 /* --- 日足チャート(買い注文価格を点線で重ねる) --- */
-const XRP_CHART_DAYS = 90;
+const XRP_CHART_DAYS = 7;
 let xrpChartCache = {};
 let xrpChartBusy = {};
 function xrpChartHtml(a) {
@@ -2852,10 +2852,16 @@ async function loadXrpChart(a) {
   if (xrpChartBusy[a.id]) return;
   xrpChartBusy[a.id] = true;
   try {
-    const u = 'https://api.coingecko.com/api/v3/coins/ripple/market_chart?vs_currency=jpy&days=' + XRP_CHART_DAYS + '&interval=daily';
+    const u = 'https://api.coingecko.com/api/v3/coins/ripple/market_chart?vs_currency=jpy&days=' + XRP_CHART_DAYS;
     const r = await fetchWithTimeout(u, 12000);
     const j = await r.json();
-    const pts = (j.prices || []).map(x => [Number(x[0]), Number(x[1])]).filter(x => x[1] > 0);
+    // 7日分は時間足で返るため、各日の最終値だけ残して日足にする
+    const byDay = new Map();
+    (j.prices || []).map(x => [Number(x[0]), Number(x[1])]).filter(x => x[1] > 0).forEach(p => {
+      const d = new Date(p[0]);
+      byDay.set(d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(), p);
+    });
+    const pts = [...byDay.values()];
     if (!pts.length) throw new Error('no data');
     xrpChartCache[a.id] = { at: Date.now(), pts };
   } catch (e) {
