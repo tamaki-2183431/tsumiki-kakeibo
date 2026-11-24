@@ -69,6 +69,8 @@ nav.tabbar button.on{color:var(--asset);font-weight:700}
 .bkrem{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;color:var(--sub);background:var(--surface2);border:1px solid var(--line2);border-radius:10px;padding:9px 12px;margin:0 0 10px}
 .bkrem b{color:var(--ink);font-size:12px;white-space:nowrap}
 .tabbar button .navdot{position:absolute;top:7px;right:calc(50% - 18px);width:7px;height:7px;border-radius:50%;background:var(--warn);box-shadow:0 0 0 2px var(--surface)}
+.dupgrp{border:1px solid var(--line2);border-radius:10px;padding:8px 10px;margin-bottom:8px;background:var(--surface2)}
+.duphd{font-size:11px;font-weight:700;color:var(--sub);margin-bottom:4px;font-variant-numeric:tabular-nums}
 .catchip{display:inline-flex;align-items:center;gap:8px;margin-top:6px;font-size:11.5px;font-weight:700;color:var(--asset-ink);background:var(--asset-soft);border:1px solid var(--line2);border-radius:999px;padding:5px 12px}
 .catchip span{font-weight:600;color:var(--sub);font-size:10.5px}
 .notebox{background:var(--surface2);border:1px solid var(--line2);border-radius:var(--r-s);padding:10px 12px;font-size:12px;color:var(--sub);margin-top:10px}
@@ -2407,6 +2409,7 @@ function renderHistory() {
     ? `<div class="srch"><input id="hist-q" type="search" placeholder="店舗名・商品名・メモ・金額で検索" value="${esc(histQ)}" oninput="histSearch(this.value,event)" oncompositionend="histSearch(this.value)"></div>
       <div class="chips">${[['all', '全期間'], ['year', '今年'], ['last', '去年'], ['month', 'この月']].map(([k, l]) =>
         `<button class="chip ${histF.period === k ? 'on' : ''}" onclick="histSet('period','${k}')">${l}</button>`).join('')}
+        <button class="chip ${histF.dup ? 'on' : ''}" onclick="histSet('dup','${histF.dup ? 'false' : 'true'}')">重複の疑い${dupCount() ? '(' + dupCount() + ')' : ''}</button>
         <button class="chip reset" onclick="histReset()">クリア</button></div>
       <div class="frow">
         <select onchange="histSet('cat',this.value)"><option value="">カテゴリ: すべて</option>${catOpts}</select>
@@ -2434,11 +2437,11 @@ function navHist(d) {
   renderHistory();
 }
 let histQ = '';
-let histF = { period: 'all', cat: '', pay: '', sort: 'new' };
+let histF = { period: 'all', cat: '', pay: '', sort: 'new', dup: false };
 function histSearch(q, ev) {
   if (ev && ev.isComposing) return; histQ = v || ''; histListRefresh(); }
-function histSet(k, v) { histF[k] = v; histListRefresh(); }
-function histReset() { histQ = ''; histF = { period: 'all', cat: '', pay: '', sort: 'new' }; renderHistory(); }
+function histSet(k, v) { histF[k] = v === 'true' ? true : v === 'false' ? false : v; histListRefresh(); }
+function histReset() { histQ = ''; histF = { period: 'all', cat: '', pay: '', sort: 'new', dup: false }; renderHistory(); }
 function histListRefresh() { const el = document.getElementById('hist-list'); if (el) el.innerHTML = histTxHtml(); }
 function histRange() {
   const y = new Date().getFullYear();
@@ -2447,7 +2450,32 @@ function histRange() {
   if (histF.period === 'month') return [S.histYm + '-01', S.histYm + '-31'];
   return null;
 }
+function dupGroups() {
+  const map = new Map();
+  (S.txs || []).forEach(t => {
+    const k = t.type + '|' + txDupKey(t);
+    if (!map.has(k)) map.set(k, []);
+    map.get(k).push(t);
+  });
+  return [...map.values()].filter(g => g.length > 1);
+}
+function dupCount() { return dupGroups().reduce((s, g) => s + g.length, 0); }
+function histDupHtml() {
+  const groups = dupGroups();
+  if (!groups.length) return '<div class="hint">重複の疑いがある記録はありません。同じ日付・金額・店舗の記録が2件以上になると、ここに表示されます。</div>';
+  const n = groups.reduce((s, g) => s + g.length, 0);
+  return `<div class="hint" style="margin-bottom:8px"><b>${groups.length}組 ${n}件</b> ・ 同じ日付・金額・店舗の記録です。行をタップすると詳細から削除できます。</div>` +
+    groups.map(g => `<div class="dupgrp">
+      <div class="duphd">${esc(g[0].date)} ・ ${esc(g[0].shop || '(店舗名なし)')} ・ ${fmtYen(g[0].amount)} ・ ${g.length}件</div>
+      ${g.slice().sort((a, b) => String(a.createdAt || '').localeCompare(String(b.createdAt || ''))).map(t => `<div class="lrow tap" onclick="openTxDetail('${t.id}')">
+        <div class="ico ${t.type === 'expense' ? 'exp' : 'inc'}">${t.type === 'expense' ? '支' : '収'}</div>
+        <div class="mid"><div class="t">${esc(catName(t.categoryId))}${t.item ? '・' + esc(t.item) : ''}</div>
+        <div class="d">${esc(t.date)}${t.paymentMethod ? ' ・ ' + esc(t.paymentMethod) : ''}${t.createdAt ? ' ・ 登録 ' + esc(String(t.createdAt).slice(11, 16)) : ''}</div></div>
+        <div class="amt spend">${fmtYen(t.amount)}</div></div>`).join('')}
+    </div>`).join('');
+}
 function histTxHtml() {
+  if (histF.dup) return histDupHtml();
   const q = (histQ || '').trim().toLowerCase();
   const filtering = !!q || histF.period !== 'all' || !!histF.cat || !!histF.pay || histF.sort !== 'new';
   let list = S.txs.slice();
