@@ -2439,8 +2439,8 @@ function navHist(d) {
 let histQ = '';
 let histF = { period: 'month', year: new Date().getFullYear(), cat: '', pay: '', sort: 'new', dup: false };
 function histSearch(q, ev) {
-  if (ev && ev.isComposing) return; histQ = v || ''; histListRefresh(); }
-function histSet(k, v) { histF[k] = v === 'true' ? true : v === 'false' ? false : v; histListRefresh(); }
+  if (ev && ev.isComposing) return; histQ = q || ''; histListRefresh(); }
+function histSet(k, v) { histF[k] = v === 'true' ? true : v === 'false' ? false : v; renderHistory(); }
 function histReset() { histQ = ''; histF = { period: 'month', year: new Date().getFullYear(), cat: '', pay: '', sort: 'new', dup: false }; renderHistory(); }
 function histListRefresh() { const el = document.getElementById('hist-list'); if (el) el.innerHTML = histTxHtml(); }
 function histRange() {
