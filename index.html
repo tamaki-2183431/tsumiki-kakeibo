@@ -2912,6 +2912,7 @@ async function loadXrpChart(a) {
   } catch (e) {
     xrpChartCache[a.id] = { at: Date.now(), candles: [] };
   } finally { xrpChartBusy[a.id] = false; }
+  if (markTouchedOrders() > 0) renderAsset();
   const box = document.getElementById('xrp-chart');
   if (box) {
     const c = xrpChartCache[a.id];
@@ -2960,7 +2961,28 @@ function xrpPendingHtml(a) {
 }
 function togglePend(id) { if (xrpSel.has(id)) xrpSel.delete(id); else xrpSel.add(id); renderAsset(); }
 /* --- 買い注文(買い注文中) --- */
+function orderLowRef(o, a) {
+  const pc = S.priceCache[a.id] || {};
+  let lo = Math.min(Number(pc.low) || Infinity, Number(pc.last) || Infinity);
+  const made = String(o.createdAt || '').slice(0, 10);
+  const c = xrpChartCache[a.id];
+  if (c && c.candles) c.candles.forEach(k => {
+    if (!made || !k.t || String(new Date(k.t).getFullYear()) + '-' + String(new Date(k.t).getMonth() + 1).padStart(2, '0') + '-' + String(new Date(k.t).getDate()).padStart(2, '0') >= made) lo = Math.min(lo, Number(k.l) || Infinity);
+  });
+  return lo;
+}
+function orderTouched(o, a) { return !!o.touchedAt || orderLowRef(o, a) <= Number(o.rate) * 1.000001; }
+function markTouchedOrders() {
+  const a = activeAsset(); if (!a) return 0;
+  let n = 0;
+  S.purchaseOrders.forEach(o => {
+    if ((o.status || 'open') !== 'open' || o.touchedAt) return;
+    if (orderLowRef(o, a) <= Number(o.rate) * 1.000001) { o.touchedAt = nowLocalTs(); idbPut('purchaseOrders', o); n++; }
+  });
+  return n;
+}
 function xrpBuyOrdersHtml(a) {
+  markTouchedOrders();
   const pc = S.priceCache[a.id] || {};
   const price = Number(pc.last || 0);
   const NEAR_GAP = 0.02;
@@ -2969,7 +2991,7 @@ function xrpBuyOrdersHtml(a) {
     .sort((x, y) => (gapOf(x) - gapOf(y)) || String(y.createdAt || '').localeCompare(String(x.createdAt || '')));
   if (!orders.length) return '';
   return orders.map(o => {
-    const filled = price > 0 && price <= Number(o.rate);
+    const filled = orderTouched(o, a);
     const names = (o.reserveIds || []).map(id => { const r = S.reserves.find(x => x.id === id); return r ? xrpTxLabel(r) : null; }).filter(Boolean);
     const rate = Number(o.rate) || 0;
     const near = !filled && price > 0 && rate > 0 && (price - rate) / rate <= NEAR_GAP;
