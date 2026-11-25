@@ -3045,7 +3045,8 @@ function openBuyOrderSheet(id) {
          <button class="btn primary block mt" onclick="sheetFillBuy('${o.id}')">約定を確定して売り注文へ →</button>
          <button class="btn sm sub block mt" onclick="sheetClearTouch('${o.id}')">GMOで約定していない → 注文中に戻す</button>
          <button class="btn sm sub block mt" onclick="sheetDeleteBuy('${o.id}')">注文を取り消す</button>`
-      : `<div class="hint" style="margin-top:10px">${gap != null ? (gap > 0 ? `現在値は指値より ${fmtYen3(gap)} 高い状態です。` : '現在値は指値以下です。') : ''}GMOコインで約定したら、この画面から確定してください。</div>
+      : `<div class="hint" style="margin-top:10px">${gap != null ? (gap > 0 ? `現在値は指値より ${fmtYen3(gap)} 高い状態です。` : '現在値は指値以下です。') : ''}GMOコインで約定していたら、この画面から確定できます(自動検知を待たずに記録できます)。</div>
+         <button class="btn primary block mt" onclick="sheetFillBuy('${o.id}')">約定を確定して売り注文へ →</button>
          <button class="btn sm sub block mt" onclick="sheetDeleteBuy('${o.id}')">注文を取り消す</button>`}
     <button class="btn sub block mt" onclick="closeModal()">閉じる</button>`);
 }
