@@ -176,6 +176,7 @@ table.tbl td.r,table.tbl th.r{text-align:right}
 .pill .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
 /* chart */
 .chart{width:100%}
+.legend .lgsub{font-size:11px;color:var(--sub);margin-left:auto}
 .legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:8px;font-size:11.5px;color:var(--sub)}
 .legend .sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
 .bar{height:8px;border-radius:5px;background:var(--asset);min-width:2px}
@@ -1810,12 +1811,25 @@ function ledgerDayCardHtml(days, ym) {
     if (d.day === 1 || d.day % 5 === 0 || d.day === days.length)
       bars += `<text x="${(x + bw).toFixed(1)}" y="${DH - 11}" text-anchor="middle" font-size="10" fill="var(--sub)">${d.day}</text>`;
   });
+  const cx = i => dpad + i * stepX + Math.max(0, (stepX - bw * 2 - 1) / 2) + bw + 0.5;
+  const cy = v => DH - 30 - Math.round(v / maxD * plotH);
+  const linePath = key => days.map((d, i) => `${cx(i).toFixed(1)},${cy(d[key]).toFixed(1)}`).join(' ');
+  let dots = '';
+  days.forEach((d, i) => {
+    if (!d.count) return;
+    if (d.expense > 0) dots += `<circle cx="${cx(i).toFixed(1)}" cy="${cy(d.expense)}" r="2" fill="var(--spend)" stroke="var(--surface)" stroke-width="1"/>`;
+    if (d.income > 0) dots += `<circle cx="${cx(i).toFixed(1)}" cy="${cy(d.income)}" r="2" fill="var(--income)" stroke="var(--surface)" stroke-width="1"/>`;
+  });
+  const axis = `<line x1="${dpad}" y1="${DH - 30}" x2="${DW - 6}" y2="${DH - 30}" stroke="var(--line2)" stroke-width="1"/>`;
+  const lines = `<polyline points="${linePath('expense')}" fill="none" stroke="var(--spend)" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" opacity="0.85"/>`
+    + `<polyline points="${linePath('income')}" fill="none" stroke="var(--income)" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" opacity="0.85"/>`;
   return `
   <div class="card">
     <h2>日ごとの収支 <span class="tag">${esc(ym.replace('-', '/'))}</span> ${hbtn('qa-summary-tabs')}</h2>
-    <svg class="chart" viewBox="0 0 ${DW} ${DH}" role="img" aria-label="日別収支グラフ">${bars}</svg>
+    <svg class="chart" viewBox="0 0 ${DW} ${DH}" role="img" aria-label="日別収支グラフ(棒+折れ線)">${bars}${lines}${dots}${axis}</svg>
     <div class="legend"><span><span class="sw" style="background:var(--spend)"></span>支出</span>
-    <span><span class="sw" style="background:var(--income)"></span>収入</span></div>
+    <span><span class="sw" style="background:var(--income)"></span>収入</span>
+    <span class="lgsub">棒=日ごとの金額 / 折れ線=同じ金額の推移</span></div>
     ${active.length === 0 ? '<div class="hint">この月の記録はまだありません。記録タブから支出・収入を登録できます。</div>' : active.map(d => {
       const wd = WD[new Date(d.date + 'T00:00:00').getDay()];
       return `<div class="lrow tap" onclick="openDayDetail('${d.date}')">
