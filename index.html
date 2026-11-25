@@ -3043,7 +3043,8 @@ function openBuyOrderSheet(id) {
     ${filled
       ? `<div class="hint" style="margin-top:10px">${o.touchedLow != null ? `作成後の安値 <b>${fmtYen3(o.touchedLow)}</b> が指値 <b>${fmtYen3(rate)}</b> 以下になったため到達として記録しています(GMOの約定とは別です)。` : '指値に触れた記録があります。'}実際の約定をGMOコインで確認し、この画面から確定してください。</div>
          <button class="btn primary block mt" onclick="sheetFillBuy('${o.id}')">約定を確定して売り注文へ →</button>
-         <button class="btn sm sub block mt" onclick="sheetClearTouch('${o.id}')">GMOで約定していない → 注文中に戻す</button>`
+         <button class="btn sm sub block mt" onclick="sheetClearTouch('${o.id}')">GMOで約定していない → 注文中に戻す</button>
+         <button class="btn sm sub block mt" onclick="sheetDeleteBuy('${o.id}')">注文を取り消す</button>`
       : `<div class="hint" style="margin-top:10px">${gap != null ? (gap > 0 ? `現在値は指値より ${fmtYen3(gap)} 高い状態です。` : '現在値は指値以下です。') : ''}GMOコインで約定したら、この画面から確定してください。</div>
          <button class="btn sm sub block mt" onclick="sheetDeleteBuy('${o.id}')">注文を取り消す</button>`}
     <button class="btn sub block mt" onclick="closeModal()">閉じる</button>`);
@@ -3063,7 +3064,7 @@ function xrpBuyOrdersHtml(a) {
     const rate = Number(o.rate) || 0;
     const near = !filled && price > 0 && rate > 0 && (price - rate) / rate <= NEAR_GAP;
     return `<div class="card cyc buyord tap" onclick="openBuyOrderSheet('${o.id}')">
-      <div class="badgeline"><span class="badge ${filled ? 'b-warn' : 'b-buy'}">${filled ? '指値到達(要確定)' : '買い注文中'}</span>${near ? '<span class="soonpill">まもなく</span>' : ''}${filled ? '' : `<button class="xbtn" aria-label="買い注文を取り消す" onclick="event.stopPropagation();deleteBuyOrder('${o.id}')">×</button>`}</div>
+      <div class="badgeline"><span class="badge ${filled ? 'b-warn' : 'b-buy'}">${filled ? '指値到達(要確定)' : '買い注文中'}</span>${near ? '<span class="soonpill">まもなく</span>' : ''}</div>
       <div class="head"><span class="name">${names.length ? esc(names.slice(0, 2).join('・')) + (names.length > 2 ? ` ほか${names.length - 2}件` : '') : '買い注文'}</span>
         <span class="amt">${fmtYen(o.amount)}</span></div>
       <div class="pair"><span>注文 <b>${fmtYen3(o.rate)}</b> → <b>${fmtQty(o.qty, 3)} ${esc(a.code)}</b></span></div>
