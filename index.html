@@ -235,6 +235,9 @@ body.modal-open{overflow:hidden}
 .tsvrow .d{color:var(--sub);font-size:11.5px;margin-top:1px;word-break:break-all}
 .tsvrow .amt{font-weight:700;font-variant-numeric:tabular-nums}
 .tsvrow.fx{background:var(--warn-soft);border-radius:8px;padding-left:8px;padding-right:8px}
+.cycrow{display:flex;gap:8px;font-size:12px;line-height:1.55;margin-top:4px}
+.cycrow>b{flex:0 0 34px;color:var(--sub);font-size:11px;font-weight:700;padding-top:1px}
+.cycrow>span{flex:1;min-width:0}
 /* header color picker */
 .hcpick{border:1px solid var(--line2);border-radius:12px;padding:10px;margin-top:10px;background:var(--surface2)}
 .hcpick .hchead{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700;gap:8px}
@@ -486,6 +489,11 @@ const Core = (() => {
     }
     return out;
   }
+  // 数量の刻みに切り上げ(元本回収を優先)
+  function ceilToStep(v, step, dp = 0) {
+    const s = Number(step) > 0 ? Number(step) : Math.pow(10, -dp);
+    return round(Math.ceil(Number(v) / s - 1e-9) * s, dp);
+  }
   // 売却のFIFO割当 + 実現損益(手数料を引いた額)
   // purchases昇順, sale:{qty, amountJPY, fee}
   function fifoAllocateSale(purchases, sale) {
@@ -554,7 +562,7 @@ const Core = (() => {
   return {
     round, stepDecimals, floorStep, ceilStep, stepCount,
     calcBuyQty, calcTargetPrice, calcSellQty, remainingQty,
-    allocatePurchase, shortfallOf, fifoRemaining, fifoAllocateSale,
+    allocatePurchase, shortfallOf, fifoRemaining, fifoAllocateSale, ceilToStep,
     monthSummary, dayTotals, categoryBreakdown, monthTotals
   };
 })();
@@ -3150,19 +3158,18 @@ function openSellOrderSheet(id) {
   const price = Number(pc.last || 0);
   const rate = Number(so.rate) || 0;
   const buyRate = Number(p.actualRate || 0);
+  const plan = soPlan(so, p, a);
   const filled = price > 0 && price >= rate;
-  const diff = so.coinGain != null ? so.coinGain : (p.amountJPY ? so.qty - p.amountJPY / rate : 0);
-  const gap = (price > 0 && rate > 0) ? rate - price : null;
   const names = (p.reserveAlloc || []).map(l => { const r = S.reserves.find(x => x.id === l.reserveId); return r ? xrpTxLabel(r) : null; }).filter(Boolean);
   openModal(`<h2>売り注文 ${filled ? '<span class="badge b-warn">指値到達(要確定)</span>' : '<span class="badge b-sell">売り注文中</span>'}</h2>
     ${names.length ? `<div class="hint">${names.map(esc).join('・')}</div>` : ''}
     <div class="kv"><span class="k">買値</span><span class="v" style="font-weight:700">${fmtYen3(buyRate)}</span></div>
     <div class="kv"><span class="k">指値</span><span class="v" style="font-weight:700">${fmtYen3(rate)}</span></div>
-    <div class="kv"><span class="k">目標</span><span class="v">${Math.round((so.gainRate || 0) * 100)}%</span></div>
-    <div class="kv"><span class="k">数量</span><span class="v">${fmtQty(so.qty, a.qtyDecimals)} ${esc(a.code)}</span></div>
+    <div class="kv"><span class="k">売却数量(元本回収分)</span><span class="v">${fmtQty(plan.sellQty, a.qtyDecimals)} ${esc(a.code)}</span></div>
+    <div class="kv"><span class="k">回収予定額</span><span class="v">${fmtYen(plan.recover)}</span></div>
+    <div class="kv"><span class="k">積立に残る数量</span><span class="v" style="font-weight:700;color:var(--asset)">${fmtQty(plan.keepQty, a.qtyDecimals)} ${esc(a.code)}</span></div>
     <div class="kv"><span class="k">現在値</span><span class="v">${price > 0 ? fmtYen(price) : '---'}</span></div>
-    <div class="kv"><span class="k">売れたら</span><span class="v" style="font-weight:700">${coinGainText(diff, rate, a.code)}</span></div>
-    <div class="hint" style="margin-top:10px">${filled ? '現在値が指値以上です。GMOコインで約定を確認し、この画面から確定してください。' : (gap != null ? `現在値は指値まで ${fmtYen3(gap)} です。GMOコインで約定していたら、この画面から確定できます(自動検知を待たずに記録できます)。` : 'GMOコインで約定していたら、この画面から確定できます。')}</div>
+    <div class="hint" style="margin-top:10px">${filled ? '現在値が指値以上です。GMOコインで約定を確認し、この画面から確定してください。' : 'GMOコインで約定していたら、この画面から確定できます(自動検知を待たずに記録できます)。'}</div>
     <button class="btn primary block mt" onclick="sheetCompleteSell('${so.id}')">約定を確定して完了にする →</button>
     <button class="btn sm sub block mt" onclick="sheetDeleteSell('${so.id}')">注文を取り消す</button>
     <button class="btn sub block mt" onclick="closeModal()">閉じる</button>`);
@@ -3179,18 +3186,19 @@ function xrpSellOrdersHtml(a) {
     const p = S.purchases.find(x => x.id === so.purchaseId) || {};
     const buyRate = Number(p.actualRate || 0);
     const rate = Number(so.rate) || 0;
+    const plan = soPlan(so, p, a);
     const filled = price > 0 && price >= rate;
     const near = !filled && price > 0 && rate > 0 && (rate - price) / rate <= NEAR_GAP;
-    const diff = so.coinGain != null ? so.coinGain : (p.amountJPY ? so.qty - p.amountJPY / so.rate : 0);
     const names = (p.reserveAlloc || []).map(l => { const r = S.reserves.find(x => x.id === l.reserveId); return r ? xrpTxLabel(r) : null; }).filter(Boolean);
     return `<div class="card cyc tap" onclick="openSellOrderSheet('${so.id}')">
       <div class="badgeline"><span class="badge ${filled ? 'b-warn' : 'b-sell'}">${filled ? '指値到達(要確定)' : '売り注文中'}</span>${near ? '<span class="soonpill">まもなく</span>' : ''}</div>
       <div class="head"><span class="name">${names.length ? esc(names.slice(0, 2).join('・')) + (names.length > 2 ? ` ほか${names.length - 2}件` : '') : '売り注文'}</span>
-        <span class="amt">${fmtQty(so.qty, a.qtyDecimals)} ${esc(a.code)}</span></div>
-      <div class="pair"><span>買 <b>${fmtYen3(buyRate)}</b> → 目標 <b>${Math.round((so.gainRate || 0) * 100)}%</b> 指値 <b>${fmtYen3(rate)}</b></span></div>
+        <span class="amt">${fmtQty(plan.sellQty, a.qtyDecimals)} ${esc(a.code)}</span></div>
+      <div class="pair"><span>買 <b>${fmtYen3(buyRate)}</b> → 指値 <b>${fmtYen3(rate)}</b>(目標 ${Math.round((so.gainRate || 0) * 100)}%)</span></div>
+      <div class="pair"><span>回収 <b>${fmtYen(plan.recover)}</b> ・ 積立 <b>${fmtQty(plan.keepQty, a.qtyDecimals)}</b></span></div>
       ${filled
-        ? `<div class="after"><span class="left">価格が指値に触れました。<b>まだ確定していません</b> — GMOコインで約定を確認し、下のボタンで確定してください。</span></div>`
-        : `<div class="after"><span class="left">${price > 0 ? (price < rate ? `<span class="gap" style="color:${'var(--asset)'}">あと +` + fmtYen3(rate - price) + 'で約定</span>' : '現在値は指値以上です') : '価格を取得できていません'}</span><span class="diff">売れたら ${coinGainText(diff, rate, a.code)}</span></div>`}
+        ? `<div class="after"><span class="left">現在値が指値以上です。<b>まだ確定していません</b> — GMOコインで約定を確認してください。</span></div>`
+        : `<div class="after"><span class="left">${price > 0 ? (price < rate ? `<span class="gap" style="color:${'var(--asset)'}">あと +` + fmtYen3(rate - price) + 'で約定</span>' : '現在値は指値以上です') : '価格を取得できていません'}</span></div>`}
       <div class="hint" style="margin-top:6px">タップして確定・取り消しができます。</div>
     </div>`;
   }).join('');
@@ -3322,6 +3330,146 @@ async function fillBuyOrder(orderId) {
   openSellOrderModal(pur.id);
 }
 /* --- 売り注文モーダル --- */
+/* --- 売り注文: 元本回収分だけ売る計画 --- */
+function soPlan(so, p, a) {
+  const full = Number(p.actualQty) || 0;
+  const rate = Number(so.rate) || 0;
+  const principal = Number(p.amountJPY) || 0;
+  const dp = Number(a.qtyDecimals) || 0;
+  const step = Number(a.qtyStep) || Math.pow(10, -dp);
+  if (!rate || !full) return { sellQty: roundQty(full), keepQty: 0, recover: 0, diff: 0 };
+  let q = so.sellQty != null ? Number(so.sellQty) : Core.ceilToStep(principal / rate, step, dp);
+  q = Math.min(full, Math.max(0, q));
+  const recover = Math.round(q * rate);
+  return { sellQty: roundQty(q), keepQty: roundQty(Math.max(0, full - q)), recover, diff: recover - principal };
+}
+function openSellOrderModal(purchaseId, editId = null) {
+  const a = activeAsset();
+  const p = S.purchases.find(x => x.id === purchaseId);
+  if (!p) return;
+  soCtx = { purchaseId, editId };
+  const editOrder = editId ? S.sellOrders.find(x => x.id === editId) : null;
+  const gain = editOrder ? Math.round((editOrder.gainRate || 0.10) * 100) : 10;
+  openModal(`<h2>売り注文の作成</h2>
+    <div class="hint">買い約定した <b>${fmtQty(p.actualQty, a.qtyDecimals)} ${esc(a.code)}</b> のうち、<b>元本 ${fmtYen(p.amountJPY)} を回収する数量だけ</b>を売却し、残りは積立として残します(数量は刻みに切り上げ)。</div>
+    <label>目標上昇率</label>
+    <select id="so-gain" onchange="soCalc()">${[5, 6, 8, 10, 12, 15, 20, 25, 30, 40].map(v => `<option value="${v}"${v === gain ? ' selected' : ''}>${v}%</option>`).join('')}</select>
+    <div class="kv"><span class="k">売り注文レート(円/${esc(a.code)})</span><span class="v" id="so-rate" style="font-weight:700">---</span></div>
+    <div class="kv"><span class="k">売却数量(元本回収分)</span><span class="v" id="so-qty" style="font-weight:700">---</span></div>
+    <div class="kv"><span class="k">回収予定額(円)</span><span class="v" id="so-recover">---</span></div>
+    <div class="kv"><span class="k">積立に残る数量</span><span class="v asset" id="so-keep" style="font-weight:700">---</span></div>
+    <div class="kv"><span class="k">元本との差額</span><span class="v" id="so-diff">---</span></div>
+    <div id="so-diffnote"></div>
+    <div class="copycard">
+      <div class="l">GMOコインに入力する売却数量(${esc(a.code)})</div><div class="v" id="so-c-qty">---</div>
+      <button class="btn sm sub" onclick="copySo('so-c-qty')">📋 コピー</button>
+    </div>
+    <div class="copycard">
+      <div class="l">GMOコインに入力する売却レート(円/${esc(a.code)})</div><div class="v" id="so-c-rate">---</div>
+      <button class="btn sm sub" onclick="copySo('so-c-rate')">📋 コピー</button>
+    </div>
+    <div class="notebox">実際の売却はGMOコインのアプリで行ってください。価格が指値に到達すると「到達」表示になり、確定するとサイクル完了です。</div>
+    <div class="row mt"><button class="btn sub" onclick="closeModal()">キャンセル</button>
+    <button class="btn primary" onclick="submitSellOrder()">${editOrder ? '変更を保存' : '売り注文を作成'}</button></div>`);
+  soCalc();
+}
+function soCalc() {
+  if (!soCtx) return;
+  const a = activeAsset();
+  const p = S.purchases.find(x => x.id === soCtx.purchaseId);
+  if (!p) return;
+  const g = (Number(document.getElementById('so-gain').value) || 0) / 100;
+  const rate = g > 0 ? Core.calcTargetPrice(p.actualRate, g, a.priceStep) : 0;
+  const plan = soPlan({ rate }, p, a);
+  document.getElementById('so-rate').textContent = rate ? fmtYen3(rate) : '---';
+  document.getElementById('so-qty').textContent = rate ? `${fmtQty(plan.sellQty, a.qtyDecimals)} ${a.code}` : '---';
+  document.getElementById('so-recover').textContent = rate ? fmtYen(plan.recover) : '---';
+  document.getElementById('so-keep').textContent = rate ? `${fmtQty(plan.keepQty, a.qtyDecimals)} ${a.code}` : '---';
+  const dEl = document.getElementById('so-diff');
+  if (dEl) {
+    dEl.textContent = rate ? `${plan.diff >= 0 ? '+' : '-'}${fmtYen(Math.abs(plan.diff))}` : '---';
+    dEl.style.color = plan.diff >= 0 ? 'var(--ok)' : 'var(--spend)';
+  }
+  const minQ = Number(a.minOrderQty) || 1;
+  const note = document.getElementById('so-diffnote');
+  if (note) note.innerHTML = rate
+    ? (plan.keepQty > 0
+      ? `<div class="hint">積立 ${fmtQty(plan.keepQty, a.qtyDecimals)} ${esc(a.code)} は売らずに残ります。評価額の目安 ${fmtYen(Math.round(plan.keepQty * rate))}。</div>`
+      : `<div class="warnbox">数量の刻み(${esc(String(a.qtyStep))})のため、元本回収には全量売却が必要で、積立に残る数量はありません。購入数量を増やすと積立が発生します。</div>`)
+    : '';
+  document.getElementById('so-c-qty').textContent = rate ? String(plan.sellQty) : '---';
+  document.getElementById('so-c-rate').textContent = rate ? rate.toFixed(a.priceDecimals) : '---';
+}
+async function copySo(id) {
+  const v = document.getElementById(id).textContent;
+  if (!v || v === '---') { toast('値が未確定です'); return; }
+  const ok = await copyText(v.split(' ')[0]);
+  toast(ok ? 'コピーしました' : 'コピーに失敗しました');
+}
+async function submitSellOrder() {
+  if (!soCtx) return;
+  const a = activeAsset();
+  const p = S.purchases.find(x => x.id === soCtx.purchaseId);
+  if (!p) { closeModal(); return; }
+  const g = (Number(document.getElementById('so-gain').value) || 0) / 100;
+  if (!(g > 0) || g > 1) { toast('目標上昇率は1〜99%で入力してください'); return; }
+  const rate = Core.calcTargetPrice(p.actualRate, g, a.priceStep);
+  const plan = soPlan({ rate }, p, a);
+  if (soCtx.editId) {
+    const so = S.sellOrders.find(x => x.id === soCtx.editId);
+    if (!so) { closeModal(); return; }
+    so.rate = rate; so.gainRate = g; so.sellQty = plan.sellQty; so.keepQty = plan.keepQty; so.planVersion = 2;
+    await idbPut('sellOrders', so);
+    await loadAll(); closeModal(); toast('売り注文を変更しました'); renderAsset();
+    return;
+  }
+  await idbPut('sellOrders', {
+    id: uid(), assetId: a.id, purchaseId: p.id, qty: p.actualQty, sellQty: plan.sellQty, keepQty: plan.keepQty,
+    rate, gainRate: g, planVersion: 2, status: 'open', createdAt: nowLocalTs()
+  });
+  await loadAll(); closeModal();
+  toast(`売り注文を作成しました(売 ${fmtQty(plan.sellQty, a.qtyDecimals)} / 積立 ${fmtQty(plan.keepQty, a.qtyDecimals)} ${a.code} @ ${fmtYen(rate)})`);
+  renderAsset();
+}
+function deleteBuyOrder(orderId) {
+  confirmModal('買い注文の取り消し', 'この買い注文を取り消します。対象の支出は「未注文」に戻ります。よろしいですか?', '取り消す', async () => {
+    await idbDel('purchaseOrders', orderId);
+    await loadAll(); toast('買い注文を取り消しました'); renderAsset();
+  }, true);
+}
+/* --- 買い約定→購入登録→売り注文モーダル --- */
+async function fillBuyOrder(orderId) {
+  const a = activeAsset();
+  const o = S.purchaseOrders.find(x => x.id === orderId);
+  if (!o) return;
+  const amountJPY = Math.round(Number(o.rate) * Number(o.qty));
+  let alloc;
+  if ((o.reserveIds || []).length) {
+    alloc = o.reserveIds.map(id => { const r = S.reserves.find(x => x.id === id); return r ? { reserveId: id, txId: r.txId, amount: r.amount } : null; }).filter(Boolean);
+  } else {
+    alloc = Core.allocatePurchase(pendingReserves(), amountJPY).links;
+  }
+  const pur = {
+    id: uid(), assetId: a.id, datetime: nowLocalTs(), actualRate: Number(o.rate), actualQty: Number(o.qty), amountJPY,
+    orderRate: Number(o.rate), orderQty: Number(o.qty), fee: null, memo: '買い注文の約定', reserveAlloc: alloc, createdAt: nowLocalTs()
+  };
+  await idbPut('purchases', pur);
+  for (const l of alloc) {
+    const r = S.reserves.find(x => x.id === l.reserveId);
+    if (!r) continue;
+    if (l.amount >= r.amount) { r.status = 'linked'; r.purchaseId = pur.id; await idbPut('reserves', r); }
+    else {
+      await idbPut('reserves', { id: r.id, txId: r.txId, assetId: r.assetId, amount: l.amount, status: 'linked', purchaseId: pur.id, createdAt: r.createdAt });
+      await idbPut('reserves', { id: uid(), txId: r.txId, assetId: r.assetId, amount: r.amount - l.amount, status: 'pending', createdAt: nowLocalTs() });
+    }
+  }
+  o.status = 'filled';
+  await idbPut('purchaseOrders', o);
+  await loadAll();
+  toast(`買い約定を記録しました(${fmtQty(pur.actualQty, a.qtyDecimals)} ${esc(a.code)})`);
+  openSellOrderModal(pur.id);
+}
+/* --- 売り注文モーダル --- */
 function openSellOrderModal(purchaseId, editId = null) {
   const a = activeAsset();
   const p = S.purchases.find(x => x.id === purchaseId);
@@ -3411,20 +3559,31 @@ async function completeSell(orderId) {
   if (!so) return;
   const p = S.purchases.find(x => x.id === so.purchaseId);
   if (!p) return;
-  const st = assetStats();
-  const lotsAsc = st.lots.map(l => ({ id: l.purchaseId, rate: l.rate, remainQty: l.qty }));
-  const f = Core.fifoAllocateSale(lotsAsc, { qty: so.qty, amountJPY: Math.round(so.qty * so.rate), fee: 0 });
+  const legacy = so.sellQty == null;
+  const plan = soPlan(so, p, a);
+  const sellQty = legacy ? Number(so.qty) || 0 : plan.sellQty;
+  const rate = Number(so.rate) || 0;
+  const amountJPY = Math.round(sellQty * rate);
+  const cost = Math.round(sellQty * (Number(p.actualRate) || 0));
   const sale = {
-    id: uid(), assetId: a.id, sellOrderId: so.id, datetime: nowLocalTs(), rate: Number(so.rate), qty: Number(so.qty),
-    amountJPY: Math.round(so.qty * so.rate), fee: null, memo: '売り注文の約定', alloc: f.alloc, realized: f.realized, createdAt: nowLocalTs()
+    id: uid(), assetId: a.id, sellOrderId: so.id, datetime: nowLocalTs(), rate, qty: sellQty,
+    amountJPY, fee: 0, memo: '売り注文の約定', alloc: [{ purchaseId: p.id, qty: sellQty }],
+    realized: amountJPY - cost, createdAt: nowLocalTs()
   };
   await idbPut('sales', sale);
   so.status = 'filled';
-  so.coinGain = roundQty ? Number((so.qty - p.amountJPY / so.rate).toFixed(8)) : so.qty - p.amountJPY / so.rate;
+  if (legacy) { so.legacyFullSale = true; so.keepQty = 0; }
+  else { so.legacyFullSale = false; so.keepQty = plan.keepQty; }
+  so.sellQty = sellQty;
+  so.sellAmountJPY = amountJPY;
+  so.recoverDiff = amountJPY - (Number(p.amountJPY) || 0);
+  so.coinGain = so.keepQty;
   so.filledAt = nowLocalTs();
   await idbPut('sellOrders', so);
   await loadAll();
-  toast(`サイクル完了!🪙 +${fmtQty(so.coinGain, a.qtyDecimals)} ${esc(a.code)}`);
+  toast(legacy
+    ? `サイクル完了(旧方式:全量売却 ${fmtQty(sellQty, a.qtyDecimals)} ${esc(a.code)})`
+    : `サイクル完了! 回収 ${fmtYen(amountJPY)} / 積立 +${fmtQty(so.keepQty, a.qtyDecimals)} ${esc(a.code)}`);
   renderAsset();
 }
 /* ================= 完了した取引(別画面) ================= */
@@ -3436,40 +3595,57 @@ function renderXrpHist() {
   const st = assetStats();
   const pc = S.priceCache[a.id] || {};
   const price = Number(pc.last || 0);
-  const evalJpy = Math.round(price * st.holdingsQty);
   const cycles = S.sellOrders.filter(so => so.status === 'filled')
     .sort((x, y) => String(y.filledAt || '').localeCompare(String(x.filledAt || '')));
-  const legacy = S.sales.filter(s => s.assetId === a.id && !s.sellOrderId)
+  const legacy = S.sales.filter(x => x.assetId === a.id && !x.sellOrderId)
     .sort((x, y) => String(y.datetime || '').localeCompare(String(x.datetime || '')));
-  const gained = cycles.reduce((s, so) => s + (so.coinGain || 0), 0);
+  const pool = cycles.reduce((t, so) => t + (so.sellQty != null ? Number(so.keepQty || 0) : 0), 0);
+  const recovered = cycles.reduce((t, so) => t + Number(so.sellAmountJPY != null ? so.sellAmountJPY : Math.round((Number(so.qty) || 0) * (Number(so.rate) || 0))), 0);
   const cycleRows = cycles.map(so => {
     const p = S.purchases.find(x => x.id === so.purchaseId) || {};
     const names = (p.reserveAlloc || []).map(l => { const r = S.reserves.find(x => x.id === l.reserveId); return r ? xrpTxLabel(r) : null; }).filter(Boolean);
-    return `<div class="cyc lrow" style="display:block">
-      <div class="head"><span class="badge b-done">完了</span><span class="name">${names.length ? esc(names.slice(0, 2).join('・')) : esc(p.memo || '購入')}</span>
-      <span class="diff" style="margin-left:auto;color:var(--asset);font-weight:700">${coinGainText(so.coinGain || 0, so.rate, esc(a.code))}</span></div>
-      <div class="pair" style="margin-top:4px"><span>${fmtDateTime(so.filledAt || so.createdAt)}</span><span>買 <b>${fmtYen3(p.actualRate)}</b> / 売 <b>${fmtYen3(so.rate)}</b>(+${Math.round((so.gainRate || 0) * 100)}%)</span><span>元本 <b>${fmtYen(p.amountJPY)}</b></span></div>
+    const isLegacy = so.sellQty == null || so.legacyFullSale;
+    const buyRate = Number(p.actualRate || 0), principal = Number(p.amountJPY || 0), buyQty = Number(p.actualQty || 0);
+    const rate = Number(so.rate || 0);
+    const sellQty = isLegacy ? Number(so.qty || 0) : Number(so.sellQty || 0);
+    const keepQty = isLegacy ? 0 : Number(so.keepQty || 0);
+    const sellAmount = Number(so.sellAmountJPY != null ? so.sellAmountJPY : Math.round(sellQty * rate));
+    const diff = sellAmount - principal;
+    const pct = (rate && buyRate) ? Math.round((rate / buyRate - 1) * 1000) / 10 : 0;
+    return `<div class="cyc" style="display:block;padding:12px 12px 12px">
+      <div class="head"><span class="badge b-done">完了</span>${isLegacy ? '<span class="badge b-warn">旧方式</span>' : ''}<span class="name">${names.length ? esc(names.slice(0, 2).join('・')) : esc(p.memo || '購入')}</span>
+        <span class="diff" style="margin-left:auto;color:var(--asset);font-weight:700">${keepQty > 0 ? `積立 +${fmtQty(keepQty, a.qtyDecimals)}` : '全量売却'}</span></div>
+      <div class="cycrow"><b>購入</b><span>${fmtDateTime(p.datetime || p.createdAt)} ・ @${fmtYen3(buyRate)} ・ ${fmtYen(principal)} ・ ${fmtQty(buyQty, a.qtyDecimals)} ${esc(a.code)}</span></div>
+      <div class="cycrow"><b>売却</b><span>${fmtDateTime(so.filledAt || so.createdAt)} ・ @${fmtYen3(rate)} ・ ${fmtYen(sellAmount)} ・ ${fmtQty(sellQty, a.qtyDecimals)} ${esc(a.code)} (+${pct}%)</span></div>
+      <div class="cycrow"><b>回収</b><span><b style="color:var(--ok)">${fmtYen(sellAmount)}</b> (元本 ${fmtYen(principal)} ${diff >= 0 ? '+' : '-'}${fmtYen(Math.abs(diff))})</span></div>
+      <div class="cycrow"><b>積立</b><span>${keepQty > 0 ? `<b style="color:var(--asset)">${fmtQty(keepQty, a.qtyDecimals)} ${esc(a.code)}</b> (評価 ${fmtYen(Math.round(keepQty * price))})` : (isLegacy ? '旧方式のため記録なし' : '刻みのため全量売却')}</span></div>
     </div>`;
   }).join('');
-  const legacyRows = legacy.length ? `<h2 style="margin-top:10px">以前の売却履歴(ルーティン外)</h2>` + legacy.map(s => `
+  const legacyRows = legacy.length ? `<h2 style="margin-top:10px">以前の売却履歴(ルーティン外)</h2>` + legacy.map(x => `
     <div class="lrow"><div class="ico sell">売</div>
-    <div class="mid"><div class="t">${esc(a.code)} 売却 ${fmtQty(s.qty, a.qtyDecimals)}</div><div class="d">${fmtDateTime(s.datetime)} ・ ${fmtYen(s.rate)}</div></div>
-    <div class="amt ${s.realized >= 0 ? 'plus' : 'minus'}">${fmtYen(s.amountJPY)}<div class="d" style="text-align:right">損益 ${fmtSignYen(s.realized || 0)}</div></div>
-    <div class="ops"><button class="btn sm sub" onclick="editSale('${s.id}')">削除</button></div></div>`).join('') : '';
+    <div class="mid"><div class="t">${esc(a.code)} 売却 ${fmtQty(x.qty, a.qtyDecimals)}</div><div class="d">${fmtDateTime(x.datetime)} ・ ${fmtYen(x.rate)}</div></div>
+    <div class="amt ${x.realized >= 0 ? 'plus' : 'minus'}">${fmtYen(x.amountJPY)}<div class="d" style="text-align:right">損益 ${fmtSignYen(x.realized || 0)}</div></div>
+    <div class="ops"><button class="btn sm sub" onclick="editSale('${x.id}')">削除</button></div></div>`).join('') : '';
   el.innerHTML = `
   <div class="card">
     <button class="btn sm sub" onclick="go('asset')">← XRP画面に戻る</button>
     <h2 class="mt">完了した取引</h2>
     <div class="statgrid">
       <div class="stat"><div class="l">完了サイクル</div><div class="v">${cycles.length}<small>回</small></div></div>
-      <div class="stat"><div class="l">累計獲得コイン</div><div class="v asset">${fmtQty(gained, a.qtyDecimals)}<small>${esc(a.code)}</small></div></div>
-      <div class="stat"><div class="l">実現損益(円)</div><div class="v ${st.realized >= 0 ? 'plus' : 'minus'}">${fmtSignYen(st.realized)}</div></div>
+      <div class="stat"><div class="l">積立プール</div><div class="v asset">${fmtQty(pool, a.qtyDecimals)}<small>${esc(a.code)}</small></div></div>
+      <div class="stat"><div class="l">累計回収(円)</div><div class="v">${fmtYen(recovered)}</div></div>
       <div class="stat"><div class="l">保有/評価額</div><div class="v">${fmtQty(st.holdingsQty, a.qtyDecimals)}<small>${esc(a.code)}</small></div></div>
       <div class="stat"><div class="l">含み損益(参考)</div><div class="v ${st.unrealized > 0 ? 'plus' : st.unrealized < 0 ? 'minus' : ''}">${fmtSignYen(st.unrealized)}</div></div>
       <div class="stat"><div class="l">累計購入/売却</div><div class="v">${fmtYen(st.totalBuyJPY)} / ${fmtYen(st.totalSellJPY)}</div></div>
     </div>
-    <div class="notebox">実現損益は手数料を差し引いた円額。累計獲得コインは、売却で増えた${esc(a.code)}の累計です。</div>
+    <div class="notebox">「回収」は売却で受け取った円、「積立」は売らずに残した${esc(a.code)}です。積立分は保有数量に含まれています(二重計上なし)。旧方式のサイクルは全量売却として表示します。</div>
   </div>
+  <div class="card"><h2>積立プール <span class="tag">売らずに残した分</span></h2>
+    <div class="statgrid">
+      <div class="stat"><div class="l">積立数量</div><div class="v asset">${fmtQty(pool, a.qtyDecimals)}<small>${esc(a.code)}</small></div></div>
+      <div class="stat"><div class="l">評価額(現在値)</div><div class="v">${fmtYen(Math.round(pool * price))}</div></div>
+    </div>
+    <div class="hint mt">元本回収のために売却した残りが積立プールです。売却せずに保有しているため、実際の保有数量・評価額にも含まれます。</div></div>
   ${st.lots.length ? `<div class="card"><h2>未売却ロット(古い順) ${hbtn('qa-assets-view')}</h2>
     <div style="overflow-x:auto"><table class="tbl"><tr><th>購入日時</th><th class="r">残数量(${esc(a.code)})</th><th class="r">取得価格</th><th class="r">元本</th></tr>
     ${st.lots.map(l => `<tr><td>${fmtDateTime(l.datetime)}</td><td class="r">${fmtQty(l.qty, a.qtyDecimals)}</td><td class="r">${fmtYen3(l.rate)}</td><td class="r">${fmtYen(l.amountJPY)}</td></tr>`).join('')}
@@ -3479,7 +3655,7 @@ function renderXrpHist() {
     ${legacyRows}
   </div>`;
 }
-/* --- 履歴の削除(従来フローとの互換) --- */
+
 function editPurchase(id) {
   const p = S.purchases.find(x => x.id === id);
   if (!p) return;
