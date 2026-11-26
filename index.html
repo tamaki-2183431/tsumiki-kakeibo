@@ -284,9 +284,11 @@ header.app .hdr-help:active{opacity:.7}
 .kv{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--surface2);font-size:13px}
 .kv span{color:var(--sub);white-space:nowrap}
 .kv b{text-align:right;word-break:break-word}
-#ledger-body[data-sum="overview"] .sec-cat,#ledger-body[data-sum="overview"] .sec-day{display:none}
-#ledger-body[data-sum="cat"] .sec-ov,#ledger-body[data-sum="cat"] .sec-day{display:none}
-#ledger-body[data-sum="day"] .sec-ov,#ledger-body[data-sum="day"] .sec-cat{display:none}
+#ledger-body[data-sum="overview"] .sec-cat,#ledger-body[data-sum="overview"] .sec-day,#ledger-body[data-sum="overview"] .sec-trend,#ledger-body[data-sum="overview"] .sec-brk{display:none}
+#ledger-body[data-sum="breakdown"] .sec-ov,#ledger-body[data-sum="breakdown"] .sec-trend{display:none}
+#ledger-body[data-sum="trend"] .sec-ov,#ledger-body[data-sum="trend"] .sec-cat,#ledger-body[data-sum="trend"] .sec-day,#ledger-body[data-sum="trend"] .sec-brk{display:none}
+#ledger-body[data-sum="breakdown"][data-brk="cat"] .sec-day{display:none}
+#ledger-body[data-sum="breakdown"][data-brk="day"] .sec-cat{display:none}
 .brow{padding:8px 0;border-bottom:1px solid var(--surface2);cursor:pointer}
 .brow:active{opacity:.7}
 .bhead{display:flex;justify-content:space-between;font-size:12px;font-weight:700;margin-bottom:5px}
@@ -1122,13 +1124,13 @@ function renderHelp() {
       <h3 class="qagroup" id="qa-receipt">レシート・カテゴリ</h3>
       <h3 class="qagroup" id="qa-ui">画面の使い方</h3>
       <details id="qa-home"><summary>ホームの数字はどこを見ればいい?</summary>
-        <div class="a">上から<b>今月の収支(収入−支出)</b>、つみたてモードなら「つみ立てゲージ」と「資産の状況」、最後に直近の記録が並びます。各カード右上の「?」からこの説明に戻れます。詳細は家計簿タブの「集計」で、カテゴリ別・日別に掘り下げられます。</div></details>
+        <div class="a">上から<b>今月の収支(収入−支出)</b>、つみたてモードなら「つみ立てゲージ」と「資産の状況」、最後に直近の記録が並びます。各カード右上の「?」からこの説明に戻れます。詳細は家計簿タブの「集計」で、概要(今月の結論)→内訳(カテゴリ・日別)→推移(6ヶ月)の順に掘り下げられます。</div></details>
       <details id="qa-entry"><summary>支出と収入はどう切り替えて記録しますか?</summary>
         <div class="a">記録タブ上部の「支出 / 収入」で切り替えます。日付・カテゴリ・金額は必須で、店舗名・商品名・支払方法・メモは任意です。「続けて入力」をオンにすると、登録後も日付とカテゴリを保ったまま次の入力を続けられます。</div></details>
       <details id="qa-history"><summary>記録した支出を探す・直す・消すには?</summary>
         <div class="a">家計簿タブ →「履歴」で一覧できます。検索欄に店舗名・商品名・メモを入れると絞り込め、期間(全期間/今年/先月/今月)・カテゴリ・支払方法・並び順(新しい順/金額の高い順/低い順)も指定できます。行をタップすると詳細が開き、そこから編集・削除ができます。<b>削除直後は9秒間「元に戻す」</b>が出ます。</div></details>
       <details id="qa-summary-tabs"><summary>集計タブの「概要 / カテゴリ / 日別」はどう使い分けますか?</summary>
-        <div class="a">概要は月の収支サマリーと支出の分析(全体像)、カテゴリはカテゴリ別支出と月ごとの推移(どこに使ったか)、日別は日ごとの収支と日付リスト(いつ使ったか)です。月の切り替え(← 前月 / 次月 →)はタブのすぐ上にあり、概要・カテゴリ・日別の3つすべてに連動します。過去の月を見ているときは「今月」で戻れます。</div></details>
+        <div class="a">概要は今月の結論(収入・支出・収支・固定費)と支出の分析(前月比・予算・気づき)、内訳は「カテゴリ」(どこに使ったか)と「日別」(いつ使ったか)の切替、推移は直近6ヶ月の支出(合計/カテゴリ別)です。収入を表示するのは概要だけにしています。月の切り替え(← 前月 / 次月 →)はタブのすぐ上にあり、3つすべてに連動します。過去の月を見ているときは「今月」で戻れます。</div></details>
       <details id="qa-analysis"><summary>「支出の分析」のグラフと「見えてきたこと」は何を見ていますか?</summary>
         <div class="a">積み上げグラフは直近6ヶ月のカテゴリ別支出で、棒の色＝カテゴリです(凡例と同じ色)。「カテゴリ別 前月比」は今月と前月の差、「見えてきたこと」は増減・貯蓄率・新しく登場したカテゴリ・予算超過を自動で拾ったものです。棒や凡例をタップすると、そのカテゴリの6ヶ月推移とお店別の内訳が開きます。</div></details>
       <details id="qa-budget"><summary>カテゴリ予算はどこで設定しますか?</summary>
@@ -1244,6 +1246,7 @@ function renderLedger() {
   if (S.ledgerTab === 'summary') {
     body.innerHTML = ledgerSummaryHtml();
     body.dataset.sum = S.sumTab || 'overview';
+    body.dataset.brk = S.brkTab || 'cat';
     if ((S.sumTab || 'overview') === 'overview') anFill();
   }
   if (S.ledgerTab === 'fixed') body.innerHTML = fixedCostHtml();
@@ -1756,24 +1759,12 @@ let sumYm = null;
 function ledgerSummaryHtml() {
   if (!sumYm) sumYm = nowYm();
   if (!S.sumTab) S.sumTab = 'overview';
+  if (!S.brkTab) S.brkTab = 'cat';
+  if (!S.trendMode) S.trendMode = 'total';
   const sum = Core.monthSummary(S.txs, sumYm);
-  const br = Core.categoryBreakdown(S.txs, sumYm, 'expense');
-  const months = Core.monthTotals(S.txs, 6);
   const days = Core.dayTotals(S.txs, sumYm);
-  const maxM = Math.max(1, ...months.map(m => Math.max(m.expense, m.income)));
-  const fixedSum = S.fixedCosts.filter(f => f.active !== false).reduce((s, f) => s + f.amount, 0);
-  const brMax = Math.max(1, ...br.map(b => b.amount));
-  // SVG棒グラフ(6ヶ月)
-  const W = 560, H = 190, pad = 34, bw = 22;
-  let bars = '';
-  months.forEach((m, i) => {
-    const x = pad + i * ((W - pad - 10) / 6) + 8;
-    const he = Math.round(m.expense / maxM * (H - 46));
-    const hi = Math.round(m.income / maxM * (H - 46));
-    bars += `<rect x="${x}" y="${H - 26 - he}" width="${bw}" height="${he}" rx="3" fill="var(--spend)"/>` +
-      `<rect x="${x + bw + 4}" y="${H - 26 - hi}" width="${bw}" height="${hi}" rx="3" fill="var(--income)"/>` +
-      `<text x="${x + bw + 2}" y="${H - 8}" text-anchor="middle" font-size="11" fill="var(--sub)">${m.ym.slice(5)}月</text>`;
-  });
+  const fixedSum = S.fixedCosts.filter(f => f.active !== false).reduce((s2, f) => s2 + f.amount, 0);
+  const TABS = [['overview', '概要'], ['breakdown', '内訳'], ['trend', '推移']];
   return `
   <div class="monthbar">
     <button class="mb-btn" onclick="navMonth(-1)" aria-label="前月">← 前月</button>
@@ -1781,8 +1772,11 @@ function ledgerSummaryHtml() {
     <button class="mb-btn" onclick="navMonth(1)" aria-label="次月">次月 →</button>
   </div>
   <div class="seg" style="margin-bottom:10px">
-    ${[['overview', '概要'], ['cat', 'カテゴリ'], ['day', '日別']].map(([k, l]) =>
-      `<button onclick="S.sumTab='${k}';renderLedger()" class="${S.sumTab === k ? 'on' : ''}">${l}</button>`).join('')}
+    ${TABS.map(([k, l]) => `<button onclick="S.sumTab='${k}';renderLedger()" class="${S.sumTab === k ? 'on' : ''}">${l}</button>`).join('')}
+  </div>
+  <div class="sec-brk seg" style="margin-bottom:10px">
+    <button onclick="S.brkTab='cat';renderLedger()" class="${S.brkTab === 'cat' ? 'on' : ''}">カテゴリ</button>
+    <button onclick="S.brkTab='day';renderLedger()" class="${S.brkTab === 'day' ? 'on' : ''}">日別</button>
   </div>
   <div class="card sec-ov">
     <div class="statgrid">
@@ -1793,28 +1787,99 @@ function ledgerSummaryHtml() {
     </div>
   </div>
   <div class="sec-ov" id="an-slot"></div>
-  <div class="card sec-cat">
-    <h2>カテゴリ別支出 <span class="tag">${esc(sumYm)}</span> ${hbtn('qa-summary-tabs')}</h2>
-    ${br.length === 0 ? '<div class="hint">この月の支出はまだありません。</div>' : br.map(b => `
-      <div class="barslot"><span class="nm">${esc(catName(b.categoryId))}</span>
-      <div class="barwrap"><div class="bar" style="width:${(b.amount / brMax * 100).toFixed(1)}%;background:var(--spend)"></div></div>
-      <span class="amt">${fmtYen(b.amount)}</span></div>`).join('')}
-  </div>
-  <div class="card sec-cat">
-    <h2>月ごとの収支(直近6ヶ月) ${hbtn('qa-summary-tabs')}</h2>
-    <svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="月別収支グラフ">
-      ${bars}
-      <rect x="0" y="0" width="0" height="0"/>
-    </svg>
-    <div class="legend"><span><span class="sw" style="background:var(--spend)"></span>支出</span>
-    <span><span class="sw" style="background:var(--income)"></span>収入</span></div>
-  </div>
-  <div class="sec-day">${ledgerDayCardHtml(days, sumYm)}</div>`;
+  <div class="sec-cat">${ledgerCategoryCardHtml(sumYm)}</div>
+  <div class="sec-day">${ledgerDayCardHtml(days, sumYm)}</div>
+  <div class="sec-trend">${ledgerTrendCardHtml(sumYm)}</div>`;
+}
+/* --- 内訳: カテゴリ(金額+前月比) --- */
+function ledgerCategoryCardHtml(ym) {
+  const cur = anExp(ym), prev = anYmShift(ym, -1);
+  const total = cur.reduce((a, t) => a + t.amount, 0);
+  const head = `<div class="card"><h2>カテゴリ別支出 <span class="tag">${esc(ym.replace('-', '/'))}</span> ${hbtn('qa-summary-tabs')}</h2>`;
+  if (!total) return head + '<div class="hint">この月の支出はまだありません。</div></div>';
+  const map = {}, pmap = {};
+  cur.forEach(t => { (map[t.categoryId] = map[t.categoryId] || { c: 0, n: 0 }); map[t.categoryId].c += t.amount; map[t.categoryId].n++; });
+  anExp(prev).forEach(t => { pmap[t.categoryId] = (pmap[t.categoryId] || 0) + t.amount; });
+  const rows = Object.keys(map).map(id => ({ id, c: map[id].c, n: map[id].n, p: pmap[id] || 0, d: map[id].c - (pmap[id] || 0) })).sort((a, b) => b.c - a.c);
+  const maxC = Math.max(1, ...rows.map(r => r.c));
+  const prevLabel = Number(prev.slice(5)) + '月';
+  return head + rows.map(r => {
+    const share = Math.round(r.c / total * 100);
+    const p2 = anPct(r.d, r.p);
+    return `<div class="cmp" onclick="openCatDetail('${esc(r.id)}','${ym}')">
+      <div class="cmL"><div class="cmN">${esc(catName(r.id))} <span class="cmC">${r.n}件 ・ ${share}%</span></div>
+        <div class="cmpbar"><i style="width:${(r.c / maxC * 100).toFixed(1)}%;background:var(--spend)"></i></div>
+      </div>
+      <div class="cmR"><div class="cmA">${fmtYen(r.c)}</div><div class="cmP">前月 ${r.p ? fmtYen(r.p) : '記録なし'}</div></div>
+      <div class="dlt" style="color:var(--${r.d > 0 ? 'spend' : r.d < 0 ? 'ok' : 'sub'})">${r.p === 0 ? '新規' : (r.d > 0 ? '+' : '') + fmtYen(r.d)}<div class="dltp">${p2 === null ? '' : (p2 >= 0 ? '+' : '') + p2 + '%'}</div></div>
+    </div>`;
+  }).join('') + `<div class="hint" style="margin-top:10px">行をタップすると、そのカテゴリの6ヶ月推移・お店別・支払い方法が開きます。</div></div>`;
+}
+/* --- 推移: 6ヶ月の支出(合計/カテゴリ別) --- */
+function ledgerTrendCardHtml(ym) {
+  const mode = S.trendMode || 'total';
+  const months = Core.monthTotals(S.txs, 6);
+  const PAL = ['#d9695a', '#e2a03f', '#5b9f7d', '#4c8bbf', '#8a7bc8', '#c2699a', '#7c8a95', '#a9b04f'];
+  const tabs = `<div class="seg" style="margin-bottom:10px">
+    <button onclick="S.trendMode='total';renderLedger()" class="${mode === 'total' ? 'on' : ''}">合計</button>
+    <button onclick="S.trendMode='cat';renderLedger()" class="${mode === 'cat' ? 'on' : ''}">カテゴリ別</button></div>`;
+  if (mode === 'total') {
+    const W = 560, H = 190, pad = 34, bw = 26;
+    const maxM = Math.max(1, ...months.map(m => m.expense));
+    let bars = '';
+    months.forEach((m, i) => {
+      const stp = (W - pad - 10) / 6;
+      const x = pad + i * stp + (stp - bw) / 2;
+      const he = Math.round(m.expense / maxM * (H - 52));
+      if (he > 0) bars += `<rect x="${x.toFixed(1)}" y="${H - 32 - he}" width="${bw}" height="${he}" rx="3" fill="${m.ym === ym ? 'var(--spend)' : 'var(--surface2)'}"/>`;
+      bars += `<text x="${(x + bw / 2).toFixed(1)}" y="${(H - 38 - he).toFixed(1)}" text-anchor="middle" font-size="10" fill="var(--sub)">${m.expense ? Math.round(m.expense / 1000) + 'k' : ''}</text>`;
+      bars += `<text x="${(x + bw / 2).toFixed(1)}" y="${H - 12}" text-anchor="middle" font-size="11" fill="${m.ym === ym ? 'var(--ink)' : 'var(--sub)'}" font-weight="${m.ym === ym ? '700' : '400'}">${Number(m.ym.slice(5))}月</text>`;
+    });
+    return `<div class="card">${tabs}
+      <h2>月ごとの支出(直近6ヶ月) ${hbtn('qa-summary-tabs')}</h2>
+      <svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="月ごとの支出">${bars}</svg>
+      <div class="legend"><span><span class="sw" style="background:var(--spend)"></span>支出</span>
+      <span class="lgsub">選択中の月を濃く表示 / カテゴリ別に切り替えできます</span></div></div>`;
+  }
+  const ms = [];
+  for (let i = 5; i >= 0; i--) {
+    const y2 = anYmShift(ym, -i), byC = {};
+    S.txs.filter(t => t.type === 'expense' && t.date.slice(0, 7) === y2).forEach(t => { byC[t.categoryId] = (byC[t.categoryId] || 0) + t.amount; });
+    ms.push({ ym: y2, v: Object.keys(byC).reduce((a, k) => a + byC[k], 0), byC });
+  }
+  const catTotals = {};
+  ms.forEach(m => Object.keys(m.byC).forEach(k => { catTotals[k] = (catTotals[k] || 0) + m.byC[k]; }));
+  const cats = Object.keys(catTotals).sort((a, b) => catTotals[b] - catTotals[a]).slice(0, 8);
+  const colorOf = id => PAL[Math.max(0, cats.indexOf(id)) % PAL.length];
+  const mMax = Math.max(1, ...ms.map(m => m.v));
+  const SW = 560, SH = 280, pad = 34, ph = SH - 62;
+  const stp = (SW - pad - 8) / ms.length;
+  let svg = '';
+  [0.5, 1].forEach(g => { const y = (SH - 34 - g * ph).toFixed(1); svg += `<line x1="${pad}" y1="${y}" x2="${SW - 8}" y2="${y}" stroke="var(--surface2)" stroke-width="1"/>`; });
+  ms.forEach((m, i) => {
+    const bw2 = Math.min(46, stp * 0.6);
+    const x = pad + i * stp + (stp - bw2) / 2;
+    let acc = 0;
+    cats.forEach(id => {
+      const v2 = m.byC[id] || 0; if (!v2) return;
+      const h = v2 / mMax * ph;
+      svg += `<rect x="${x.toFixed(1)}" y="${(SH - 34 - (acc + h)).toFixed(1)}" width="${bw2.toFixed(1)}" height="${Math.max(1.5, h).toFixed(1)}" fill="${colorOf(id)}" onclick="openCatDetail('${esc(id)}','${m.ym}')"><title>${esc(catName(id))} ${fmtYen(v2)}</title></rect>`;
+      acc += h;
+    });
+    if (m.v) svg += `<text x="${(x + bw2 / 2).toFixed(1)}" y="${(SH - 41 - acc).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="600" fill="var(--sub)">${Math.round(m.v / 1000)}k</text>`;
+    svg += `<text x="${(x + bw2 / 2).toFixed(1)}" y="${SH - 15}" text-anchor="middle" font-size="11" fill="${m.ym === ym ? 'var(--ink)' : 'var(--sub)'}" font-weight="${m.ym === ym ? '700' : '400'}">${Number(m.ym.slice(5))}月</text>`;
+  });
+  const legend = cats.map(id => `<span class="lgd" onclick="openCatDetail('${esc(id)}','${ym}')"><span class="sw" style="background:${colorOf(id)}"></span>${esc(catName(id))}</span>`).join('');
+  return `<div class="card">${tabs}
+    <h2>月ごとの支出(カテゴリ別) ${hbtn('qa-summary-tabs')}</h2>
+    <svg class="chart" viewBox="0 0 ${SW} ${SH}" role="img" aria-label="カテゴリ別の積み上げ">${svg}</svg>
+    <div class="legend lgdwrap">${legend}</div>
+    <div class="hint" style="margin-top:8px">積み上げの色や凡例をタップすると、そのカテゴリの詳細が開きます。</div></div>`;
 }
 /* --- 日ごとの収支カード --- */
 function ledgerDayCardHtml(days, ym) {
   const active = days.filter(d => d.count > 0).slice().reverse();
-  const maxD = Math.max(1, ...days.map(d => Math.max(d.expense, d.income)));
+  const maxD = Math.max(1, ...days.map(d => d.expense));
   const DW = 560, DH = 190, dpad = 30, plotH = DH - 54;
   const stepX = (DW - dpad - 6) / days.length;
   const bw = Math.max(3, Math.min(8, stepX / 2 - 1.2));
@@ -1823,9 +1888,7 @@ function ledgerDayCardHtml(days, ym) {
   days.forEach((d, i) => {
     const x = dpad + i * stepX + Math.max(0, (stepX - bw * 2 - 1) / 2);
     const he = Math.round(d.expense / maxD * plotH);
-    const hi = Math.round(d.income / maxD * plotH);
     if (he > 0) bars += `<rect x="${x.toFixed(1)}" y="${DH - 30 - he}" width="${bw.toFixed(1)}" height="${he}" rx="1.5" fill="var(--spend)"/>`;
-    if (hi > 0) bars += `<rect x="${(x + bw + 1).toFixed(1)}" y="${DH - 30 - hi}" width="${bw.toFixed(1)}" height="${hi}" rx="1.5" fill="var(--income)"/>`;
     if (d.day === 1 || d.day % 5 === 0 || d.day === days.length)
       bars += `<text x="${(x + bw).toFixed(1)}" y="${DH - 11}" text-anchor="middle" font-size="10" fill="var(--sub)">${d.day}</text>`;
   });
@@ -1836,25 +1899,22 @@ function ledgerDayCardHtml(days, ym) {
   days.forEach((d, i) => {
     if (!d.count) return;
     if (d.expense > 0) dots += `<circle cx="${cx(i).toFixed(1)}" cy="${cy(d.expense)}" r="2" fill="var(--spend)" stroke="var(--surface)" stroke-width="1"/>`;
-    if (d.income > 0) dots += `<circle cx="${cx(i).toFixed(1)}" cy="${cy(d.income)}" r="2" fill="var(--income)" stroke="var(--surface)" stroke-width="1"/>`;
   });
   const axis = `<line x1="${dpad}" y1="${DH - 30}" x2="${DW - 6}" y2="${DH - 30}" stroke="var(--line2)" stroke-width="1"/>`;
   const lines = `<polyline points="${linePath('expense')}" fill="none" stroke="var(--spend)" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" opacity="0.85"/>`
-    + `<polyline points="${linePath('income')}" fill="none" stroke="var(--income)" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" opacity="0.85"/>`;
   return `
   <div class="card">
     <h2>日ごとの収支 <span class="tag">${esc(ym.replace('-', '/'))}</span> ${hbtn('qa-summary-tabs')}</h2>
     <svg class="chart" viewBox="0 0 ${DW} ${DH}" role="img" aria-label="日別収支グラフ(棒+折れ線)">${bars}${lines}${dots}${axis}</svg>
     <div class="legend"><span><span class="sw" style="background:var(--spend)"></span>支出</span>
-    <span><span class="sw" style="background:var(--income)"></span>収入</span>
     <span class="lgsub">棒=日ごとの金額 / 折れ線=同じ金額の推移</span></div>
     ${active.length === 0 ? '<div class="hint">この月の記録はまだありません。記録タブから支出・収入を登録できます。</div>' : active.map(d => {
       const wd = WD[new Date(d.date + 'T00:00:00').getDay()];
       return `<div class="lrow tap" onclick="openDayDetail('${d.date}')">
-        <div class="ico ${d.income > 0 && d.balance >= 0 ? 'inc' : 'exp'}">${d.day}</div>
+        <div class="ico exp">${d.day}</div>
         <div class="mid"><div class="t">${Number(ym.slice(5))}月${d.day}日(${wd})</div>
-        <div class="d">支出 ${fmtYen(d.expense)} ・ 収入 ${fmtYen(d.income)} ・ ${d.count}件</div></div>
-        <div class="amt" style="color:var(--${d.balance >= 0 ? 'ok' : 'danger'})">${fmtSignYen(d.balance)}</div>
+        <div class="d">${d.count}件</div></div>
+        <div class="amt">${fmtYen(d.expense)}</div>
       </div>`;
     }).join('')}
     ${days.some(d => d.count > 0) ? '<div class="hint" style="margin-top:10px">日付をタップすると、その日の内訳(何にいくら使ったか)を確認できます。</div>' : ''}
@@ -1919,63 +1979,17 @@ function ledgerAnalysisCardHtml(ym) {
   const total = cur.reduce((a, t) => a + t.amount, 0);
   const ptot = prv.reduce((a, t) => a + t.amount, 0);
   if (!total && !ptot) return `<div class="card"><h2>支出の分析 <span class="tag">${esc(ym.replace('-', '/'))}</span> ${hbtn('qa-analysis')}</h2>
-    <div class="hint">支出の記録が増えると、カテゴリ別の増減や貯蓄率などの分析がここに表示されます。</div></div>`;
+    <div class="hint">支出の記録が増えると、前月比や予算の消化率、気づきのポイントがここに表示されます。</div></div>`;
   const map = {}, pmap = {};
   cur.forEach(t => { (map[t.categoryId] = map[t.categoryId] || { c: 0, n: 0 }); map[t.categoryId].c += t.amount; map[t.categoryId].n++; });
   prv.forEach(t => { pmap[t.categoryId] = (pmap[t.categoryId] || 0) + t.amount; });
-  const rowsC = Object.keys(map).map(id => ({ id, c: map[id].c, n: map[id].n, p: pmap[id] || 0, d: map[id].c - (pmap[id] || 0) }))
-    .sort((a, b) => b.c - a.c);
-  const maxC = Math.max(1, ...rowsC.map(r => Math.max(r.c, r.p)));
+  const rowsC = Object.keys(map).map(id => ({ id, c: map[id].c, n: map[id].n, p: pmap[id] || 0, d: map[id].c - (pmap[id] || 0) }));
   const days = new Set(cur.map(t => t.date)).size;
   const perDay = days ? Math.round(total / days) : 0;
   const diff = total - ptot;
   const pct = anPct(diff, ptot);
-
-  // 6ヶ月の支出推移(カテゴリ別の積み上げ)
-  const PAL = ['#d9695a', '#e2a03f', '#5b9f7d', '#4c8bbf', '#8a7bc8', '#c2699a', '#7c8a95', '#a9b04f'];
-  const months = [];
-  for (let i = 5; i >= 0; i--) {
-    const y2 = anYmShift(ym, -i), byC = {};
-    S.txs.filter(t => t.type === 'expense' && t.date.slice(0, 7) === y2)
-      .forEach(t => { byC[t.categoryId] = (byC[t.categoryId] || 0) + t.amount; });
-    months.push({ ym: y2, v: Object.keys(byC).reduce((a, k) => a + byC[k], 0), byC });
-  }
-  const catTotals = {};
-  months.forEach(m => Object.keys(m.byC).forEach(k => { catTotals[k] = (catTotals[k] || 0) + m.byC[k]; }));
-  const cats = Object.keys(catTotals).sort((a, b) => catTotals[b] - catTotals[a]).slice(0, 8);
-  rowsC.forEach(r => { if (cats.indexOf(r.id) < 0) cats.push(r.id); });
-  const colorOf = id => PAL[Math.max(0, cats.indexOf(id)) % PAL.length];
-  const mMax = Math.max(1, ...months.map(m => m.v));
-  const SW = 560, SH = 300, pad = 34, ph = SH - 62;
-  const stp = (SW - pad - 8) / months.length;
-  let svg = '';
-  [0.5, 1].forEach(g => {
-    const y = (SH - 34 - g * ph).toFixed(1);
-    svg += `<line x1="${pad}" y1="${y}" x2="${SW - 8}" y2="${y}" stroke="var(--surface2)" stroke-width="1"/>`;
-  });
-  months.forEach((m, i) => {
-    const bw2 = Math.min(46, stp * 0.6);
-    const x = pad + i * stp + (stp - bw2) / 2;
-    let acc = 0;
-    cats.forEach(id => {
-      const v2 = m.byC[id] || 0;
-      if (!v2) return;
-      const h = v2 / mMax * ph;
-      const y = SH - 34 - (acc + h);
-      svg += `<rect class="seg" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw2.toFixed(1)}" height="${Math.max(1.5, h).toFixed(1)}" fill="${colorOf(id)}" onclick="openCatDetail('${esc(id)}','${m.ym}')"><title>${esc(catName(id))} ${fmtYen(v2)} ・タップで詳細</title></rect>`;
-      acc += h;
-    });
-    if (m.v) svg += `<text x="${(x + bw2 / 2).toFixed(1)}" y="${(SH - 41 - acc).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="600" fill="var(--sub)">${Math.round(m.v / 1000)}k</text>`;
-    svg += `<text x="${(x + bw2 / 2).toFixed(1)}" y="${SH - 15}" text-anchor="middle" font-size="11" fill="var(--sub)">${Number(m.ym.slice(5))}月</text>`;
-  });
-  const legend = cats.map(id => `<span class="lgd" onclick="openCatDetail('${esc(id)}','${ym}')"><span class="sw" style="background:${colorOf(id)}"></span>${esc(catName(id))}</span>`).join('');
-
-  // 見えてきたこと
-  const tips = [];
   const bud = getBudgets();
-  const bRows = rowsC.filter(r => bud[r.id]).map(r => ({
-    id: r.id, c: r.c, limit: bud[r.id], pct: Math.round(r.c / bud[r.id] * 100), over: r.c - bud[r.id]
-  })).sort((a, b) => b.pct - a.pct);
+  const bRows = rowsC.filter(r => bud[r.id]).map(r => ({ id: r.id, c: r.c, limit: bud[r.id], pct: Math.round(r.c / bud[r.id] * 100), over: r.c - bud[r.id] })).sort((a, b) => b.pct - a.pct);
   const fixedSum = cur.filter(t => t.fixedCostId).reduce((a, t) => a + t.amount, 0);
   const lowArr = cur.filter(t => t.amount < 1000);
   const lowSum = lowArr.reduce((a, t) => a + t.amount, 0);
@@ -1983,6 +1997,7 @@ function ledgerAnalysisCardHtml(ym) {
   const up = rowsC.filter(r => r.p > 0 && r.d > 0).sort((a, b) => b.d - a.d)[0];
   const down = rowsC.filter(r => r.d < 0).sort((a, b) => a.d - b.d)[0];
   const neu = rowsC.filter(r => r.p === 0 && r.c > 0).sort((a, b) => b.c - a.c)[0];
+  const tips = [];
   if (up) tips.push({ t: `${catName(up.id)} が前月より ${fmtYen(up.d)} 増`, d: `前月 ${fmtYen(up.p)} → 今月 ${fmtYen(up.c)}(+${anPct(up.d, up.p)}%)。${up.n}件・1回あたり平均 ${fmtYen(Math.round(up.c / up.n))} なので、回数を月2回減らすだけで約 ${fmtYen(Math.round(up.c / up.n) * 2)} 戻せます。` });
   if (down) tips.push({ t: `${catName(down.id)} は ${fmtYen(-down.d)} 減`, d: `前月 ${fmtYen(down.p)} → 今月 ${fmtYen(down.c)}(${anPct(down.d, down.p)}%)。この調子を維持できるか、来月も同じカテゴリを見てみましょう。` });
   if (inc > 0) {
@@ -1994,43 +2009,19 @@ function ledgerAnalysisCardHtml(ym) {
     tips.push({ t: `固定費は支出の ${fr}%`, d: `固定費 ${fmtYen(fixedSum)}。${fr >= 45 ? '半分近くが固定費なので、削るならここが最短です(サブスク・保険・通信)。' : fr <= 30 ? '30%以下に収まっています。変動費の管理に集中してよさそうです。' : '目安は30%前後。契約の更新月を確認しておくと安全です。'}` });
   }
   if (lowArr.length >= 3 && total > 0 && lowSum / total >= 0.12) {
-    tips.push({ t: `¥1,000未満の支出が ${lowArr.length}件`, d: `合計 ${fmtYen(lowSum)}(支出の ${Math.round(lowSum / total * 100)}%)。コンビニ・自販機・少額決済の積み上げです。週に2回だけでも「買わない日」を作ると効きます。` });
+    tips.push({ t: `¥1,000未満の支出が ${lowArr.length}件`, d: `合計 ${fmtYen(lowSum)}(支出の ${Math.round(lowSum / total * 100)}%)。コンビニ・自販機・少額決済の積み上げです。` });
   }
   if (neu) tips.push({ t: `新しいカテゴリ「${catName(neu.id)}」が登場`, d: `今月 ${fmtYen(neu.c)}・${neu.n}件。一時的な出費か、これから続く支出かを来月の数字で見極めましょう。` });
-
-  bRows.filter(r => r.pct >= 100).slice(0, 2).forEach(r => tips.unshift({
-    t: `${catName(r.id)} が予算超過 (${r.pct}%)`,
-    d: `今月 ${fmtYen(r.c)} / 予算 ${fmtYen(r.limit)} で ${fmtYen(r.over)} オーバー。来月の上限を見直すか、このカテゴリの回数を減らすのが効きます。`
-  }));
-  bRows.filter(r => r.pct >= 80 && r.pct < 100).slice(0, 1).forEach(r => tips.unshift({
-    t: `${catName(r.id)} が予算の ${r.pct}%`,
-    d: `残り ${fmtYen(r.limit - r.c)}。月末まであと何日あるかを考えて、1回あたりの金額を意識すると超過を防げます。`
-  }));
-
+  bRows.filter(r => r.pct >= 100).slice(0, 2).forEach(r => tips.unshift({ t: `${catName(r.id)} が予算超過 (${r.pct}%)`, d: `今月 ${fmtYen(r.c)} / 予算 ${fmtYen(r.limit)} で ${fmtYen(r.over)} オーバー。上限の見直しか、回数を減らすのが効きます。` }));
+  bRows.filter(r => r.pct >= 80 && r.pct < 100).slice(0, 1).forEach(r => tips.unshift({ t: `${catName(r.id)} が予算の ${r.pct}%`, d: `残り ${fmtYen(r.limit - r.c)}。月末までの残り日数で1回あたりの金額を意識すると超過を防げます。` }));
   return `
   <div class="card" id="an-card">
     <h2>支出の分析 <span class="tag">${esc(ym.replace('-', '/'))}</span> ${hbtn('qa-analysis')}</h2>
     <div class="statgrid">
-      <div class="stat"><div class="l">支出合計</div><div class="v spend">${fmtYen(total)}</div></div>
       <div class="stat"><div class="l">前月比</div><div class="v ${diff >= 0 ? 'minus' : 'plus'}">${diff >= 0 ? '+' : '-'}${fmtYen(Math.abs(diff))}<small>${pct === null ? '前月なし' : (pct >= 0 ? '+' : '') + pct + '%'}</small></div></div>
       <div class="stat"><div class="l">1日あたり</div><div class="v">${fmtYen(perDay)}</div></div>
       <div class="stat"><div class="l">記録日数</div><div class="v">${days}<small>日</small></div></div>
     </div>
-    <b class="seclab">直近6ヶ月の支出</b>
-    <svg class="chart" viewBox="0 0 ${SW} ${SH}" role="img" aria-label="直近6ヶ月の支出(カテゴリ別積み上げ)">${svg}</svg>
-    <div class="legend lgdwrap">${legend}</div>
-    <b class="seclab">カテゴリ別 前月比 <small>タップで詳細</small></b>
-    ${rowsC.length === 0 ? '<div class="hint">今月の支出はまだありません。</div>' : rowsC.map(r => {
-      const p2 = anPct(r.d, r.p);
-      return `<div class="cmp" onclick="openCatDetail('${esc(r.id)}','${ym}')">
-        <div class="cmL"><div class="cmN">${esc(catName(r.id))} <span class="cmC">${r.n}件</span></div>
-          <div class="cmpbar"><i style="width:${(r.c / maxC * 100).toFixed(1)}%;background:${colorOf(r.id)}"></i></div>
-          ${r.p > 0 ? `<div class="cmpbar"><i style="width:${(r.p / maxC * 100).toFixed(1)}%;background:${colorOf(r.id)};opacity:.35"></i></div>` : ''}
-        </div>
-        <div class="cmR"><div class="cmA">${fmtYen(r.c)}</div><div class="cmP">前月 ${r.p ? fmtYen(r.p) : '記録なし'}</div></div>
-        <div class="dlt" style="color:var(--${r.d > 0 ? 'spend' : r.d < 0 ? 'ok' : 'sub'})">${r.p === 0 ? '新規' : (r.d > 0 ? '+' : '') + fmtYen(r.d)}<div class="dltp">${p2 === null ? '' : (p2 >= 0 ? '+' : '') + p2 + '%'}</div></div>
-      </div>`;
-    }).join('')}
     <b class="seclab">カテゴリ予算 <small>タップで編集</small>${hbtn('qa-budget')}</b>
     ${bRows.length === 0
       ? `<div class="hint" style="margin-bottom:8px">カテゴリごとの月予算を決めると、消化率と超過アラートがここに出ます。</div>
@@ -2042,7 +2033,7 @@ function ledgerAnalysisCardHtml(ym) {
         </div>`).join('') + `<button class="btn sm sub mt" onclick="openBudgetModal()">予算を編集</button>`}
     <b class="seclab">見えてきたこと</b>
     ${tips.slice(0, 4).map(t => `<div class="tip"><div class="t">${t.t}</div><div class="d">${t.d}</div></div>`).join('')}
-    <div class="hint" style="margin-top:10px">棒の色(積み上げのセグメント)や凡例のカテゴリ名をタップすると、そのカテゴリの詳細(6ヶ月の推移・お店別)が開きます。</div>
+    <div class="hint" style="margin-top:10px">カテゴリ別の金額と前月比は「内訳」タブ、6ヶ月の流れは「推移」タブで確認できます。</div>
   </div>`;
 }
 
