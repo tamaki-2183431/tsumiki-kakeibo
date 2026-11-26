@@ -7,6 +7,7 @@
 <title>つみき家計簿</title>
 <style>
 :root{
+  --hdr-bg:#1f2b26; --hdr-fg:#f2f5f3;
   --bg:#eef1ee; --surface:#ffffff; --surface2:#f7f9f7;
   --ink:#1f2b26; --sub:#68766f; --faint:#9aa8a0;
   --line:#dde4df; --line2:#e9eeea;
@@ -35,14 +36,14 @@ input[type="date"]{min-height:46px;-webkit-appearance:none;appearance:none;font-
 label{display:block;font-size:12px;color:var(--sub);margin:12px 0 4px;font-weight:600;letter-spacing:.02em}
 label .req{color:var(--spend)}
 header.app{
-  position:sticky;top:0;z-index:30;background:var(--ink);color:#f2f5f3;
+  position:sticky;top:0;z-index:30;background:var(--hdr-bg);color:var(--hdr-fg);
   padding:10px 16px calc(10px);display:flex;align-items:baseline;gap:10px;
 }
 header.app .brand{font-size:17px;font-weight:700;letter-spacing:.06em}
-header.app .brand small{font-weight:500;font-size:11px;color:#aebbb4;margin-left:8px;letter-spacing:.08em}
-header.app .mini-price{margin-left:auto;font-size:12px;color:#cfe0d8;font-variant-numeric:tabular-nums;white-space:nowrap}
+header.app .brand small{font-weight:500;font-size:11px;color:inherit;opacity:.62;margin-left:8px;letter-spacing:.08em}
+header.app .mini-price{margin-left:auto;font-size:12px;color:inherit;opacity:.9;font-variant-numeric:tabular-nums;white-space:nowrap}
 header.app .mini-price b{font-size:13px}
-header.app .mini-price .src{font-size:10px;color:#8fa39a}
+header.app .mini-price .src{font-size:10px;color:inherit;opacity:.62}
 main{max-width:640px;margin:0 auto;padding:14px 14px 24px}
 .screen{display:none}
 .screen.on{display:block}
@@ -224,8 +225,23 @@ body.modal-open{overflow:hidden}
 .tsvrow .d{color:var(--sub);font-size:11.5px;margin-top:1px;word-break:break-all}
 .tsvrow .amt{font-weight:700;font-variant-numeric:tabular-nums}
 .tsvrow.fx{background:var(--warn-soft);border-radius:8px;padding-left:8px;padding-right:8px}
+/* header color picker */
+.hcpick{border:1px solid var(--line2);border-radius:12px;padding:10px;margin-top:10px;background:var(--surface2)}
+.hcpick .hchead{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700;gap:8px}
+.hcpick .hchead code{font-size:12px}
+.hcpick .sw{display:inline-block;width:16px;height:16px;border-radius:4px;border:1px solid rgba(0,0,0,.18);vertical-align:-3px;margin-right:6px}
+.hcpick .hcsv{position:relative;height:118px;border-radius:8px;margin-top:8px;touch-action:none;cursor:crosshair;overflow:hidden}
+.hcpick .hcptr{position:absolute;width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.5);transform:translate(-50%,-50%);pointer-events:none;left:0;top:0}
+.hcpick .hchue input[type=range]{width:100%;margin:8px 0 0;height:20px;border-radius:6px;-webkit-appearance:none;appearance:none;background:linear-gradient(90deg,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)}
+.hcpick .hchue input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid #333;box-shadow:0 1px 3px rgba(0,0,0,.45)}
+.hcpick .hchue input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:#fff;border:2px solid #333}
+.hcpick .hcrow{display:flex;gap:8px;margin-top:8px}
+.hcpick .hcrow input{flex:1}
+body.hdr-pick #modal-root .veil{background:transparent}
+body.hdr-pick #modal-root .box{max-height:74vh}
+.hcsw{display:inline-block;width:18px;height:18px;border-radius:5px;border:1px solid rgba(0,0,0,.18);vertical-align:-4px;margin-right:6px}
 /* help page */
-header.app .hdr-help{width:30px;height:30px;border-radius:50%;border:1px solid rgba(255,255,255,.35);color:#cfe0d8;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;margin-left:10px}
+header.app .hdr-help{width:30px;height:30px;border-radius:50%;border:1px solid currentColor;color:inherit;opacity:.85;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;margin-left:10px}
 header.app .hdr-help:active{opacity:.7}
 .steps .st{display:flex;gap:10px;padding:9px 0;border-bottom:1px dashed var(--line2);align-items:flex-start}
 .steps .st:last-child{border-bottom:none}
@@ -716,6 +732,7 @@ async function loadAll() {
   S.purchases = pur.sort((a, b) => ((a.datetime || '') + (a.createdAt || '')).localeCompare((b.datetime || '') + (b.createdAt || '')));
   S.sales = sal.sort((a, b) => ((b.datetime || '') + (b.createdAt || '')).localeCompare((a.datetime || '') + (a.createdAt || '')));
   S.settings = Object.fromEntries(set.map(s => [s.key, s]));
+  try { applyHeaderColors(); } catch (e) {}
   PAY_METHODS = (S.settings.payMethods && Array.isArray(S.settings.payMethods.value) && S.settings.payMethods.value.length > 0) ? S.settings.payMethods.value : DEFAULT_PAY_METHODS;
 }
 
@@ -809,6 +826,7 @@ function closeModal() {
   const root = document.getElementById('modal-root');
   root.classList.remove('on'); root.innerHTML = '';
   document.body.classList.remove('modal-open');
+  document.body.classList.remove('hdr-pick');
 }
 function confirmModal(title, bodyHtml, okLabel, onOk, danger = false) {
   window._confirmCb = () => { closeModal(); onOk(); };
@@ -3544,6 +3562,151 @@ function startPriceLoop() {
 function stopPriceLoop() { if (priceTimer) { clearInterval(priceTimer); priceTimer = null; } }
 
 /* ================= 設定・バックアップ画面 ================= */
+/* --- ヘッダーのデザイン設定 --- */
+const HDR_DEFAULT = { bg: '#1f2b26', fg: '#f2f5f3' };
+function hdrHexOk(v) { return /^#[0-9a-fA-F]{6}$/.test(String(v || '')); }
+function hdrCfg() {
+  const v = ((S.settings || {}).headerColors || {}).value || {};
+  return { bg: (hdrHexOk(v.bg) ? v.bg : HDR_DEFAULT.bg).toUpperCase(), fg: (hdrHexOk(v.fg) ? v.fg : HDR_DEFAULT.fg).toUpperCase() };
+}
+function applyHeaderColors(bg, fg) {
+  const c = (bg && fg) ? { bg, fg } : hdrCfg();
+  document.documentElement.style.setProperty('--hdr-bg', c.bg);
+  document.documentElement.style.setProperty('--hdr-fg', c.fg);
+}
+function hdrLum(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  const ch = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+  return 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2];
+}
+function hdrContrast(a, b) { const l1 = hdrLum(a), l2 = hdrLum(b); const hi = Math.max(l1, l2), lo = Math.min(l1, l2); return (hi + 0.05) / (lo + 0.05); }
+function rgbToHex(r, g, b) { return '#' + [r, g, b].map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('').toUpperCase(); }
+function hexToRgb(hex) { const n = parseInt(hex.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+function rgbToHsv(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+  let h = 0;
+  if (d) { if (mx === r) h = ((g - b) / d) % 6; else if (mx === g) h = (b - r) / d + 2; else h = (r - g) / d + 4; h *= 60; if (h < 0) h += 360; }
+  return { h, s: mx ? d / mx : 0, v: mx };
+}
+function hsvToRgb(h, s, v) {
+  const c = v * s, x = c * (1 - Math.abs(((h % 360) / 60) % 2 - 1)), m = v - c;
+  let r = 0, g = 0, b = 0;
+  if (h < 60) { r = c; g = x; } else if (h < 120) { r = x; g = c; } else if (h < 180) { g = c; b = x; }
+  else if (h < 240) { g = x; b = c; } else if (h < 300) { r = x; b = c; } else { r = c; b = x; }
+  return [(r + m) * 255, (g + m) * 255, (b + m) * 255];
+}
+function hsvToHex(h, s, v) { const c = hsvToRgb(h, s, v); return rgbToHex(c[0], c[1], c[2]); }
+function hexToHsv(hex) { const c = hexToRgb(hex); return rgbToHsv(c[0], c[1], c[2]); }
+let hc = null;
+function hcPickerHtml(key, label) {
+  return `<div class="hcpick">
+    <div class="hchead"><span>${label}</span><span><span class="sw" id="hc-${key}-sw"></span><code id="hc-${key}-lbl">#000000</code></span></div>
+    <div class="hcsv" id="hc-${key}-sv"><div class="hcptr" id="hc-${key}-ptr"></div></div>
+    <div class="hchue"><input type="range" min="0" max="359" step="1" id="hc-${key}-hue" oninput="hcHue('${key}',this.value)" aria-label="${label}の色相"></div>
+    <div class="hcrow"><input type="text" id="hc-${key}-hex" maxlength="7" placeholder="#RRGGBB" oninput="hcHex('${key}',this.value)" aria-label="${label}のHEXコード"></div>
+  </div>`;
+}
+function openHeaderColorModal() {
+  const c = hdrCfg();
+  hc = { saved: { bg: c.bg, fg: c.fg }, cur: { bg: hexToHsv(c.bg), fg: hexToHsv(c.fg) } };
+  document.body.classList.add('hdr-pick');
+  openModal(`<h2>ヘッダーのデザイン設定</h2>
+    <div class="hint">操作すると上のヘッダーにすぐ反映されます。「保存」を押すまで確定しません。</div>
+    ${hcPickerHtml('bg', '背景色')}
+    ${hcPickerHtml('fg', '文字色')}
+    <div id="hc-warn"></div>
+    <div class="row mt"><button class="btn sub" onclick="hcCancel()">キャンセル</button>
+      <button class="btn primary" onclick="hcSave()">保存</button></div>
+    <button class="btn sm sub block mt" onclick="hcReset()">初期設定に戻す</button>`, false);
+  hcSync();
+  hcBind();
+}
+function hcBind() {
+  ['bg', 'fg'].forEach(k => {
+    const el = document.getElementById('hc-' + k + '-sv');
+    if (!el) return;
+    const upd = e => {
+      const r = el.getBoundingClientRect();
+      if (!r.width || !r.height) return;
+      const sv = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+      const vv = Math.min(1, Math.max(0, 1 - (e.clientY - r.top) / r.height));
+      hcSet(k, hc.cur[k].h, sv, vv);
+    };
+    el.addEventListener('pointerdown', e => { try { el.setPointerCapture(e.pointerId); } catch (_) {} el._drag = true; upd(e); e.preventDefault(); });
+    el.addEventListener('pointermove', e => { if (el._drag) { upd(e); e.preventDefault(); } });
+    el.addEventListener('pointerup', () => { el._drag = false; });
+    el.addEventListener('pointercancel', () => { el._drag = false; });
+  });
+}
+function hcSync() {
+  ['bg', 'fg'].forEach(k => {
+    const c = hc.cur[k];
+    const hex = hsvToHex(c.h, c.s, c.v);
+    const sv = document.getElementById('hc-' + k + '-sv');
+    if (sv) sv.style.background = 'linear-gradient(to top,#000,rgba(0,0,0,0)),linear-gradient(to right,#fff,hsl(' + Math.round(c.h) + ',100%,50%))';
+    const ptr = document.getElementById('hc-' + k + '-ptr');
+    if (ptr) { ptr.style.left = (c.s * 100).toFixed(1) + '%'; ptr.style.top = ((1 - c.v) * 100).toFixed(1) + '%'; ptr.style.background = hex; }
+    const sw = document.getElementById('hc-' + k + '-sw');
+    if (sw) sw.style.background = hex;
+    const lbl = document.getElementById('hc-' + k + '-lbl');
+    if (lbl) lbl.textContent = hex;
+    const hue = document.getElementById('hc-' + k + '-hue');
+    if (hue && document.activeElement !== hue) hue.value = String(Math.round(c.h));
+    const inp = document.getElementById('hc-' + k + '-hex');
+    if (inp && document.activeElement !== inp) inp.value = hex;
+  });
+  const bg = hsvToHex(hc.cur.bg.h, hc.cur.bg.s, hc.cur.bg.v);
+  const fg = hsvToHex(hc.cur.fg.h, hc.cur.fg.s, hc.cur.fg.v);
+  applyHeaderColors(bg, fg);
+  const w = document.getElementById('hc-warn');
+  if (w) {
+    const ratio = hdrContrast(bg, fg);
+    w.innerHTML = ratio < 4.5 ? `<div class="warnbox" style="margin-top:10px">文字と背景のコントラストが低めです(比 ${ratio.toFixed(2)}:1)。読みにくい可能性があります。目安は4.5:1以上です。</div>` : '';
+  }
+}
+function hcSet(key, h, s, v) {
+  if (!hc) return;
+  hc.cur[key] = { h: h, s: Math.min(1, Math.max(0, s)), v: Math.min(1, Math.max(0, v)) };
+  hcSync();
+}
+function hcHue(key, val) {
+  if (!hc) return;
+  hc.cur[key] = { h: ((Number(val) || 0) % 360 + 360) % 360, s: hc.cur[key].s, v: hc.cur[key].v };
+  hcSync();
+}
+function hcHex(key, val) {
+  if (!hc) return;
+  let v = String(val || '').trim();
+  if (v[0] === '#') v = v.slice(1);
+  if (!/^[0-9a-fA-F]{6}$/.test(v)) return;
+  const hsv = hexToHsv('#' + v.toUpperCase());
+  hc.cur[key] = hsv;
+  hcSync();
+}
+async function hcSave() {
+  if (!hc) return;
+  const bg = hsvToHex(hc.cur.bg.h, hc.cur.bg.s, hc.cur.bg.v);
+  const fg = hsvToHex(hc.cur.fg.h, hc.cur.fg.s, hc.cur.fg.v);
+  await idbPut('settings', { id: 'headerColors', key: 'headerColors', value: { bg, fg } });
+  S.settings.headerColors = { id: 'headerColors', key: 'headerColors', value: { bg, fg } };
+  applyHeaderColors(bg, fg);
+  closeModal();
+  toast('ヘッダーの色を保存しました');
+  renderSettings();
+}
+function hcCancel() {
+  if (hc) applyHeaderColors(hc.saved.bg, hc.saved.fg);
+  closeModal();
+  renderSettings();
+}
+function hcReset() {
+  if (!hc) return;
+  hc.cur.bg = hexToHsv(HDR_DEFAULT.bg);
+  hc.cur.fg = hexToHsv(HDR_DEFAULT.fg);
+  hcSync();
+  toast('初期設定に戻しました(「保存」で確定)');
+}
 function renderSettings() {
   const a = activeAsset();
   const curs = S.currencies;
@@ -3564,6 +3727,13 @@ function renderSettings() {
       <div class="ops">${c.enabled ? `<button class="btn sm sub" onclick="editCurrency('${c.id}')">編集</button>` : ''}</div></div>`).join('')}
     <div class="notebox">通貨ごとに「取引所・価格API・桁数・最小注文数量・刻み幅」を独立管理しています。新しい通貨の追加はここから行えます(BTC・ETHは仕様を登録済み。初期はXRPのみ有効)。</div>
   </div>` : ''}
+  <div class="card">
+    <h2>ヘッダーのデザイン設定 <span class="tag">背景色 / 文字色</span></h2>
+    <div class="hint">ヘッダーの背景色と文字色を変更できます。操作中はヘッダーにすぐ反映され、保存するまで確定しません。</div>
+    <div class="kv mt"><span class="k">背景色</span><span class="v"><span class="hcsw" style="background:${hdrCfg().bg}"></span><code>${hdrCfg().bg}</code></span></div>
+    <div class="kv"><span class="k">文字色</span><span class="v"><span class="hcsw" style="background:${hdrCfg().fg}"></span><code>${hdrCfg().fg}</code></span></div>
+    <button class="btn primary block mt" onclick="openHeaderColorModal()">色を変更する</button>
+  </div>
   <div class="card">
     <h2>バックアップ・復元 <span class="tag">JSON</span> ${hbtn('qa-save')}</h2>
     <div class="hint">家計簿データ・カテゴリ・固定費・取引履歴・通貨マスタ・購入/売却履歴・設定をすべてJSONファイルに出力します。</div>
