@@ -3128,6 +3128,33 @@ function xrpFilledLotsHtml(a) {
   }).join('');
 }
 /* --- 売り注文(売り注文中) --- */
+async function sheetCompleteSell(id) { closeModal(); await completeSell(id); }
+function sheetDeleteSell(id) { closeModal(); deleteSellOrder(id); }
+function openSellOrderSheet(id) {
+  const a = activeAsset(); if (!a) return;
+  const so = S.sellOrders.find(x => x.id === id); if (!so) return;
+  const p = S.purchases.find(x => x.id === so.purchaseId) || {};
+  const pc = S.priceCache[a.id] || {};
+  const price = Number(pc.last || 0);
+  const rate = Number(so.rate) || 0;
+  const buyRate = Number(p.actualRate || 0);
+  const filled = price > 0 && price >= rate;
+  const diff = so.coinGain != null ? so.coinGain : (p.amountJPY ? so.qty - p.amountJPY / rate : 0);
+  const gap = (price > 0 && rate > 0) ? rate - price : null;
+  const names = (p.reserveAlloc || []).map(l => { const r = S.reserves.find(x => x.id === l.reserveId); return r ? xrpTxLabel(r) : null; }).filter(Boolean);
+  openModal(`<h2>売り注文 ${filled ? '<span class="badge b-warn">指値到達(要確定)</span>' : '<span class="badge b-sell">売り注文中</span>'}</h2>
+    ${names.length ? `<div class="hint">${names.map(esc).join('・')}</div>` : ''}
+    <div class="kv"><span class="k">買値</span><span class="v" style="font-weight:700">${fmtYen3(buyRate)}</span></div>
+    <div class="kv"><span class="k">指値</span><span class="v" style="font-weight:700">${fmtYen3(rate)}</span></div>
+    <div class="kv"><span class="k">目標</span><span class="v">${Math.round((so.gainRate || 0) * 100)}%</span></div>
+    <div class="kv"><span class="k">数量</span><span class="v">${fmtQty(so.qty, a.qtyDecimals)} ${esc(a.code)}</span></div>
+    <div class="kv"><span class="k">現在値</span><span class="v">${price > 0 ? fmtYen(price) : '---'}</span></div>
+    <div class="kv"><span class="k">売れたら</span><span class="v" style="font-weight:700">${coinGainText(diff, rate, a.code)}</span></div>
+    <div class="hint" style="margin-top:10px">${filled ? '現在値が指値以上です。GMOコインで約定を確認し、この画面から確定してください。' : (gap != null ? `現在値は指値まで ${fmtYen3(gap)} です。GMOコインで約定していたら、この画面から確定できます(自動検知を待たずに記録できます)。` : 'GMOコインで約定していたら、この画面から確定できます。')}</div>
+    <button class="btn primary block mt" onclick="sheetCompleteSell('${so.id}')">約定を確定して完了にする →</button>
+    <button class="btn sm sub block mt" onclick="sheetDeleteSell('${so.id}')">注文を取り消す</button>
+    <button class="btn sub block mt" onclick="closeModal()">閉じる</button>`);
+}
 function xrpSellOrdersHtml(a) {
   const pc = S.priceCache[a.id] || {};
   const price = Number(pc.last || 0);
@@ -3144,17 +3171,15 @@ function xrpSellOrdersHtml(a) {
     const near = !filled && price > 0 && rate > 0 && (rate - price) / rate <= NEAR_GAP;
     const diff = so.coinGain != null ? so.coinGain : (p.amountJPY ? so.qty - p.amountJPY / so.rate : 0);
     const names = (p.reserveAlloc || []).map(l => { const r = S.reserves.find(x => x.id === l.reserveId); return r ? xrpTxLabel(r) : null; }).filter(Boolean);
-    return `<div class="card cyc">
-      <div class="badgeline"><span class="badge ${filled ? 'b-warn' : 'b-sell'}">${filled ? '指値到達(要確定)' : '売り注文中'}</span>${near ? '<span class="soonpill">まもなく</span>' : ''}${filled ? '' : `<button class="xbtn" aria-label="売り注文を取り消す" onclick="deleteSellOrder('${so.id}')">×</button>`}</div>
+    return `<div class="card cyc tap" onclick="openSellOrderSheet('${so.id}')">
+      <div class="badgeline"><span class="badge ${filled ? 'b-warn' : 'b-sell'}">${filled ? '指値到達(要確定)' : '売り注文中'}</span>${near ? '<span class="soonpill">まもなく</span>' : ''}</div>
       <div class="head"><span class="name">${names.length ? esc(names.slice(0, 2).join('・')) + (names.length > 2 ? ` ほか${names.length - 2}件` : '') : '売り注文'}</span>
         <span class="amt">${fmtQty(so.qty, a.qtyDecimals)} ${esc(a.code)}</span></div>
       <div class="pair"><span>買 <b>${fmtYen3(buyRate)}</b> → 目標 <b>${Math.round((so.gainRate || 0) * 100)}%</b> 指値 <b>${fmtYen3(rate)}</b></span></div>
       ${filled
         ? `<div class="after"><span class="left">価格が指値に触れました。<b>まだ確定していません</b> — GMOコインで約定を確認し、下のボタンで確定してください。</span></div>`
         : `<div class="after"><span class="left">${price > 0 ? (price < rate ? `<span class="gap" style="color:${'var(--asset)'}">あと +` + fmtYen3(rate - price) + 'で約定</span>' : '現在値は指値以上です') : '価格を取得できていません'}</span><span class="diff">売れたら ${coinGainText(diff, rate, a.code)}</span></div>`}
-      ${filled
-        ? `<button class="btn primary block" onclick="completeSell('${so.id}')">約定を確定して完了にする →</button>`
-        : ''}
+      <div class="hint" style="margin-top:6px">タップして確定・取り消しができます。</div>
     </div>`;
   }).join('');
 }
