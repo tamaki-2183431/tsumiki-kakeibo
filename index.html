@@ -496,6 +496,183 @@ div.errskip{display:none}
 .xh-ref .body{padding:0 14px 14px}
 .xh-ref .kv{font-size:13px}
 .xh-ref h3{font-size:11.5px;color:var(--sub);margin:14px 0 4px}
+/* ===== XRPタブ(xa-*) 2026-11 UI改善版 ===== */
+/* ===== 改善案:XRPタブ (xa-*) — 本番の変数・トーンのみ使用
+   積み木ブロック .blk(.buy/.sell/.done/.none)は「完了した取引」改善案の proposal.css と共通 ===== */
+
+/* ① 相場と保有 */
+.xa-mkt{padding:14px 16px 4px}
+.xa-mkt-row{display:grid;grid-template-columns:1fr 1fr}
+.xa-mkt-row>div{min-width:0}
+.xa-hold{border-left:1px solid var(--line2);padding-left:14px}
+.xa-mkt .k{font-size:11px;color:var(--sub);font-weight:600;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.xa-mkt .v{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.01em;line-height:1.25}
+.xa-mkt .v small{font-size:12px;font-weight:600;color:var(--sub);margin-left:3px}
+.xa-mkt .s{font-size:10.5px;color:var(--sub);font-variant-numeric:tabular-nums}
+.xa-api{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:1px 7px;border-radius:99px}
+.xa-api i{width:6px;height:6px;border-radius:50%;background:currentColor}
+.xa-api.ok{background:var(--asset-soft);color:var(--asset-ink)}
+.xa-api.ng{background:var(--danger-soft);color:var(--danger)}
+.xa-api.fb{background:var(--warn-soft);color:var(--warn)}
+.xa-chart{margin-top:10px;border-top:1px solid var(--line2)}
+.xa-chart>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;min-height:40px;font-size:12px;font-weight:700;color:var(--ink)}
+.xa-chart>summary::-webkit-details-marker{display:none}
+.xa-chart>summary em{font-style:normal;font-weight:500;color:var(--sub);font-size:10.5px;margin-left:6px}
+.xa-chart>summary .xa-ts{margin-left:auto;font-size:10.5px;font-weight:500;color:var(--faint);font-variant-numeric:tabular-nums}
+.xa-chart>summary>svg{width:16px;height:16px;stroke:var(--sub);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s}
+.xa-chart[open]>summary>svg{transform:rotate(180deg)}
+.xa-ref{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--asset)}
+.xa-ref:active{background:var(--surface2)}
+.xa-ref svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.xa-chart-body{padding:0 0 10px}
+.xa-chart-body svg{display:block;width:100%;height:auto}
+
+/* ② いまのサイクル(主役) */
+.xa-cyc{padding:14px 14px 12px}
+.xa-cyc-hd{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.xa-cyc-hd h2{font-size:14px;margin:0}
+.xa-todo-n{margin-left:auto;font-size:11px;font-weight:700;color:var(--warn);background:var(--warn-soft);border-radius:99px;padding:2px 9px}
+.xa-pipe{display:flex;align-items:flex-end;background:var(--surface2);border:1px solid var(--line2);border-radius:12px;padding:12px 4px 9px}
+.xa-st{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;text-decoration:none;color:inherit;border-radius:9px;padding:2px 0 3px;-webkit-tap-highlight-color:transparent}
+.xa-st:active{background:var(--line2)}
+.xa-st .tw{height:66px;width:30px;display:flex;flex-direction:column-reverse;align-items:stretch;gap:2px;justify-content:flex-start}
+.xa-st .tw .blk{flex:none;max-width:none;min-width:0;width:100%;height:11px;border-radius:3px}
+.xa-st .tw .blk::after{height:2px;border-radius:0 0 3px 3px}
+.xa-st .tw .blk.none{border:1.5px dashed var(--faint);background:var(--surface)}
+.xa-st .tw .blk.xa-empty{background:transparent;border:1.5px dashed var(--line);opacity:.8}
+.xa-st .tw .blk.xa-empty::after{display:none}
+.xa-st .tw .over{order:9;font-style:normal;font-size:9.5px;font-weight:700;color:var(--sub);text-align:center;line-height:12px}
+.blk.xa-alert{box-shadow:inset 0 0 0 1.5px #e3b45f,0 0 0 1.5px var(--surface),0 0 0 3px var(--warn)}
+.blk.buy.xa-alert{box-shadow:0 0 0 1.5px var(--surface),0 0 0 3px var(--warn)}
+.xa-st .n{margin-top:7px;font-size:17px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1;color:var(--ink)}
+.xa-st .lab{font-size:9.5px;font-weight:600;color:var(--sub);white-space:nowrap;letter-spacing:-.02em}
+.xa-st.zero .n,.xa-st.zero .lab{color:var(--faint)}
+.xa-st.act .n{color:var(--warn)}
+.xa-st:last-child .n{color:var(--asset)}
+.xa-arw{flex:0 0 8px;align-self:center;margin-top:-24px;color:var(--faint);display:flex;justify-content:center}
+.xa-arw svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+
+.xa-todo{margin-top:12px}
+.xa-todo-l{font-size:11px;font-weight:700;color:var(--sub);margin:0 2px 4px}
+.xa-todo-i{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 4px 0 10px;border-radius:10px;text-decoration:none;color:inherit;font-size:13px;border:1px solid var(--line2);margin-top:6px}
+.xa-todo-i:active{background:var(--surface2)}
+.xa-todo-i .dot{width:7px;height:7px;border-radius:50%;background:var(--faint);flex-shrink:0}
+.xa-todo-i.u{background:var(--warn-soft);border-color:#ecdcc0}
+.xa-todo-i.u .dot{background:var(--warn)}
+.xa-todo-i .t{font-weight:700;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.xa-todo-i .s{font-size:10.5px;color:var(--sub);white-space:nowrap}
+.xa-todo-i b{font-variant-numeric:tabular-nums;font-size:13px;min-width:30px;text-align:right}
+.xa-todo-i.u b{color:var(--warn)}
+.xa-todo-i>svg{width:16px;height:16px;stroke:var(--sub);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.xa-todo-i.idle{color:var(--sub);justify-content:center}
+
+/* ③ 段階ごとのセクション(見出しはカードの外に出して区切りをはっきり) */
+.xa-sec{margin-top:22px;scroll-margin-top:64px}
+.xa-sec-hd{display:flex;align-items:center;gap:8px;margin:0 4px 6px}
+.xa-sec-hd .blk{flex:none;width:14px;max-width:14px;min-width:0;height:14px;border-radius:3px}
+.xa-sec-hd .blk::after{height:2px}
+.xa-sec-hd .blk.none{border:1.5px dashed var(--faint);background:var(--surface)}
+.xa-sec-hd h3{font-size:14px;font-weight:700;margin:0;letter-spacing:.02em}
+.xa-sec-hd .cnt{font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--sub);background:var(--surface);border:1px solid var(--line);border-radius:99px;min-width:22px;text-align:center;padding:0 6px;line-height:18px}
+.xa-sec-hd .meta{margin-left:auto;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink)}
+.xa-sec-next{font-size:11.5px;color:var(--sub);margin:0 4px 8px;display:flex;align-items:center;gap:4px}
+.xa-sec-next .hbtn{float:none;margin:0 0 0 2px}
+.xa-sec.empty .xa-sec-hd h3,.xa-sec.empty .xa-sec-hd .cnt{opacity:.55}
+.xa-list{padding:4px 14px}
+.xa-list .lrow{padding:10px 2px}
+.xa-list .lrow.selrow{padding-left:8px;padding-right:8px}
+
+.xa-pend-act{padding:10px 0 10px;border-top:1px solid var(--line2);display:flex;flex-direction:column;align-items:center;gap:4px}
+.xa-link{font-size:12px;font-weight:700;color:var(--sub);min-height:34px;padding:0 8px;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--line)}
+
+/* 注文カード(買い注文中・売り注文中で共通の形)。1枚のカード内に区切り線で並べる */
+.xa-oc{padding:11px 0 10px;border-bottom:1px solid var(--line2);position:relative;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.xa-oc:last-child{border-bottom:none}
+.xa-oc:active{background:var(--surface2)}
+.xa-oc .r1{display:flex;align-items:baseline;gap:8px}
+.xa-oc .nm{flex:1;min-width:0;font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.xa-oc .mn{font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap;letter-spacing:-.01em;line-height:1.2}
+.xa-oc .mn small{font-size:10.5px;font-weight:700;margin-left:2px}
+.xa-oc .mn.as{color:var(--asset)}
+.xa-oc .mn .none{font-size:12px;color:var(--sub);font-weight:700}
+.xa-oc .r2{display:flex;align-items:baseline;gap:8px;margin-top:2px;font-size:11.5px;color:var(--sub);font-variant-numeric:tabular-nums}
+.xa-oc .r2>span:first-child{flex:1;min-width:0}
+.xa-oc .r2 b{color:var(--ink);font-weight:600}
+.xa-oc .r2 .sb{font-size:10.5px;white-space:nowrap}
+.xa-oc .r3{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:11.5px;font-variant-numeric:tabular-nums;min-height:20px}
+.xa-oc .r3 .gap{font-weight:700;color:var(--sub)}
+.xa-oc .r3 .badge{padding:2px 8px;font-size:10.5px}
+.xa-oc .r3 .soonpill{margin-left:0}
+.xa-oc .r3 .go{margin-left:auto;font-size:11px;font-weight:700;color:var(--warn)}
+.xa-oc .r3>svg{width:15px;height:15px;stroke:var(--faint);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;margin-right:-2px}
+.xa-oc.act .r3>svg{stroke:var(--warn)}
+.xa-oc.act::before{content:'';position:absolute;left:-14px;top:10px;bottom:10px;width:3px;border-radius:0 3px 3px 0;background:var(--warn)}
+.xa-oc.xa-flash{animation:xaFlash 1.8s ease-out 1}
+@keyframes xaFlash{0%,35%{background:var(--asset-soft)}100%{background:transparent}}
+
+/* ===== モーダル(本番の #modal-root .box の中で使う) ===== */
+.xa-steps{display:flex;align-items:center;gap:4px;margin:0 38px 12px 0;font-size:11px;font-weight:600;color:var(--faint)}
+.xa-steps span{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.xa-steps .blk{flex:none;width:14px;max-width:14px;min-width:0;height:14px;border-radius:3px;display:inline-flex;align-items:center;justify-content:center;opacity:.45}
+.xa-steps .blk::after{height:2px}
+.xa-steps .blk svg{width:10px;height:10px;stroke:#fff;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;position:relative;z-index:1}
+.xa-steps .blk.buy svg{stroke:var(--warn)}
+.xa-steps .on{color:var(--ink);font-weight:700}
+.xa-steps .on .blk,.xa-steps .ok .blk{opacity:1}
+.xa-steps .ok{color:var(--sub)}
+.xa-steps em{display:flex;color:var(--line)}
+.xa-steps em svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.xa-sum{display:grid;grid-template-columns:repeat(3,1fr);margin:10px 0 6px;background:var(--surface2);border:1px solid var(--line2);border-radius:12px;padding:10px 0}
+.xa-sum>div{padding:0 12px;min-width:0}
+.xa-sum>div+div{border-left:1px solid var(--line2)}
+.xa-sum .k{font-size:10.5px;color:var(--sub);font-weight:600;white-space:nowrap}
+.xa-sum .v{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;letter-spacing:-.01em}
+.xa-sum .v small{font-size:10.5px;font-weight:600;color:var(--sub);margin-left:2px}
+.xa-sum .kp .v{color:var(--asset)}
+.xa-kv-s{font-size:11px;font-weight:600;color:var(--ok);margin-left:6px}
+.xa-note{margin-top:10px;font-size:12px;line-height:1.6;color:var(--sub);background:var(--surface2);border:1px solid var(--line2);border-radius:var(--r-s);padding:9px 11px}
+.xa-note.w{background:var(--warn-soft);border-color:#ecdcc0;color:var(--warn)}
+.xa-note b{color:inherit}
+.xa-sub-acts{display:flex;gap:8px;margin-top:8px}
+.xa-sub-acts .btn{flex:1}
+.xa-bought{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--asset-ink);background:var(--asset-soft);border-radius:var(--r-s);padding:9px 11px;font-variant-numeric:tabular-nums}
+.xa-bought i{width:18px;height:18px;border-radius:50%;background:var(--asset);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.xa-bought i svg{width:11px;height:11px;stroke:#fff;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.xa-gains{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.xa-gains button{min-height:42px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-size:13px;font-weight:700;color:var(--sub);font-variant-numeric:tabular-nums}
+.xa-gains button.on{background:var(--asset);border-color:var(--asset);color:#fff}
+.xa-plan{margin-top:12px;border:1px solid var(--line2);border-radius:12px;overflow:hidden}
+.xa-plan-hd{display:flex;align-items:baseline;justify-content:space-between;padding:10px 12px;background:var(--surface2);border-bottom:1px solid var(--line2);font-size:12px;color:var(--sub);font-weight:600}
+.xa-plan-hd b{font-size:20px;color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.xa-plan-row{display:grid;grid-template-columns:1fr 1fr}
+.xa-plan-row>div{padding:10px 12px;min-width:0}
+.xa-plan-row>div+div{border-left:1px solid var(--line2)}
+.xa-plan-row .k{font-size:11px;color:var(--sub);font-weight:600}
+.xa-plan-row .v{font-size:19px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.xa-plan-row .v small{font-size:11px;font-weight:700;margin-left:2px;color:var(--sub)}
+.xa-plan-row .kp .v,.xa-plan-row .kp .v small{color:var(--asset)}
+.xa-plan-row .s{font-size:10.5px;color:var(--sub);font-variant-numeric:tabular-nums}
+.xa-plan .warnbox{margin:0 12px 10px}
+.xa-copy{margin-top:12px}
+.xa-copy-l{font-size:11px;font-weight:700;color:var(--sub);margin:0 2px 4px}
+.xa-copy-i{display:flex;align-items:center;gap:10px;width:100%;min-height:46px;padding:0 12px;border:1px solid var(--line);border-radius:10px;margin-top:6px;text-align:left}
+.xa-copy-i:active{background:var(--surface2)}
+.xa-copy-i .k{font-size:12px;color:var(--sub);font-weight:600;width:64px}
+.xa-copy-i .v{flex:1;font-size:17px;font-weight:800;font-variant-numeric:tabular-nums}
+.xa-copy-i .c{font-size:11.5px;font-weight:700;color:var(--asset)}
+
+/* 完了 → 別画面 */
+.xa-done{display:flex;align-items:center;gap:12px;padding:13px 12px 13px 14px;text-decoration:none;color:inherit;cursor:pointer;margin-bottom:0}
+.xa-done:active{background:var(--surface2)}
+.xa-done .blks{display:grid;grid-template-columns:repeat(4,10px);gap:2px;flex-shrink:0;align-content:end}
+.xa-done .blks .blk{width:10px;height:10px;max-width:none;min-width:0;border-radius:2.5px}
+.xa-done .blks .blk::after{height:2px;border-radius:0 0 2.5px 2.5px}
+.xa-done .blks .over{grid-column:1/-1;font-style:normal;font-size:9.5px;font-weight:700;color:var(--sub)}
+.xa-done .txt{flex:1;min-width:0}
+.xa-done .t{font-size:14px;font-weight:700}
+.xa-done .s{font-size:11.5px;color:var(--sub);font-variant-numeric:tabular-nums}
+.xa-done .s b{color:var(--asset)}
+.xa-done>svg{width:18px;height:18px;stroke:var(--asset);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
 </style>
 </head>
 <body>
@@ -2998,46 +3175,236 @@ function histSellHtml() {
 let xrpSel = new Set();      // 未注文で選択中のreserveId
 let boCtx = null;            // 買い注文モーダルの文脈 {ids, editId}
 let soCtx = null;            // 売り注文モーダルの文脈 {purchaseId}
+/* つみき家計簿 — XRPタブ(#scr-asset)差し替え用コード
+   置き換える関数:renderAsset / openBuyOrderSheet / openSellOrderModal / openSellOrderSheet
+   新しく追加する関数:xaQn xaNames xaTitle xaScrollTo xaSteps xaFillBuy xaSetGain xaSoCalc xaSubmitSell
+   保存処理(fillBuyOrder / submitSellOrder / completeSell / deleteBuyOrder / deleteSellOrder / clearOrderTouch / copySo)は本番のまま使う。 */
+const XA_ARW = '<svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>';
+const XA_CHEV = '<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>';
+const XA_REFRESH = '<svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>';
+const XA_CHECK = '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+const XA_GAINS = [5, 8, 10, 12, 15, 20];
+let xaFlash = null; // 作成直後の売り注文(1回だけハイライト)
+
+/* ---------- 共通ヘルパー ---------- */
+function xaQn(a) {
+  /* XRPは1枚単位でしか売買できないため、数量は整数(切り捨て)で表示する */
+  const intQty = Number(a.qtyStep || 0) >= 1;
+  return q => intQty ? fmtQty(Math.floor((Number(q) || 0) + 1e-9), 0) : fmtQty(q, a.qtyDecimals);
+}
+function xaNames(ids) { return ids.map(id => { const r = S.reserves.find(x => x.id === id); return r ? xrpTxLabel(r) : null; }).filter(Boolean); }
+function xaTitle(names, fb) { return names.length ? esc(names.slice(0, 2).join('・')) + (names.length > 2 ? ` ほか${names.length - 2}件` : '') : fb; }
+/* 画面内の要素までスクロール(ヘッダーの高さぶん余白を取る)。scrollIntoView は使わない */
+function xaScrollTo(id) {
+  const t = document.getElementById(id); if (!t) return;
+  window.scrollTo({ top: t.getBoundingClientRect().top + window.scrollY - 120, behavior: 'smooth' });
+}
+/* モーダル上部の「いまどこか」:買い注文 → 売り注文 → 完了 */
+function xaSteps(cur) {
+  const st = [['buy', '買いの約定'], ['sell', '売り注文'], ['done', '完了']];
+  const idx = st.findIndex(s => s[0] === cur);
+  return `<div class="xa-steps">${st.map(([k, l], i) =>
+    `<span class="${i < idx ? 'ok' : i === idx ? 'on' : ''}"><i class="blk ${k === 'buy' ? 'buy' : k === 'sell' ? 'sell' : 'done'}">${i < idx ? XA_CHECK : ''}</i>${l}</span>`
+  ).join(`<em>${XA_ARW}</em>`)}</div>`;
+}
+
+/* ================= XRPタブ本体(renderAsset を丸ごと置き換え) ================= */
 function renderAsset() {
   const el = document.getElementById('scr-asset');
   if (!assetModeOn()) { el.innerHTML = ''; return; }
   const a = activeAsset();
   if (!a) { el.innerHTML = '<div class="card"><div class="hint">有効な通貨がありません。設定で通貨を有効にしてください。</div></div>'; return; }
-  el.innerHTML = [
-    xrpPriceHtml(a),
-    xrpHoldHtml(a),
-    xrpPendingHtml(a),
-    xrpBuyOrdersHtml(a),
-    xrpFilledLotsHtml(a),
-    xrpSellOrdersHtml(a),
-    xrpDoneLinkHtml()
-  ].join('');
+  const code = esc(a.code), qn = xaQn(a);
+  const pc = S.priceCache[a.id] || {};
+  const price = Number(pc.last || 0);
+  const pd = a.priceDecimals;
+  const st = assetStats();
+  const NEAR_GAP = 0.02;
+
+  /* ── データを段階ごとに集める ── */
+  const ordered = new Set(S.purchaseOrders.filter(o => o.status === 'open' && (o.reserveIds || []).length).flatMap(o => o.reserveIds));
+  const pend = [...pendingReserves()].filter(r => !ordered.has(r.id))
+    .sort((x, y) => String(x.createdAt || '').localeCompare(String(y.createdAt || '')));
+  const pendTotal = pend.reduce((s, r) => s + r.amount, 0);
+  const selList = pend.filter(r => xrpSel.has(r.id));
+  const selTotal = selList.reduce((s, r) => s + r.amount, 0);
+
+  markTouchedOrders();
+  const gapBuy = o => { const r = Number(o.rate) || 0; return price > 0 && r > 0 ? Math.abs(price - r) / r : Infinity; };
+  const buys = S.purchaseOrders.filter(o => (o.status || 'open') === 'open')
+    .map(o => ({ o, reached: orderTouched(o, a) }))
+    .sort((x, y) => (y.reached - x.reached) || (gapBuy(x.o) - gapBuy(y.o)));
+  /* 買いの約定を確定したが、売り注文を作らずに閉じたもの(例外)。売り注文中の先頭に「未作成」として出す */
+  const soMap = new Set(S.sellOrders.map(so => so.purchaseId));
+  const lots = S.purchases.filter(p => p.assetId === a.id && !soMap.has(p.id) && (p.reserveAlloc || []).length);
+  const sells = S.sellOrders.filter(so => so.status === 'open').map(so => {
+    const p = S.purchases.find(x => x.id === so.purchaseId) || {};
+    const rate = Number(so.rate) || 0;
+    return { so, p, plan: soPlan(so, p, a), rate, reached: price > 0 && price >= rate };
+  }).sort((x, y) => (y.reached - x.reached) || ((x.rate - price) / x.rate - (y.rate - price) / y.rate));
+  const done = S.sellOrders.filter(so => so.status === 'filled');
+  const pool = done.reduce((t, so) => t + Number(so.coinGain || so.keepQty || 0), 0);
+
+  const nBuyR = buys.filter(b => b.reached).length;
+  const nSellR = sells.filter(s => s.reached).length + lots.length;
+  const nSellAll = sells.length + lots.length;
+
+  /* ── ① 相場と保有(1枚にまとめ、チャートは折りたたみ) ── */
+  const c = xrpChartCache[a.id];
+  const pill = S.apiState === 'ok' ? '<span class="xa-api ok"><i></i>GMOコイン</span>'
+    : S.apiState === 'error' ? '<span class="xa-api ng"><i></i>接続エラー</span>'
+    : S.apiState === 'fallback' ? '' : '<span class="xa-api fb"><i></i>取得中…</span>';
+  const market = `
+  <div class="card xa-mkt">
+    <div class="xa-mkt-row">
+      <div class="xa-px">
+        <div class="k">${code}/JPY ${pill}</div>
+        <div class="v">${price > 0 ? '¥' + price.toFixed(pd) : '---'}</div>
+        <div class="s">安 ${pc.low ? Number(pc.low).toFixed(pd) : '---'} ・ 高 ${pc.high ? Number(pc.high).toFixed(pd) : '---'}</div>
+      </div>
+      <div class="xa-hold">
+        <div class="k">保有</div>
+        <div class="v">${qn(st.holdingsQty)}<small>${code}</small></div>
+        <div class="s">評価額 ${price > 0 ? fmtYen(Math.round(price * st.holdingsQty)) : '---'}</div>
+      </div>
+    </div>
+    <details class="xa-chart">
+      <summary><span>日足チャート${buys.length ? '<em>点線=買い注文</em>' : ''}</span>
+        <span class="xa-ts">${pc.ts ? fmtDateTime(pc.ts).slice(5) + ' 更新' : ''}</span>
+        <button class="xa-ref" onclick="event.preventDefault();fetchPriceOnce()" aria-label="価格を更新">${XA_REFRESH}</button>
+        ${XA_CHEV}</summary>
+      <div class="xa-chart-body" id="xrp-chart">${c ? (c.candles.length ? chartSvg(a, c.candles) : '<div class="hint">日足を取得できませんでした</div>') : '<div class="hint">日足を読み込み中…</div>'}</div>
+    </details>
+    ${S.apiErrMsg ? `<div class="errbox">${esc(S.apiErrMsg)}</div>` : ''}
+  </div>`;
+
+  /* ── ② いまのサイクル(主役):4段階を積み木の塔で ── */
+  const XA_MAX = 5;
+  const tower = (n, cls, alertN) => {
+    const k = Math.min(n, XA_MAX);
+    const blks = Array.from({ length: k }, (_, i) =>
+      `<i class="blk ${cls}${cls === 'done' ? ' t' + (i % 3) : ''}${i < alertN ? ' xa-alert' : ''}"></i>`).join('');
+    return (n > XA_MAX ? `<em class="over">+${n - XA_MAX}</em>` : '') + (n ? blks : '<i class="blk xa-empty"></i>');
+  };
+  const stage = (id, n, cls, label, alertN = 0) => `
+      <a class="xa-st${n ? '' : ' zero'}${alertN ? ' act' : ''}" href="#xa-${id}" onclick="event.preventDefault();xaScrollTo('xa-${id}')">
+        <div class="tw">${tower(n, cls, alertN)}</div>
+        <div class="n">${n}</div><div class="lab">${label}</div>
+      </a>`;
+  const arw = `<span class="xa-arw" aria-hidden="true">${XA_ARW}</span>`;
+  const todo = [];
+  if (nBuyR) todo.push({ id: 'buy', u: true, t: '買いの約定を確定 → 売り注文', n: nBuyR });
+  if (nSellR) todo.push({ id: 'sell', u: true, t: lots.length && !sells.some(s => s.reached) ? '売り注文を作成' : '売りの約定を確定して完了に', n: nSellR });
+  if (pend.length) todo.push({ id: 'pend', u: false, t: '未注文から買い注文を出す', n: pend.length, s: fmtYen(pendTotal) });
+  const nU = todo.filter(t => t.u).reduce((s, t) => s + t.n, 0);
+  const hero = `
+  <div class="card xa-cyc">
+    <div class="xa-cyc-hd"><h2>いまのサイクル</h2>${nU ? `<span class="xa-todo-n">やること ${nU}件</span>` : ''}</div>
+    <div class="xa-pipe">
+      ${stage('pend', pend.length, 'none', '未注文')}${arw}
+      ${stage('buy', buys.length, 'buy', '買い注文中', nBuyR)}${arw}
+      ${stage('sell', nSellAll, 'sell', '売り注文中', nSellR)}${arw}
+      ${stage('done', done.length, 'done', '完了')}
+    </div>
+    <div class="xa-todo">
+      <div class="xa-todo-l">次にやること</div>
+      ${todo.length ? todo.map(t => `
+      <a class="xa-todo-i${t.u ? ' u' : ''}" href="#xa-${t.id}" onclick="event.preventDefault();xaScrollTo('xa-${t.id}')">
+        <i class="dot"></i><span class="t">${t.t}</span>${t.s ? `<span class="s">${t.s}</span>` : ''}<b>${t.n}件</b>${XA_ARW}
+      </a>`).join('') : `<div class="xa-todo-i idle"><span class="t">いまは約定を待つだけです</span></div>`}
+    </div>
+  </div>`;
+
+  /* ── ③ 段階ごとのセクション ── */
+  const sec = (id, cls, label, n, meta, next, body) => `
+  <section class="xa-sec${n ? '' : ' empty'}" id="xa-${id}">
+    <div class="xa-sec-hd">
+      <i class="blk ${cls}"></i><h3>${label}</h3><span class="cnt">${n}</span>
+      <span class="meta">${meta}</span>
+    </div>
+    ${next ? `<div class="xa-sec-next">${next}</div>` : ''}
+    ${n ? `<div class="card xa-list">${body}</div>` : ''}
+  </section>`;
+
+  /* 未注文 */
+  const pendBody = pend.map(r => {
+    const t = S.txs.find(x => x.id === r.txId) || {};
+    const on = xrpSel.has(r.id);
+    return `<div class="lrow tap${on ? ' selrow' : ''}" onclick="togglePend('${r.id}')">
+      <div class="chk">${on ? '✓' : ''}</div>
+      <div class="mid"><div class="t">${esc(xrpTxLabel(r))}</div><div class="d">${esc((t.date || '').slice(5).replace('-', '/'))}</div></div>
+      <div class="amt">${fmtYen(r.amount)}</div></div>`;
+  }).join('') + (pend.length ? `
+    <div class="xa-pend-act">
+      <button class="btn primary block" ${selList.length === 0 ? 'disabled' : ''} onclick="openBuyOrderModal([...xrpSel])">${selList.length ? `${selList.length}件をまとめて買い注文 ・ ${fmtYen(selTotal)}` : '支出を選んでください'}</button>
+      ${selList.length ? `<button class="xa-link" onclick="xrpSel=new Set();renderAsset()">選択を解除</button>` : ''}
+    </div>` : '');
+
+  /* 注文カード(買い・売り共通の形)
+     1行目:名前 ……… 右に主役の数字   2行目:指値と数量 ……… 右に補足   3行目:約定までの距離 or 指値到達 */
+  const ocard = ({ id, onclick, reached, name, main, mainCls, sub, line2, gap, near, flash }) => `
+    <div class="xa-oc${reached ? ' act' : ''}${flash ? ' xa-flash' : ''}" id="${id}" onclick="${onclick}">
+      <div class="r1"><span class="nm">${name}</span><span class="mn ${mainCls || ''}">${main}</span></div>
+      <div class="r2"><span>${line2}</span><span class="sb">${sub}</span></div>
+      <div class="r3">${reached
+        ? `<span class="badge b-warn">指値到達</span><span class="go">タップして確定</span>`
+        : `<span class="gap">${gap}</span>${near ? '<span class="soonpill">まもなく</span>' : ''}<span class="go"></span>`}${XA_ARW}</div>
+    </div>`;
+
+  const buyBody = buys.map(({ o, reached }) => {
+    const rate = Number(o.rate) || 0;
+    return ocard({
+      id: 'xa-o-' + o.id, onclick: `openBuyOrderSheet('${o.id}')`, reached,
+      name: xaTitle(xaNames(o.reserveIds || []), '買い注文'),
+      main: fmtYen(o.amount), sub: '買付金額',
+      line2: `指値 <b>${fmtYen3(rate)}</b> ・ <b>${qn(o.qty)}</b> ${code}`,
+      gap: price > 0 ? (price > rate ? `あと −${fmtYen3(price - rate)} で約定` : '現在値は指値以下') : '価格を取得できていません',
+      near: !reached && price > 0 && rate > 0 && (price - rate) / rate <= NEAR_GAP
+    });
+  }).join('');
+
+  const lotBody = lots.map(p => `
+    <div class="xa-oc act" onclick="openSellOrderModal('${p.id}')">
+      <div class="r1"><span class="nm">${xaTitle(xaNames((p.reserveAlloc || []).map(l => l.reserveId)), esc(p.memo || '購入'))}</span><span class="mn">${qn(p.actualQty)}<small>${code}</small></span></div>
+      <div class="r2"><span><b>${fmtYen3(p.actualRate)}</b> で買えました ・ ${fmtYen(p.amountJPY)}</span><span class="sb">買えた数量</span></div>
+      <div class="r3"><span class="badge b-warn">売り注文が未作成</span><span class="go">タップして作成</span>${XA_ARW}</div>
+    </div>`).join('');
+  const sellBody = lotBody + sells.map(({ so, p, plan, rate, reached }) => ocard({
+    id: 'xa-o-' + so.id, onclick: `openSellOrderSheet('${so.id}')`, reached, flash: xaFlash === so.id,
+    name: xaTitle(xaNames((p.reserveAlloc || []).map(l => l.reserveId)), '売り注文'),
+    main: plan.keepQty >= 1 || Number(a.qtyStep) < 1 ? `+${qn(plan.keepQty)}<small>${code}</small>` : '<span class="none">積立なし</span>',
+    mainCls: 'as', sub: '積立予定',
+    line2: `指値 <b>${fmtYen3(rate)}</b> ・ <b>${qn(plan.sellQty)}</b> ${code} 売り`,
+    gap: price > 0 ? (price < rate ? `あと +${fmtYen3(rate - price)} で約定` : '現在値は指値以上') : '価格を取得できていません',
+    near: !reached && price > 0 && rate > 0 && (rate - price) / rate <= NEAR_GAP
+  })).join('');
+  xaFlash = null;
+
+  /* 完了(別画面へ) */
+  const doneCard = `
+  <section class="xa-sec" id="xa-done">
+    <div class="xa-sec-hd"><i class="blk done"></i><h3>完了</h3><span class="cnt">${done.length}</span><span class="meta"></span></div>
+    <a class="card xa-done" onclick="go('xrphist')">
+      <div class="blks">${Array.from({ length: Math.min(done.length, 12) }, (_, i) => `<i class="blk done t${i % 3}"></i>`).join('')}${done.length > 12 ? `<em class="over">+${done.length - 12}</em>` : ''}</div>
+      <div class="txt"><div class="t">完了した取引を見る</div><div class="s">${pool >= 1 || Number(a.qtyStep) < 1 ? `積み立てた${code} <b>+${qn(pool)} ${code}</b>` : '1サイクルが終わるとここに並びます'}</div></div>
+      ${XA_ARW}
+    </a>
+  </section>`;
+
+  el.innerHTML = market + hero
+    + sec('pend', 'none', '未注文', pend.length, pend.length ? fmtYen(pendTotal) : '', pend.length ? `支出を選んで、まとめて買い注文を出します ${hbtn('qa-assets-view')}` : '家計簿に支出を登録すると、ここに並びます', pendBody)
+    + sec('buy', 'buy', '買い注文中', buys.length, buys.length ? fmtYen(buys.reduce((s, b) => s + Number(b.o.amount || 0), 0)) : '', buys.length ? '約定したらタップ → 確定すると、そのまま売り注文へ進みます' : '', buyBody)
+    + sec('sell', 'sell', '売り注文中', nSellAll, sells.length ? `積立予定 +${qn(sells.reduce((s, x) => s + x.plan.keepQty, 0))} ${code}` : '', nSellAll ? '元本ぶんを売り、残りを積み立てます。約定したらタップして完了に' : '', sellBody)
+    + doneCard;
   setTimeout(() => { const a2 = activeAsset(); if (a2) loadXrpChart(a2); }, 0);
 }
+
+/* ================= モーダル① 買い注文:約定を確定 / 取り消し ================= */
 function xrpTxLabel(r) {
   const t = S.txs.find(x => x.id === r.txId) || {};
   return t.shop || catName(t.categoryId) || '支出';
 }
 /* --- 現在値 --- */
-function xrpPriceHtml(a) {
-  const pc = S.priceCache[a.id] || {};
-  const price = Number(pc.last || 0);
-  const pill = S.apiState === 'ok' ? '<span class="pill ok"><span class="dot"></span>API接続中(GMOコイン)</span>'
-    : S.apiState === 'fallback' ? ''
-    : S.apiState === 'error' ? '<span class="pill ng"><span class="dot"></span>API接続エラー</span>'
-    : '<span class="pill fb"><span class="dot"></span>取得中…</span>';
-  return `<div class="card">
-    <div style="display:flex;align-items:baseline;gap:10px">
-      <div style="font-size:32px;font-weight:700;font-variant-numeric:tabular-nums" id="ov-last">${price > 0 ? '¥' + price.toFixed(a.priceDecimals) : '---'}</div>
-      <div style="font-size:13px;color:var(--sub)">${esc(a.code)}/JPY</div>
-      <button class="btn sm sub" style="margin-left:auto" onclick="fetchPriceOnce()">更新</button>
-    </div>
-    <div class="hint">本日の安値 <b>${pc.low ? '¥' + Number(pc.low).toFixed(a.priceDecimals) : '---'}</b> / 高値 <b>${pc.high ? '¥' + Number(pc.high).toFixed(a.priceDecimals) : '---'}</b> ・ 最終更新 <span id="ov-ts">${pc.ts ? fmtDateTime(pc.ts) : '-'}</span></div>
-    ${xrpChartHtml(a)}
-    <div class="mt">${pill}</div>
-    <div id="ov-err">${S.apiErrMsg ? `<div class="errbox">${esc(S.apiErrMsg)}</div>` : ''}</div>
-  </div>`;
-}
 /* --- 日足チャート(買い注文価格を点線で重ねる) --- */
 const XRP_CHART_DAYS = 7;
 let xrpChartCache = {};
@@ -3144,45 +3511,7 @@ async function loadXrpChart(a) {
   }
 }
 /* --- 保有 --- */
-function xrpHoldHtml(a) {
-  const st = assetStats();
-  const pc = S.priceCache[a.id] || {};
-  const price = Number(pc.last || 0);
-  const evalJpy = Math.round(price * st.holdingsQty);
-  const gained = S.sellOrders.filter(so => so.status === 'filled').reduce((s, so) => s + (so.coinGain || 0), 0);
-  return `<div class="card">
-    <div class="statgrid">
-      <div class="stat"><div class="l">保有枚数</div><div class="v">${fmtQty(st.holdingsQty, a.qtyDecimals)}<small>${esc(a.code)}</small></div></div>
-      <div class="stat"><div class="l">評価額(参考)</div><div class="v asset">${fmtYen(evalJpy)}</div></div>
-    </div>
-    ${gained > 0 ? `<div class="okbox mt">🪙 この運用で <b>+${fmtQty(gained, a.qtyDecimals)} ${esc(a.code)}</b> 増やしました(売却のたびにコインが増えます)</div>` : ''}
-  </div>`;
-}
 /* --- 未注文(家計簿の支出から) --- */
-function xrpPendingHtml(a) {
-  const ordered = new Set(S.purchaseOrders.filter(o => o.status === 'open' && (o.reserveIds || []).length).flatMap(o => o.reserveIds));
-  const list = [...pendingReserves()].filter(r => !ordered.has(r.id))
-    .sort((x, y) => String(x.createdAt || '').localeCompare(String(y.createdAt || '')));
-  const total = list.reduce((s, r) => s + r.amount, 0);
-  const selTotal = list.filter(r => xrpSel.has(r.id)).reduce((s, r) => s + r.amount, 0);
-  const rows = list.map(r => {
-    const t = S.txs.find(x => x.id === r.txId) || {};
-    const on = xrpSel.has(r.id);
-    return `<div class="lrow${on ? ' selrow' : ''}" onclick="togglePend('${r.id}')">
-      <div class="chk">${on ? '✓' : ''}</div>
-      <div class="mid"><div class="t">${esc(xrpTxLabel(r))}</div><div class="d">${esc(t.date || '')}</div></div>
-      <div class="amt">${fmtYen(r.amount)}</div></div>`;
-  }).join('');
-  return `<div class="card">
-    <h2>未注文 <span class="tag">家計簿の支出(合計 ${fmtYen(total)})</span> ${hbtn('qa-assets-view')}</h2>
-    ${list.length === 0 ? '<div class="hint">家計簿に支出を登録すると、ここに「まだXRPを買っていないお金」として表示されます。選んで買い注文を出してください。</div>' : rows}
-    ${list.length ? `<div class="row mt">
-      <button class="btn sub" onclick="xrpSel=new Set();renderAsset()">選択解除</button>
-      <button class="btn primary" ${xrpSel.size === 0 ? 'disabled style="opacity:.5"' : ''} onclick="openBuyOrderModal([...xrpSel])">選択した${xrpSel.size}件を合算して買い注文(${fmtYen(selTotal)})</button>
-    </div>
-    <div class="notebox">複数の支出を選ぶと、合算した金額で1つの買い注文になります(レートは本日の安値を初期値にします)。</div>` : ''}
-  </div>`;
-}
 function togglePend(id) { if (xrpSel.has(id)) xrpSel.delete(id); else xrpSel.add(id); renderAsset(); }
 /* --- 買い注文(買い注文中) --- */
 function orderLowRef(o, a) {
@@ -3221,58 +3550,32 @@ function markTouchedOrders() {
   });
   return n;
 }
-async function sheetFillBuy(id) { closeModal(); await fillBuyOrder(id); }
-async function sheetClearTouch(id) { closeModal(); await clearOrderTouch(id); }
-function sheetDeleteBuy(id) { closeModal(); deleteBuyOrder(id); }
 function openBuyOrderSheet(id) {
   const a = activeAsset(); if (!a) return;
   const o = S.purchaseOrders.find(x => x.id === id); if (!o) return;
-  const pc = S.priceCache[a.id] || {};
-  const price = Number(pc.last || 0);
+  const code = esc(a.code), qn = xaQn(a);
+  const price = Number((S.priceCache[a.id] || {}).last || 0);
   const rate = Number(o.rate) || 0;
-  const filled = orderTouched(o, a);
-  const names = (o.reserveIds || []).map(rid => { const r = S.reserves.find(x => x.id === rid); return r ? xrpTxLabel(r) : null; }).filter(Boolean);
-  const gap = (price > 0 && rate > 0) ? price - rate : null;
-  openModal(`<h2>買い注文 ${filled ? '<span class="badge b-warn">指値到達(要確定)</span>' : '<span class="badge b-buy">買い注文中</span>'}</h2>
+  const reached = orderTouched(o, a);
+  const names = xaNames(o.reserveIds || []);
+  openModal(`${xaSteps('buy')}
+    <h2>買い注文 ${reached ? '<span class="badge b-warn">指値到達</span>' : ''}</h2>
     ${names.length ? `<div class="hint">${names.map(esc).join('・')}</div>` : ''}
-    <div class="kv"><span class="k">注文レート</span><span class="v" style="font-weight:700">${fmtYen3(rate)}</span></div>
-    <div class="kv"><span class="k">数量</span><span class="v">${fmtQty(o.qty, a.qtyDecimals)} ${esc(a.code)}</span></div>
-    <div class="kv"><span class="k">買付金額</span><span class="v">${fmtYen(o.amount)}</span></div>
-    <div class="kv"><span class="k">現在値</span><span class="v">${price > 0 ? fmtYen(price) : '---'}</span></div>
-    ${filled
-      ? `<div class="hint" style="margin-top:10px">${o.touchedLow != null ? `作成後の安値 <b>${fmtYen3(o.touchedLow)}</b> が指値 <b>${fmtYen3(rate)}</b> 以下になったため到達として記録しています(GMOの約定とは別です)。` : '指値に触れた記録があります。'}実際の約定をGMOコインで確認し、この画面から確定してください。</div>
-         <button class="btn primary block mt" onclick="sheetFillBuy('${o.id}')">約定を確定して売り注文へ →</button>
-         <button class="btn sm sub block mt" onclick="sheetClearTouch('${o.id}')">GMOで約定していない → 注文中に戻す</button>
-         <button class="btn sm sub block mt" onclick="sheetDeleteBuy('${o.id}')">注文を取り消す</button>`
-      : `<div class="hint" style="margin-top:10px">${gap != null ? (gap > 0 ? `現在値は指値より ${fmtYen3(gap)} 高い状態です。` : '現在値は指値以下です。') : ''}GMOコインで約定していたら、この画面から確定できます(自動検知を待たずに記録できます)。</div>
-         <button class="btn primary block mt" onclick="sheetFillBuy('${o.id}')">約定を確定して売り注文へ →</button>
-         <button class="btn sm sub block mt" onclick="sheetDeleteBuy('${o.id}')">注文を取り消す</button>`}
-    <button class="btn sub block mt" onclick="closeModal()">閉じる</button>`);
+    <div class="xa-sum">
+      <div><div class="k">指値</div><div class="v">${fmtYen3(rate)}</div></div>
+      <div><div class="k">数量</div><div class="v">${qn(o.qty)}<small>${code}</small></div></div>
+      <div><div class="k">買付金額</div><div class="v">${fmtYen(o.amount)}</div></div>
+    </div>
+    <div class="xa-note${reached ? ' w' : ''}">${reached
+      ? (o.touchedLow != null ? `作成後の安値 <b>${fmtYen3(o.touchedLow)}</b> が指値以下になりました。` : '価格が指値に触れました。') + 'GMOコインで約定しているか確認してください。'
+      : `現在値 ${price > 0 ? fmtYen3(price) : '---'}(指値まで あと −${price > rate ? fmtYen3(price - rate) : '0円'})。GMOコインで約定していれば、ここから確定できます。`}</div>
+    <button class="btn primary block mt" onclick="xaFillBuy('${o.id}')">約定を確定して売り注文へ →</button>
+    <div class="xa-sub-acts">
+      ${reached ? `<button class="btn sm sub" onclick="closeModal();clearOrderTouch('${o.id}')">約定していなかった</button>` : ''}
+      <button class="btn sm sub" onclick="closeModal();deleteBuyOrder('${o.id}')">注文を取り消す</button>
+    </div>`);
 }
-function xrpBuyOrdersHtml(a) {
-  markTouchedOrders();
-  const pc = S.priceCache[a.id] || {};
-  const price = Number(pc.last || 0);
-  const NEAR_GAP = 0.02;
-  const gapOf = o => { const r = Number(o.rate) || 0; return price > 0 && r > 0 ? Math.abs(price - r) / r : Infinity; };
-  const orders = S.purchaseOrders.filter(o => (o.status || 'open') === 'open')
-    .sort((x, y) => (gapOf(x) - gapOf(y)) || String(y.createdAt || '').localeCompare(String(x.createdAt || '')));
-  if (!orders.length) return '';
-  return orders.map(o => {
-    const filled = orderTouched(o, a);
-    const names = (o.reserveIds || []).map(id => { const r = S.reserves.find(x => x.id === id); return r ? xrpTxLabel(r) : null; }).filter(Boolean);
-    const rate = Number(o.rate) || 0;
-    const near = !filled && price > 0 && rate > 0 && (price - rate) / rate <= NEAR_GAP;
-    return `<div class="card cyc buyord tap" onclick="openBuyOrderSheet('${o.id}')">
-      <div class="badgeline"><span class="badge ${filled ? 'b-warn' : 'b-buy'}">${filled ? '指値到達(要確定)' : '買い注文中'}</span>${near ? '<span class="soonpill">まもなく</span>' : ''}</div>
-      <div class="head"><span class="name">${names.length ? esc(names.slice(0, 2).join('・')) + (names.length > 2 ? ` ほか${names.length - 2}件` : '') : '買い注文'}</span>
-        <span class="amt">${fmtYen(o.amount)}</span></div>
-      <div class="pair"><span>注文 <b>${fmtYen3(o.rate)}</b> → <b>${fmtQty(o.qty, 3)} ${esc(a.code)}</b></span></div>
-      ${filled ? `<div class="after"><span class="left">${o.touchedLow != null ? `作成後の安値 <b>${fmtYen3(o.touchedLow)}</b> が指値 <b>${fmtYen3(rate)}</b> 以下になったため、到達として記録しています。<b>まだ確定していません</b> — GMOコインで約定を確認してください。` : '価格が指値に触れました。<b>まだ確定していません</b> — GMOコインで約定を確認し、下のボタンで確定してください。'}</span></div>` : `<div class="after"><span class="left">${price > 0 ? (price > rate ? `<span class="gap" style="color:${'var(--warn)'}">あと -` + fmtYen3(price - rate) + 'で約定</span>' : '現在値は指値以下です(到達の取り消し済み)') : '価格を取得できていません'}</span></div>`}
-      ${filled ? '<div class="hint" style="margin-top:6px">タップして確定・取り消しができます。</div>' : ''}
-    </div>`;
-  }).join('');
-}
+/* 確定 → 本番の fillBuyOrder(購入を記録し、最後に openSellOrderModal を開く) */
 async function revertBuyFill(purchaseId) {
   const a = activeAsset();
   const p = S.purchases.find(x => x.id === purchaseId);
@@ -3294,81 +3597,72 @@ function confirmRevertFill(id) {
   confirmModal('買い約定の取り消し', 'この買い約定を取り消して、買い注文(注文中)に戻します。GMOコインでまだ約定していない場合に使ってください。', '注文中に戻す', () => revertBuyFill(id));
 }
 /* --- 買い約定済み(売り注文がまだ) --- */
-function xrpFilledLotsHtml(a) {
-  const soMap = new Set(S.sellOrders.map(so => so.purchaseId));
-  const lots = S.purchases.filter(p => p.assetId === a.id && !soMap.has(p.id));
-  if (!lots.length) return '';
-  return lots.map(p => {
-    const names = (p.reserveAlloc || []).map(l => { const r = S.reserves.find(x => x.id === l.reserveId); return r ? xrpTxLabel(r) : null; }).filter(Boolean);
-    return `<div class="card cyc">
-      <div class="head"><span class="badge b-ok">買い約定済み</span><span class="name">${names.length ? esc(names.slice(0, 2).join('・')) : esc(p.memo || '購入')}</span><span class="amt">${fmtYen(p.amountJPY)}</span></div>
-      <div class="pair"><span>約定 <b>${fmtYen3(p.actualRate)}</b> → <b>${fmtQty(p.actualQty, a.qtyDecimals)} ${esc(a.code)}</b></span></div>
-      <button class="btn primary block" onclick="openSellOrderModal('${p.id}')">売り注文を作成 →</button>
-      <button class="btn sm sub block mt" onclick="confirmRevertFill('${p.id}')">GMOで未約定だった → 取り消して注文中に戻す</button>
-    </div>`;
-  }).join('');
-}
 /* --- 売り注文(売り注文中) --- */
-async function sheetCompleteSell(id) { closeModal(); await completeSell(id); }
-function sheetDeleteSell(id) { closeModal(); deleteSellOrder(id); }
 function openSellOrderSheet(id) {
   const a = activeAsset(); if (!a) return;
   const so = S.sellOrders.find(x => x.id === id); if (!so) return;
   const p = S.purchases.find(x => x.id === so.purchaseId) || {};
-  const pc = S.priceCache[a.id] || {};
-  const price = Number(pc.last || 0);
+  const code = esc(a.code), qn = xaQn(a);
+  const price = Number((S.priceCache[a.id] || {}).last || 0);
   const rate = Number(so.rate) || 0;
-  const buyRate = Number(p.actualRate || 0);
   const plan = soPlan(so, p, a);
-  const filled = price > 0 && price >= rate;
-  const names = (p.reserveAlloc || []).map(l => { const r = S.reserves.find(x => x.id === l.reserveId); return r ? xrpTxLabel(r) : null; }).filter(Boolean);
-  openModal(`<h2>売り注文 ${filled ? '<span class="badge b-warn">指値到達(要確定)</span>' : '<span class="badge b-sell">売り注文中</span>'}</h2>
+  const reached = price > 0 && price >= rate;
+  const names = xaNames((p.reserveAlloc || []).map(l => l.reserveId));
+  openModal(`${xaSteps('sell')}
+    <h2>売り注文 ${reached ? '<span class="badge b-warn">指値到達</span>' : ''}</h2>
     ${names.length ? `<div class="hint">${names.map(esc).join('・')}</div>` : ''}
-    <div class="kv"><span class="k">買値</span><span class="v" style="font-weight:700">${fmtYen3(buyRate)}</span></div>
-    <div class="kv"><span class="k">指値</span><span class="v" style="font-weight:700">${fmtYen3(rate)}</span></div>
-    <div class="kv"><span class="k">売却数量(元本回収分)</span><span class="v">${fmtQty(plan.sellQty, a.qtyDecimals)} ${esc(a.code)}</span></div>
-    <div class="kv"><span class="k">回収予定額</span><span class="v">${fmtYen(plan.recover)}</span></div>
-    <div class="kv"><span class="k">積立に残る数量</span><span class="v" style="font-weight:700;color:var(--asset)">${fmtQty(plan.keepQty, a.qtyDecimals)} ${esc(a.code)}</span></div>
-    <div class="kv"><span class="k">現在値</span><span class="v">${price > 0 ? fmtYen(price) : '---'}</span></div>
-    <div class="hint" style="margin-top:10px">${filled ? '現在値が指値以上です。GMOコインで約定を確認し、この画面から確定してください。' : 'GMOコインで約定していたら、この画面から確定できます(自動検知を待たずに記録できます)。'}</div>
-    <button class="btn primary block mt" onclick="sheetCompleteSell('${so.id}')">約定を確定して完了にする →</button>
-    <button class="btn sm sub block mt" onclick="sheetDeleteSell('${so.id}')">注文を取り消す</button>
-    <button class="btn sub block mt" onclick="closeModal()">閉じる</button>`);
+    <div class="xa-sum">
+      <div><div class="k">指値(+${Math.round((so.gainRate || 0) * 100)}%)</div><div class="v">${fmtYen3(rate)}</div></div>
+      <div><div class="k">売る数量</div><div class="v">${qn(plan.sellQty)}<small>${code}</small></div></div>
+      <div class="kp"><div class="k">積立予定</div><div class="v">+${qn(plan.keepQty)}<small>${code}</small></div></div>
+    </div>
+    <div class="kv"><span class="k">買値</span><span class="v">${fmtYen3(p.actualRate)}</span></div>
+    <div class="kv"><span class="k">回収予定</span><span class="v">${fmtYen(plan.recover)}<span class="xa-kv-s">元本 ${fmtSignYen(plan.diff)}</span></span></div>
+    <div class="xa-note${reached ? ' w' : ''}">${reached
+      ? `現在値 ${fmtYen3(price)} が指値以上です。GMOコインで約定しているか確認してください。`
+      : `現在値 ${price > 0 ? fmtYen3(price) : '---'}(指値まで あと +${price > 0 && rate > price ? fmtYen3(rate - price) : '---'})。GMOコインで約定していれば、ここから確定できます。`}</div>
+    <button class="btn primary block mt" onclick="closeModal();completeSell('${so.id}')">約定を確定して完了にする</button>
+    <div class="xa-sub-acts">
+      <button class="btn sm sub" onclick="openSellOrderModal('${p.id}','${so.id}')">指値を変更</button>
+      <button class="btn sm sub" onclick="closeModal();deleteSellOrder('${so.id}')">注文を取り消す</button>
+    </div>`);
 }
-function xrpSellOrdersHtml(a) {
-  const pc = S.priceCache[a.id] || {};
-  const price = Number(pc.last || 0);
-  const NEAR_GAP = 0.02;
-  const gapOf = so => { const r = Number(so.rate) || 0; return price > 0 && r > 0 ? Math.abs(price - r) / r : Infinity; };
-  const orders = S.sellOrders.filter(so => so.status === 'open')
-    .sort((x, y) => (gapOf(x) - gapOf(y)) || String(y.createdAt || '').localeCompare(String(x.createdAt || '')));
-  if (!orders.length) return '';
-  return orders.map(so => {
-    const p = S.purchases.find(x => x.id === so.purchaseId) || {};
-    const buyRate = Number(p.actualRate || 0);
-    const rate = Number(so.rate) || 0;
-    const plan = soPlan(so, p, a);
-    const filled = price > 0 && price >= rate;
-    const near = !filled && price > 0 && rate > 0 && (rate - price) / rate <= NEAR_GAP;
-    const names = (p.reserveAlloc || []).map(l => { const r = S.reserves.find(x => x.id === l.reserveId); return r ? xrpTxLabel(r) : null; }).filter(Boolean);
-    return `<div class="card cyc tap" onclick="openSellOrderSheet('${so.id}')">
-      <div class="badgeline"><span class="badge ${filled ? 'b-warn' : 'b-sell'}">${filled ? '指値到達(要確定)' : '売り注文中'}</span>${near ? '<span class="soonpill">まもなく</span>' : ''}</div>
-      <div class="head"><span class="name">${names.length ? esc(names.slice(0, 2).join('・')) + (names.length > 2 ? ` ほか${names.length - 2}件` : '') : '売り注文'}</span>
-        <span class="amt">${fmtQty(plan.sellQty, a.qtyDecimals)} ${esc(a.code)}</span></div>
-      <div class="pair"><span>買 <b>${fmtYen3(buyRate)}</b> → 指値 <b>${fmtYen3(rate)}</b>(目標 ${Math.round((so.gainRate || 0) * 100)}%)</span></div>
-      <div class="pair"><span>回収 <b>${fmtYen(plan.recover)}</b> ・ 積立 <b>${fmtQty(plan.keepQty, a.qtyDecimals)}</b></span></div>
-      ${filled
-        ? `<div class="after"><span class="left">現在値が指値以上です。<b>まだ確定していません</b> — GMOコインで約定を確認してください。</span></div>`
-        : `<div class="after"><span class="left">${price > 0 ? (price < rate ? `<span class="gap" style="color:${'var(--asset)'}">あと +` + fmtYen3(rate - price) + 'で約定</span>' : '現在値は指値以上です') : '価格を取得できていません'}</span></div>`}
-      <div class="hint" style="margin-top:6px">タップして確定・取り消しができます。</div>
-    </div>`;
-  }).join('');
+async function xaFillBuy(id) { closeModal(); await fillBuyOrder(id); }
+
+/* ================= モーダル② 売り注文の作成(買いの約定確定から続けて開く) ================= */
+function xaSetGain(v) {
+  document.getElementById('so-gain').value = v;
+  document.querySelectorAll('.xa-gains button').forEach(b => b.classList.toggle('on', b.textContent === '+' + v + '%'));
+  xaSoCalc();
 }
+function xaSoCalc() {
+  if (!soCtx) return;
+  const a = activeAsset(), code = esc(a.code), qn = xaQn(a);
+  const p = S.purchases.find(x => x.id === soCtx.purchaseId); if (!p) return;
+  const g = (Number(document.getElementById('so-gain').value) || 0) / 100;
+  const rate = g > 0 ? Core.calcTargetPrice(p.actualRate, g, a.priceStep) : 0;
+  const plan = soPlan({ rate }, p, a);
+  const set = (id, h) => { const e = document.getElementById(id); if (e) e.innerHTML = h; };
+  set('xa-so-rate', rate ? fmtYen3(rate) : '---');
+  set('xa-so-sell', rate ? `${qn(plan.sellQty)}<small>${code}</small>` : '---');
+  set('xa-so-rec', rate ? `→ ${fmtYen(plan.recover)} 回収(元本 ${fmtSignYen(plan.diff)})` : '');
+  set('xa-so-keep', rate ? `+${qn(plan.keepQty)}<small>${code}</small>` : '---');
+  set('xa-so-keepjpy', rate && plan.keepQty > 0 ? `指値で ${fmtYen(Math.round(plan.keepQty * rate))} 相当` : '');
+  set('xa-so-note', rate && plan.keepQty <= 0 ? `<div class="warnbox">数量の刻みのため、元本回収には全量売却が必要です。積立に残る数量はありません。</div>` : '');
+  set('so-c-qty', rate ? String(plan.sellQty) : '---');
+  set('so-c-rate', rate ? rate.toFixed(a.priceDecimals) : '---');
+}
+/* 作成 → 本番の submitSellOrder。作成した売り注文を一瞬ハイライトして見せる */
+async function xaSubmitSell() {
+  const before = new Set(S.sellOrders.map(s => s.id));
+  const editId = soCtx && soCtx.editId;
+  await submitSellOrder();
+  const n = editId ? S.sellOrders.find(s => s.id === editId) : S.sellOrders.find(s => !before.has(s.id));
+  if (n) { xaFlash = n.id; renderAsset(); xaScrollTo('xa-o-' + n.id); }
+}
+
+/* ================= モーダル③ 売り注文:約定を確定して完了 / 指値変更 / 取り消し ================= */
 /* --- 完了リンク --- */
-function xrpDoneLinkHtml() {
-  const n = S.sellOrders.filter(so => so.status === 'filled').length;
-  return `<div class="card"><button class="btn sub block" onclick="go('xrphist')">完了した取引(${n}件)を見る →</button></div>`;
-}
 /* --- 買い注文モーダル --- */
 function openBuyOrderModal(ids, editId = null) {
   const a = activeAsset();
@@ -3509,57 +3803,32 @@ function openSellOrderModal(purchaseId, editId = null) {
   const p = S.purchases.find(x => x.id === purchaseId);
   if (!p) return;
   soCtx = { purchaseId, editId };
+  const code = esc(a.code), qn = xaQn(a);
   const editOrder = editId ? S.sellOrders.find(x => x.id === editId) : null;
   const gain = editOrder ? Math.round((editOrder.gainRate || 0.10) * 100) : 10;
-  openModal(`<h2>売り注文の作成</h2>
-    <div class="hint">買い約定した <b>${fmtQty(p.actualQty, a.qtyDecimals)} ${esc(a.code)}</b> のうち、<b>元本 ${fmtYen(p.amountJPY)} を回収する数量だけ</b>を売却し、残りは積立として残します(数量は刻みに切り上げ)。</div>
-    <label>目標上昇率</label>
-    <select id="so-gain" onchange="soCalc()">${[5, 6, 8, 10, 12, 15, 20, 25, 30, 40].map(v => `<option value="${v}"${v === gain ? ' selected' : ''}>${v}%</option>`).join('')}</select>
-    <div class="kv"><span class="k">売り注文レート(円/${esc(a.code)})</span><span class="v" id="so-rate" style="font-weight:700">---</span></div>
-    <div class="kv"><span class="k">売却数量(元本回収分)</span><span class="v" id="so-qty" style="font-weight:700">---</span></div>
-    <div class="kv"><span class="k">回収予定額(円)</span><span class="v" id="so-recover">---</span></div>
-    <div class="kv"><span class="k">積立に残る数量</span><span class="v asset" id="so-keep" style="font-weight:700">---</span></div>
-    <div class="kv"><span class="k">元本との差額</span><span class="v" id="so-diff">---</span></div>
-    <div id="so-diffnote"></div>
-    <div class="copycard">
-      <div class="l">GMOコインに入力する売却数量(${esc(a.code)})</div><div class="v" id="so-c-qty">---</div>
-      <button class="btn sm sub" onclick="copySo('so-c-qty')">📋 コピー</button>
+  const gains = XA_GAINS.includes(gain) ? XA_GAINS : [...XA_GAINS, gain].sort((x, y) => x - y);
+  openModal(`${xaSteps('sell')}
+    <h2>${editOrder ? '売り注文の指値を変更' : '売り注文を作成'}</h2>
+    <div class="xa-bought">${editOrder ? '' : `<i>${XA_CHECK}</i>`}<span><b>${qn(p.actualQty)} ${code}</b> を <b>${fmtYen3(p.actualRate)}</b> で${editOrder ? '購入' : '買えました'} ・ 元本 ${fmtYen(p.amountJPY)}</span></div>
+    <label>何%上がったら売りますか</label>
+    <input type="hidden" id="so-gain" value="${gain}">
+    <div class="xa-gains">${gains.map(v => `<button class="${v === gain ? 'on' : ''}" onclick="xaSetGain(${v})">+${v}%</button>`).join('')}</div>
+    <div class="xa-plan">
+      <div class="xa-plan-hd"><span>指値</span><b id="xa-so-rate">---</b></div>
+      <div class="xa-plan-row">
+        <div><div class="k">元本ぶん売る</div><div class="v" id="xa-so-sell">---</div><div class="s" id="xa-so-rec">---</div></div>
+        <div class="kp"><div class="k">積み立てる</div><div class="v" id="xa-so-keep">---</div><div class="s" id="xa-so-keepjpy">---</div></div>
+      </div>
+      <div id="xa-so-note"></div>
     </div>
-    <div class="copycard">
-      <div class="l">GMOコインに入力する売却レート(円/${esc(a.code)})</div><div class="v" id="so-c-rate">---</div>
-      <button class="btn sm sub" onclick="copySo('so-c-rate')">📋 コピー</button>
+    <div class="xa-copy">
+      <div class="xa-copy-l">GMOコインに入力する値</div>
+      <button class="xa-copy-i" onclick="copySo('so-c-qty')"><span class="k">売却数量</span><span class="v" id="so-c-qty">---</span><span class="c">コピー</span></button>
+      <button class="xa-copy-i" onclick="copySo('so-c-rate')"><span class="k">売却レート</span><span class="v" id="so-c-rate">---</span><span class="c">コピー</span></button>
     </div>
-    <div class="notebox">実際の売却はGMOコインのアプリで行ってください。価格が指値に到達すると「到達」表示になり、確定するとサイクル完了です。</div>
-    <div class="row mt"><button class="btn sub" onclick="closeModal()">キャンセル</button>
-    <button class="btn primary" onclick="submitSellOrder()">${editOrder ? '変更を保存' : '売り注文を作成'}</button></div>`);
-  soCalc();
-}
-function soCalc() {
-  if (!soCtx) return;
-  const a = activeAsset();
-  const p = S.purchases.find(x => x.id === soCtx.purchaseId);
-  if (!p) return;
-  const g = (Number(document.getElementById('so-gain').value) || 0) / 100;
-  const rate = g > 0 ? Core.calcTargetPrice(p.actualRate, g, a.priceStep) : 0;
-  const plan = soPlan({ rate }, p, a);
-  document.getElementById('so-rate').textContent = rate ? fmtYen3(rate) : '---';
-  document.getElementById('so-qty').textContent = rate ? `${fmtQty(plan.sellQty, a.qtyDecimals)} ${a.code}` : '---';
-  document.getElementById('so-recover').textContent = rate ? fmtYen(plan.recover) : '---';
-  document.getElementById('so-keep').textContent = rate ? `${fmtQty(plan.keepQty, a.qtyDecimals)} ${a.code}` : '---';
-  const dEl = document.getElementById('so-diff');
-  if (dEl) {
-    dEl.textContent = rate ? `${plan.diff >= 0 ? '+' : '-'}${fmtYen(Math.abs(plan.diff))}` : '---';
-    dEl.style.color = plan.diff >= 0 ? 'var(--ok)' : 'var(--spend)';
-  }
-  const minQ = Number(a.minOrderQty) || 1;
-  const note = document.getElementById('so-diffnote');
-  if (note) note.innerHTML = rate
-    ? (plan.keepQty > 0
-      ? `<div class="hint">積立 ${fmtQty(plan.keepQty, a.qtyDecimals)} ${esc(a.code)} は売らずに残ります。評価額の目安 ${fmtYen(Math.round(plan.keepQty * rate))}。</div>`
-      : `<div class="warnbox">数量の刻み(${esc(String(a.qtyStep))})のため、元本回収には全量売却が必要で、積立に残る数量はありません。購入数量を増やすと積立が発生します。</div>`)
-    : '';
-  document.getElementById('so-c-qty').textContent = rate ? String(plan.sellQty) : '---';
-  document.getElementById('so-c-rate').textContent = rate ? rate.toFixed(a.priceDecimals) : '---';
+    <div class="row mt"><button class="btn sub" onclick="closeModal()">${editOrder ? 'キャンセル' : 'あとで'}</button>
+    <button class="btn primary" onclick="xaSubmitSell()">${editOrder ? '変更を保存' : '売り注文を作成'}</button></div>`);
+  xaSoCalc();
 }
 async function copySo(id) {
   const v = document.getElementById(id).textContent;
@@ -3590,121 +3859,6 @@ async function submitSellOrder() {
   });
   await loadAll(); closeModal();
   toast(`売り注文を作成しました(売 ${fmtQty(plan.sellQty, a.qtyDecimals)} / 積立 ${fmtQty(plan.keepQty, a.qtyDecimals)} ${a.code} @ ${fmtYen(rate)})`);
-  renderAsset();
-}
-function deleteBuyOrder(orderId) {
-  confirmModal('買い注文の取り消し', 'この買い注文を取り消します。対象の支出は「未注文」に戻ります。よろしいですか?', '取り消す', async () => {
-    await idbDel('purchaseOrders', orderId);
-    await loadAll(); toast('買い注文を取り消しました'); renderAsset();
-  }, true);
-}
-/* --- 買い約定→購入登録→売り注文モーダル --- */
-async function fillBuyOrder(orderId) {
-  const a = activeAsset();
-  const o = S.purchaseOrders.find(x => x.id === orderId);
-  if (!o) return;
-  const amountJPY = Math.round(Number(o.rate) * Number(o.qty));
-  let alloc;
-  if ((o.reserveIds || []).length) {
-    alloc = o.reserveIds.map(id => { const r = S.reserves.find(x => x.id === id); return r ? { reserveId: id, txId: r.txId, amount: r.amount } : null; }).filter(Boolean);
-  } else {
-    alloc = Core.allocatePurchase(pendingReserves(), amountJPY).links;
-  }
-  const pur = {
-    id: uid(), assetId: a.id, datetime: nowLocalTs(), actualRate: Number(o.rate), actualQty: Number(o.qty), amountJPY,
-    orderRate: Number(o.rate), orderQty: Number(o.qty), fee: null, memo: '買い注文の約定', reserveAlloc: alloc, createdAt: nowLocalTs()
-  };
-  await idbPut('purchases', pur);
-  for (const l of alloc) {
-    const r = S.reserves.find(x => x.id === l.reserveId);
-    if (!r) continue;
-    if (l.amount >= r.amount) { r.status = 'linked'; r.purchaseId = pur.id; await idbPut('reserves', r); }
-    else {
-      await idbPut('reserves', { id: r.id, txId: r.txId, assetId: r.assetId, amount: l.amount, status: 'linked', purchaseId: pur.id, createdAt: r.createdAt });
-      await idbPut('reserves', { id: uid(), txId: r.txId, assetId: r.assetId, amount: r.amount - l.amount, status: 'pending', createdAt: nowLocalTs() });
-    }
-  }
-  o.status = 'filled';
-  await idbPut('purchaseOrders', o);
-  await loadAll();
-  toast(`買い約定を記録しました(${fmtQty(pur.actualQty, a.qtyDecimals)} ${esc(a.code)})`);
-  openSellOrderModal(pur.id);
-}
-/* --- 売り注文モーダル --- */
-function openSellOrderModal(purchaseId, editId = null) {
-  const a = activeAsset();
-  const p = S.purchases.find(x => x.id === purchaseId);
-  if (!p) return;
-  soCtx = { purchaseId, editId };
-  const editOrder = editId ? S.sellOrders.find(x => x.id === editId) : null;
-  const gain = editOrder ? Math.round((editOrder.gainRate || 0.10) * 100) : 10;
-  openModal(`<h2>売り注文の作成</h2>
-    <div class="hint">買い約定した <b>${fmtQty(p.actualQty, a.qtyDecimals)} ${esc(a.code)}</b>(@ ${fmtYen3(p.actualRate)})を、何%上がったら売るか決めます。</div>
-    <label>目標上昇率</label>
-    <select id="so-gain" onchange="soCalc()">${[5, 6, 8, 10, 12, 15, 20, 25, 30, 40].map(v => `<option value="${v}"${v === gain ? ' selected' : ''}>${v}%</option>`).join('')}</select>
-    <div class="kv"><span class="k">売り注文レート(円/${esc(a.code)})</span><span class="v" id="so-rate" style="font-weight:700">---</span></div>
-    <div class="kv"><span class="k">売却数量</span><span class="v" id="so-qty">${fmtQty(p.actualQty, a.qtyDecimals)} ${esc(a.code)}(買い約定分すべて)</span></div>
-    <div class="kv"><span class="k">この指値で売れたときの利益</span><span class="v asset" id="so-diff" style="font-weight:700">---</span></div>
-    <div id="so-diffnote"></div>
-    <div class="copycard">
-      <div class="l">GMOコインに入力する売却数量(${esc(a.code)})</div><div class="v" id="so-c-qty">---</div>
-      <button class="btn sm sub" onclick="copySo('so-c-qty')">📋 コピー</button>
-    </div>
-    <div class="copycard">
-      <div class="l">GMOコインに入力する売却レート(円/${esc(a.code)})</div><div class="v" id="so-c-rate">---</div>
-      <button class="btn sm sub" onclick="copySo('so-c-rate')">📋 コピー</button>
-    </div>
-    <div class="notebox">実際の売却はGMOコインのアプリで行ってください。価格が指値に到達すると「約定」扱いになり、確定するとサイクル完了です。</div>
-    <div class="row mt"><button class="btn sub" onclick="closeModal()">キャンセル</button>
-    <button class="btn primary" onclick="submitSellOrder()">${editOrder ? '変更を保存' : '売り注文を作成'}</button></div>`);
-  soCalc();
-}
-function soCalc() {
-  if (!soCtx) return;
-  const a = activeAsset();
-  const p = S.purchases.find(x => x.id === soCtx.purchaseId);
-  if (!p) return;
-  const g = (Number(document.getElementById('so-gain').value) || 0) / 100;
-  const rate = g > 0 ? Core.calcTargetPrice(p.actualRate, g, a.priceStep) : 0;
-  document.getElementById('so-rate').textContent = rate ? fmtYen(rate) : '---';
-  const diff = rate ? Math.max(0, p.actualQty - p.amountJPY / rate) : 0;
-  const profit = rate ? Math.max(0, Math.round(p.actualQty * rate - p.amountJPY)) : 0;
-  document.getElementById('so-diff').textContent = rate ? coinGainText(diff, rate, a.code) : '---';
-  const minQ = Number(a.minOrderQty) || 1;
-  const note = document.getElementById('so-diffnote');
-  if (note) note.innerHTML = rate
-    ? `<div class="hint">${fmtQty(diff, a.qtyDecimals)} ${esc(a.code)}・${fmtYen(profit)}相当${(diff > 0 && diff < minQ) ? '<br>売却で受け取るのは円です。1 ' + esc(a.code) + '未満の端数はそのままでは買い足せないため、次回以降の買い注文と合算してください。' : ''}</div>`
-    : '';
-  document.getElementById('so-c-qty').textContent = rate ? String(p.actualQty) : '---';
-  document.getElementById('so-c-rate').textContent = rate ? rate.toFixed(a.priceDecimals) : '---';
-}
-async function copySo(id) {
-  const v = document.getElementById(id).textContent;
-  if (!v || v === '---') { toast('値が未確定です'); return; }
-  const ok = await copyText(v.split(' ')[0]);
-  toast(ok ? 'コピーしました' : 'コピーに失敗しました');
-}
-async function submitSellOrder() {
-  if (!soCtx) return;
-  const a = activeAsset();
-  const p = S.purchases.find(x => x.id === soCtx.purchaseId);
-  if (!p) { closeModal(); return; }
-  const g = (Number(document.getElementById('so-gain').value) || 0) / 100;
-  if (!(g > 0) || g > 1) { toast('目標上昇率は1〜99%で入力してください'); return; }
-  const rate = Core.calcTargetPrice(p.actualRate, g, a.priceStep);
-  if (soCtx.editId) {
-    const so = S.sellOrders.find(x => x.id === soCtx.editId);
-    if (!so) { closeModal(); return; }
-    so.rate = rate; so.gainRate = g;
-    await idbPut('sellOrders', so);
-    await loadAll(); closeModal(); toast('売り注文を変更しました'); renderAsset();
-    return;
-  }
-  await idbPut('sellOrders', {
-    id: uid(), assetId: a.id, purchaseId: p.id, qty: p.actualQty, rate, gainRate: g, status: 'open', createdAt: nowLocalTs()
-  });
-  await loadAll(); closeModal();
-  toast(`売り注文を作成しました(目標 +${Math.round(g * 100)}% / 指値 ${fmtYen(rate)})`);
   renderAsset();
 }
 async function deleteSellOrder(orderId) {
