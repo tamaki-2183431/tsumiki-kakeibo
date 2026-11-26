@@ -238,6 +238,13 @@ body.modal-open{overflow:hidden}
 .cycrow{display:flex;gap:8px;font-size:12px;line-height:1.55;margin-top:4px}
 .cycrow>b{flex:0 0 34px;color:var(--sub);font-size:11px;font-weight:700;padding-top:1px}
 .cycrow>span{flex:1;min-width:0}
+/* splash (起動ロゴアニメーション) */
+#splash{position:fixed;inset:0;z-index:9999;background:#f8f6f0;display:flex;align-items:center;justify-content:center;transition:opacity .3s ease;will-change:opacity}
+#splash.out{opacity:0;pointer-events:none}
+#splash .splash-logo{width:62vw;max-width:480px;display:block}
+#splash svg{width:100%;height:auto;display:block}
+@media (orientation:landscape){#splash .splash-logo{width:38vw}}
+body.splashing{overflow:hidden}
 /* header color picker */
 .hcpick{border:1px solid var(--line2);border-radius:12px;padding:10px;margin-top:10px;background:var(--surface2)}
 .hcpick .hchead{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700;gap:8px}
@@ -374,6 +381,41 @@ div.errskip{display:none}
 </style>
 </head>
 <body>
+<div id="splash" aria-hidden="true"><div class="splash-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="2 2 103.12 28" overflow="visible"><style>
+.tk-all,.tk-b,.tk-m,.tk-r,.tk-t{animation-duration:2s;animation-fill-mode:both;animation-iteration-count:1;animation-timing-function:linear}
+.tk-all{animation-name:tkAll}
+.tk-b{animation-name:tkB}
+.tk-m{animation-name:tkM}
+.tk-r{animation-name:tkR}
+.tk-t{animation-name:tkT}
+@keyframes tkB{
+0%{transform:translateY(9px);opacity:0;animation-timing-function:cubic-bezier(.22,1,.36,1)}
+2%{transform:translateY(9px);opacity:0;animation-timing-function:cubic-bezier(.22,1,.36,1)}
+18%{transform:translateY(0);opacity:1}
+41%{transform:translateY(0);animation-timing-function:cubic-bezier(.3,0,.4,1)}
+44%{transform:translateY(.22px);animation-timing-function:cubic-bezier(.3,0,.3,1)}
+52%,100%{transform:translateY(0);opacity:1}}
+@keyframes tkM{
+0%,11%{transform:translateY(6px);opacity:0;animation-timing-function:cubic-bezier(.22,1,.36,1)}
+27%{transform:translateY(0);opacity:1}
+41%{transform:translateY(0);animation-timing-function:cubic-bezier(.3,0,.4,1)}
+44%{transform:translateY(.42px);animation-timing-function:cubic-bezier(.3,0,.3,1)}
+53%,100%{transform:translateY(0);opacity:1}}
+@keyframes tkR{
+0%,25%{transform:translateY(-6px);opacity:0;animation-timing-function:cubic-bezier(.45,0,.75,.55)}
+33%{opacity:1}
+41%{transform:translateY(.6px);opacity:1;animation-timing-function:cubic-bezier(.2,.7,.4,1)}
+47%{transform:translateY(-.55px);animation-timing-function:cubic-bezier(.45,0,.45,1)}
+55%,100%{transform:translateY(0);opacity:1}}
+@keyframes tkT{
+0%,55%{transform:translateY(3.2px);opacity:0;animation-timing-function:cubic-bezier(.25,1,.4,1)}
+80%,100%{transform:translateY(0);opacity:1}}
+@keyframes tkAll{
+0%,80%{transform:translateY(0);animation-timing-function:cubic-bezier(.25,.8,.4,1)}
+87%{transform:translateY(-.55px);animation-timing-function:cubic-bezier(.45,0,.55,1)}
+94%{transform:translateY(.12px);animation-timing-function:cubic-bezier(.45,0,.55,1)}
+100%{transform:translateY(0)}}
+@media (prefers-reduced-motion:reduce){.tk-all,.tk-b,.tk-m,.tk-r,.tk-t{animation:none!important;opacity:1!important;transform:none!important}}</style><g class="tk-all"><g class="tk-b"><rect x="2.5" y="24.5" width="27" height="5.2" rx="1.8" fill="#1e6e5c"/></g><g class="tk-m"><rect x="8.5" y="13" width="15" height="9.5" rx="1.8" fill="#3a8a75"/></g><g class="tk-r"><path d="M16 2.6Q16.9 2.6 17.5 3.3L26.2 9.6Q27 10.9 25.6 11L6.4 11Q5 10.9 5.8 9.6L14.5 3.3Q15.1 2.6 16 2.6Z" fill="#c8923a"/></g><g class="tk-t"><path transform="translate(37.00 24.47) scale(0.02252) translate(-90.61111111111111 0)" fill="#1f2b26" d="M101 -538 92 -580Q87 -603 100.0 -623.0Q113 -643 136 -648Q417 -708 543 -708Q930 -708 930 -385Q930 -189 783.0 -87.0Q636 15 326 24Q302 25 284.0 8.5Q266 -8 264 -32L260 -72Q258 -95 274.0 -111.5Q290 -128 313 -129Q552 -135 654.0 -193.5Q756 -252 756 -368Q756 -462 702.0 -506.0Q648 -550 527 -550Q424 -550 169 -495Q146 -490 126.0 -502.5Q106 -515 101 -538Z M1412 -319Q1341 -306 1305.5 -277.5Q1270 -249 1270 -212Q1270 -180 1293.5 -148.5Q1317 -117 1338 -117Q1385 -117 1419 -313Q1420 -316 1417.5 -318.0Q1415 -320 1412 -319ZM1351 43Q1264 43 1189.5 -35.0Q1115 -113 1115 -212Q1115 -307 1198.5 -375.5Q1282 -444 1432 -463Q1439 -464 1441 -473Q1444 -497 1455 -610Q1455 -618 1447 -618H1246Q1223 -618 1206.0 -635.0Q1189 -652 1189 -675V-698Q1189 -721 1206.0 -738.0Q1223 -755 1246 -755H1564Q1587 -755 1604.0 -738.0Q1621 -721 1621 -698V-618Q1606 -492 1604 -476Q1602 -467 1611 -467Q1664 -462 1716 -452Q1725 -450 1725 -459Q1727 -551 1727 -619Q1727 -642 1743.5 -658.5Q1760 -675 1783 -675H1823Q1846 -675 1863.0 -658.5Q1880 -642 1880 -619Q1880 -531 1876 -413Q1876 -404 1884 -401Q1930 -382 1978 -356Q1999 -345 2005.5 -322.0Q2012 -299 2001 -277L1986 -247Q1976 -227 1953.5 -221.0Q1931 -215 1911 -226Q1885 -240 1871 -247Q1865 -250 1863 -243Q1847 -127 1807.5 -67.0Q1768 -7 1684 46Q1664 59 1641.0 52.5Q1618 46 1606 26L1587 -5Q1575 -25 1581.0 -47.0Q1587 -69 1607 -82Q1661 -116 1684.5 -159.0Q1708 -202 1717 -295Q1719 -305 1710 -307Q1648 -323 1590 -327Q1581 -327 1580 -320Q1560 -204 1537.0 -131.5Q1514 -59 1485.0 -21.0Q1456 17 1425.5 30.0Q1395 43 1351 43Z M2268 -387Q2245 -387 2228.5 -403.5Q2212 -420 2212 -443V-458Q2212 -481 2229.0 -498.0Q2246 -515 2269 -515Q2388 -515 2632 -521Q2640 -521 2638 -529Q2634 -544 2626 -576Q2625 -583 2616 -583Q2448 -578 2315 -578Q2292 -578 2275.0 -595.0Q2258 -612 2258 -635V-650Q2258 -674 2275.0 -690.5Q2292 -707 2316 -707Q2407 -707 2593 -711Q2603 -711 2601 -720Q2600 -724 2600.0 -734.0Q2600 -744 2599 -748Q2597 -771 2612.5 -787.5Q2628 -804 2652 -806L2692 -809Q2715 -810 2732.5 -794.5Q2750 -779 2752 -755L2755 -725Q2757 -716 2765 -716Q2823 -718 2939 -724Q2962 -726 2980.0 -709.5Q2998 -693 2999 -670V-655Q3000 -632 2984.0 -614.5Q2968 -597 2945 -596Q2920 -595 2867.0 -592.5Q2814 -590 2787 -589Q2779 -589 2781 -580Q2789 -548 2794 -533Q2795 -526 2804 -526Q2914 -530 2968 -532Q2991 -533 3008.5 -517.0Q3026 -501 3027 -478V-463Q3028 -440 3012.0 -422.5Q2996 -405 2973 -404Q2953 -403 2913.0 -401.5Q2873 -400 2853 -399Q2845 -399 2849 -391Q2868 -351 2899 -299Q2911 -280 2905.0 -258.5Q2899 -237 2879 -227L2823 -201Q2773 -178 2719 -197Q2642 -224 2570 -224Q2430 -224 2430 -160Q2430 -117 2480.5 -96.5Q2531 -76 2659 -76Q2729 -76 2841 -89Q2864 -92 2882.5 -77.5Q2901 -63 2904 -40L2907 -20Q2910 3 2895.5 22.0Q2881 41 2858 44Q2749 57 2659 57Q2267 57 2267 -160Q2267 -246 2343.5 -296.0Q2420 -346 2570 -346Q2642 -346 2711 -328H2713V-330Q2704 -348 2688 -386Q2685 -393 2677 -393Q2541 -389 2268 -387Z"/></g></g></svg></div></div>
 <header class="app">
   <div class="brand">
     <h1 class="logo" aria-label="つみき">
@@ -4233,6 +4275,24 @@ async function resetOcrConsent() {
 
 /* テスト・デバッグ用にグローバル公開(const/letはwindowに載らないため) */
 try { Object.assign(window, { Core, S, STORES, activeAsset, pendingTotal, pendingReserves, assetStats, loadAll, seedIfNeeded, idbAll, idbClear, idbPut, idbBulkPut, fetchPriceOnce, jstDateStr, nowYm, assetModeOn, pickMode, setAssetMode, showWelcome, buildTabbar, openTsvModal, parseTsvLines, tsvSaveAll, stopPriceLoop, go }); } catch (e) {}
+
+/* --- 起動スプラッシュ(2.0秒再生 → 0.3秒フェードアウト) --- */
+(function () {
+  var el = document.getElementById('splash');
+  if (!el) return;
+  document.body.classList.add('splashing');
+  var reduce = false;
+  try { reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+  var hold = reduce ? 600 : 2050;   // アニメーション尺 + 余韻(0.05s)
+  var fade = 300;
+  setTimeout(function () {
+    el.classList.add('out');
+    setTimeout(function () {
+      if (el.parentNode) el.parentNode.removeChild(el);
+      document.body.classList.remove('splashing');
+    }, fade + 60);
+  }, hold);
+})();
 </script>
 <!-- build-retrigger: 2026-11-23 -->
 <!-- deploy-retrigger: 11-23-1100 --></body>
