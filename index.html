@@ -378,7 +378,7 @@ details.flash summary{color:var(--asset)}
 div.errskip{display:none}
 #toast .tact{margin-left:12px;background:none;border:1px solid rgba(255,255,255,.55);color:inherit;border-radius:8px;padding:4px 10px;font:inherit;font-weight:700;cursor:pointer}
 #toast .tact:active{opacity:.75}
-/* ===== 完了した取引(xh-*) 2026-11 UI改善版 v2 ===== */
+/* ===== 完了した取引(xh-*) 2026-11 UI改善版 v3 ===== */
 .xh-top{display:flex;align-items:center;gap:4px;margin:0 0 12px}
 .xh-back{display:inline-flex;align-items:center;gap:2px;min-height:36px;padding:0 10px 0 4px;margin-left:-4px;border-radius:9px;color:var(--asset);font-weight:700;font-size:13.5px}
 .xh-back:active{background:var(--surface)}
@@ -429,7 +429,7 @@ div.errskip{display:none}
 .xh-sum .v small{font-size:11px;font-weight:600;color:var(--sub);margin-left:2px}
 .xh-sum .s{font-size:10.5px;color:var(--faint);font-variant-numeric:tabular-nums}
 .xh-sum .s.ok{color:var(--ok);font-weight:700}
-.xh-how{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:11.5px;color:var(--sub);background:var(--surface2);border:1px solid var(--line2);border-radius:10px;padding:8px 10px}
+.xh-how{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:11.5px;line-height:1.55;text-wrap:pretty;color:var(--sub);background:var(--surface2);border:1px solid var(--line2);border-radius:10px;padding:8px 10px}
 .xh-how .hbtn{float:none;margin:0 0 0 auto;flex-shrink:0}
 
 /* month group */
@@ -3826,7 +3826,7 @@ function renderXrpHist() {
       <div><div class="k">円で回収した額</div><div class="v">${fmtYen(recovered)}</div>
         <div class="s ${recovered - principalSum >= 0 ? 'ok' : ''}">元本 ${fmtYen(principalSum)} ${fmtSignYen(recovered - principalSum)}</div></div>
     </div>
-    <div class="xh-how">元本ぶんだけ売って円に戻し、残りを積み立てています ${hbtn('qa-assets-view')}</div>
+    <div class="xh-how">元本ぶん売って円に戻し、残りを積み立てています ${hbtn('qa-assets-view')}</div>
   </div>`;
 
   /* ── ② 取引ごとのカード(月でまとめる) ── */
