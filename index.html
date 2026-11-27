@@ -3391,11 +3391,13 @@ function renderAsset() {
     </a>
   </section>`;
 
+  const chartWasOpen = !!(el.querySelector('details.xa-chart') || {}).open;
   el.innerHTML = market + hero
     + sec('pend', 'none', '未注文', pend.length, pend.length ? fmtYen(pendTotal) : '', pend.length ? `支出を選んで、まとめて買い注文を出します ${hbtn('qa-assets-view')}` : '家計簿に支出を登録すると、ここに並びます', pendBody)
     + sec('buy', 'buy', '買い注文中', buys.length, buys.length ? fmtYen(buys.reduce((s, b) => s + Number(b.o.amount || 0), 0)) : '', buys.length ? '約定したらタップ → 確定すると、そのまま売り注文へ進みます' : '', buyBody)
     + sec('sell', 'sell', '売り注文中', nSellAll, sells.length ? `積立予定 +${qn(sells.reduce((s, x) => s + x.plan.keepQty, 0))} ${code}` : '', nSellAll ? '元本ぶんを売り、残りを積み立てます。約定したらタップして完了に' : '', sellBody)
     + doneCard;
+  const nd = el.querySelector('details.xa-chart'); if (nd && chartWasOpen) nd.open = true;
   setTimeout(() => { const a2 = activeAsset(); if (a2) loadXrpChart(a2); }, 0);
 }
 
